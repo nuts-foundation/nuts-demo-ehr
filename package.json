@@ -4,7 +4,7 @@
   "description": "A demo electronic health record system that interfaces with the Nuts node",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"npm run start_1\" \"npm run start_2\" \"npm run start_3\" \"webpack\"",
+    "start": "cat NOTICE && concurrently \"npm run start_1\" \"npm run start_2\" \"npm run start_3\" \"webpack\"",
     "test": "mocha --recursive --watch",
     "start_1": "CONFIG=config/zkh-noot-aan-de-man.json nodemon index.js",
     "start_2": "CONFIG=config/huisarts-nootenboom.json nodemon index.js",

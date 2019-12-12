@@ -25,31 +25,36 @@ npm start
 
 You should now have three instances of this EHR running on:
 
-* http://localhost:80
-* http://localhost:81
-* http://localhost:82
+* http://localhost:80 ⸺ Verpleeghuis de Nootjes
+* http://localhost:81 ⸺ Huisartsenpraktijk Nootenboom
+* http://localhost:82 ⸺ Medisch Centrum Noot aan de Man
 
 Also, as a bonus, you can display two or all three side by side by going to:
 
-* http://localhost/duo.html
-* http://localhost/triple.html
+* http://localhost/duo.html ⸺ Shows the applications on ports 80 and 82
+* http://localhost/triple.html ⸺ Shows all three applications
 
 ### Configuring the application(s)
 
 You can find the configuration files for all three applications in the `config`
-directory. You will need to edit these files to point to the right Nuts node(s).
+directory. You may need to edit these files to point to the right Nuts node(s).
+If you followed the [Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network)
+instructions, http://localhost:80 (Verpleeghuis de Nootjes) will connect to Nuts
+node 'Bundy' and the other two will connect to node 'Dahmer'.
+
 You can also change port numbers, organisation details and default health
-records there.
+records in the config files.
 
 ### Adding to the Nuts register
 
 If you want to allow the applications to find each other and exchange data, you
-will have to add them to a Nuts registry. For example, you can clone a local
-copy of [the development registry](https://github.com/nuts-foundation/nuts-registry-development),
-point your development Nuts node(s) to it and add your applications there.
+will have to add them to the Nuts registry. Again, if you followed
+[Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network),
+you can find your registry in `nuts-network-local/config/registry`.
 
 To make this process easier the applications will output their registry
-information on startup.
+information on startup. Add that information to your registry's
+`organisations.json`.
 
 ## Learning from this application
 

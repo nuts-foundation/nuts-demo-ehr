@@ -4,7 +4,7 @@
     "verbose": true
   },
   "nuts": {
-    "node": "localhost:21323"
+    "node": "localhost:11323"
   },
   "organisation": {
     "name":   "Verpleeghuis De Nootjes",

@@ -21,6 +21,11 @@ router.get('/:patient_id/received', findPatient, async (req, res) => {
       actor:   config.organisation
     });
 
+    // Fetch consents in transit
+    const pending = await eventStore.allEvents();
+    // Can we filter this on patient somehow..? :/
+    console.log(pending);
+
     // Map URNs to sane organisations
     let organisations = [];
     if ( consents.totalResults > 0 && consents.results )
@@ -42,7 +47,7 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
 
     // Fetch consents in transit
     const pending = await consentInTransit.get({
-      subject: req.patient.bsn,
+      subject:   req.patient.bsn,
       custodian: config.organisation.agb
     });
 
@@ -66,6 +71,21 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
     res.status(200).send(organisations).end();
   } catch(e) {
     res.status(500).send(`Error in Nuts node query for finding consents: ${e}`);
+  }
+});
+
+router.get('/inbox', async (req, res) => {
+  try {
+    const events = await eventStore.allEvents();
+
+    // Map URNs to sane organisations
+    for ( event of events.events || [] ) {
+      event.organisation = await registry.organizationById(event.initiatorLegalEntity);
+    }
+
+    res.status(200).send(events.events || []).end();
+  } catch(e) {
+    res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
   }
 });
 

@@ -1,17 +1,19 @@
 import Thimbleful from 'thimbleful';
 const router = new Thimbleful.Router();
 
-import patientOverview     from './components/patient-overview';
-import patient             from './components/patient/patient';
+import patientOverview from './components/patient-overview';
+import inbox           from './components/inbox';
+import patient         from './components/patient/patient';
 
 export default {
   load: () => {
     // Root redirects to patient overview
-    if ( !window.location.hash ) window.location.hash = 'patient-overview';
+    if ( !window.location.hash ) window.location.hash = 'dashboard';
 
-    router.addRoute('patient-overview', async link => {
+    router.addRoute('dashboard', async link => {
       await patientOverview.render();
       openPage(link);
+      inbox.render(); // This may come in later, that's ok
     });
 
     router.addRoute(/patient-details\/(\d+)(\/.*)?/, async (link, matches) => {

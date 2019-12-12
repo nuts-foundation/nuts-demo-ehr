@@ -20,7 +20,7 @@ export default {
 const template = (patient) => `
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="#patient-overview">Patients in care</a></li>
+      <li class="breadcrumb-item"><a href="#dashboard">Patients in care</a></li>
       <li class="breadcrumb-item active" aria-current="page">${patient.name.given} ${patient.name.family}</li>
     </ol>
   </nav>

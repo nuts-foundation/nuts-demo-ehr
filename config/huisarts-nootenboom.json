@@ -1,0 +1,61 @@
+{
+  "server": {
+    "port":    81,
+    "verbose": true
+  },
+  "nuts": {
+    "node": "localhost:21323"
+  },
+  "organisation": {
+    "name":   "Huisartsenpraktijk Nootenboom",
+    "colour": "#145f14",
+    "agb":    "87654321",
+    "user":   "Tim"
+  },
+  "patients": [
+    {
+      "id": "1",
+      "bsn": "999999990",
+      "name": {
+        "given": "Irma",
+        "family": "Jongeneel-de Haas"
+      },
+      "gender": "female",
+      "birthDate": "1970-03-04"
+    },
+    {
+      "id": "2",
+      "bsn": "999999991",
+      "name": {
+        "given": "Roos",
+        "family": "Dalstra"
+      },
+      "gender": "female",
+      "birthDate": "1964-03-04"
+    },
+    {
+      "id": "3",
+      "bsn": "999999992",
+      "name": {
+        "given": "Tim",
+        "family": "Weernink"
+      },
+      "gender": "male",
+      "birthDate": "1986-01-29"
+    }
+  ],
+  "observations": [
+    {
+      "id": "1",
+      "patientId": "1",
+      "timestamp": "14-11-2019 11:46:00",
+      "content": "Mevrouw voelt zich al een stuk beter dan gister"
+    },
+    {
+      "id": "2",
+      "patientId": "3",
+      "timestamp": "14-11-2019 11:48:00",
+      "content": "We moeten meneer niet meer zoveel Nutsen voeren. Dat gaat niet goed."
+    }
+  ]
+}

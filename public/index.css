@@ -1,0 +1,59 @@
+main.container {
+  margin-top: 6rem;
+  margin-bottom: 4rem;
+}
+
+table {
+  margin-top: 2rem;
+}
+
+i.user-icon {
+  display: inline-block;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: bottom;
+  margin-left: 0.5em;
+  position: relative;
+
+  border-radius: 50%;
+  background-color: rgba(255,255,255,0.6);
+  overflow: hidden;
+}
+
+i.user-icon:before, i.user-icon:after {
+  content: ' ';
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 0.2em;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: -0.3em;
+
+  border-radius: 50%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+i.user-icon:after {
+  width: 1em;
+  height: 1em;
+  top: 0.8em;
+  margin-left: -0.5em;
+}
+
+section.page, section.tab-pane {
+  display: none;
+}
+section.page.active, section.tab-pane.active {
+  display: block;
+}
+
+.nav-tabs a.nav-link {
+  cursor: pointer;
+}
+
+.auto-complete {
+  position: absolute;
+  z-index: 100;
+  width: calc(100% - 30px);
+}

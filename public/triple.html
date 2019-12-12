@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Network</title>
+
+    <script type="text/javascript">
+      const applications = [
+        {
+          url:    'http://localhost:80',
+          colour: '#961515'
+        },
+        {
+          url:    'http://localhost:81',
+          colour: '#145f14'
+        },
+        {
+          url:    'http://localhost:82',
+          colour: '#2f2f63'
+        }
+      ];
+
+      window.addEventListener('load', () => {
+        applications.forEach(app => {
+          const frame = document.createElement('iframe');
+          frame.src = app.url;
+          frame.style.boxShadow = `0px 0px 2vw ${app.colour}`;
+          frame.style.border = `1px solid ${app.colour}`;
+          document.body.appendChild(frame);
+        });
+      });
+    </script>
+
+    <style>
+      html, body {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      body {
+        padding: 1.5vh 0.75vw;
+        align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      iframe {
+        width: 45vw;
+        height: 43vh;
+        margin: auto;
+        border: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+  </body>
+
+</html>

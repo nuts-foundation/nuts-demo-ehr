@@ -7,11 +7,8 @@ const call = openAPIHelper.call({
 });
 
 module.exports = {
-  consentsFor: async (parties) => {
-    const res = await call('queryConsent', null, query(parties));
-    console.log(res);
-    return res;
-  }
+  consentsFor:  async (parties) => await call('queryConsent', null, query(parties)),
+  checkConsent: async (parties) => await call('checkConsent', null, combination(parties))
 };
 
 function query(parties) {
@@ -25,4 +22,13 @@ function query(parties) {
     },
     validAt: null
   };
+}
+
+function combination(parties) {
+  return {
+    custodian: openAPIHelper.urn(parties.custodian),
+    actor:     openAPIHelper.urn(parties.actor),
+    subject:   openAPIHelper.urn(parties.subject),
+    dataClass: "urn:oid:1.3.6.1.4.1.54851.1:MEDICAL"
+  }
 }

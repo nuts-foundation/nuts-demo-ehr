@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const config     = require('./util/config');
 const Logger     = require('./util/logger');
 const api        = require('./client-api');
+const external   = require('./external-api');
 const {crypto}   = require('./resources/nuts-node');
 
 // Run server
@@ -20,6 +21,7 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use('/api', api);
+app.use('/external', external);
 
 app.listen(config.server.port, () =>
   Logger.log(`Server is listening on port ${config.server.port}`));

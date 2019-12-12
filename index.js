@@ -33,8 +33,8 @@ Logger.log(`Registering our organisation ${config.organisation.name}`);
 crypto.getPublicKey(config.organisation.agb)
 .then(() => Logger.log("Organisation already registered"))
 .catch(e => {
-  if ( e.response.status != 404 )
-    Logger.error("Error registering organisation, is your Nuts node up?");
+  if ( !e.response || e.response.status != 404 )
+    return Logger.error("Error registering organisation, is your Nuts node up?");
 
   crypto.generateKeyPair(config.organisation.agb)
   .then(pubKey => Logger.log(`Registered! Public key for copy'n'pastin:\n${JSON.stringify({

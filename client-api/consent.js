@@ -55,7 +55,7 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
     const stillPending = [];
     for ( consent of pending ) {
       const currentStatus = await eventStore.getEvent(consent.jobId);
-      if (currentStatus.name != 'success')
+      if (currentStatus.name != 'completed')
         stillPending.push(consent);
     }
 

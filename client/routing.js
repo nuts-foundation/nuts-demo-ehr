@@ -16,7 +16,7 @@ export default {
       inbox.render(); // This may come in later, that's ok
     });
 
-    router.addRoute(/patient-details\/(\d+)(\/.*)?/, async (link, matches) => {
+    router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
       await patient.render(matches[1]);
       openPage('patient');
     });

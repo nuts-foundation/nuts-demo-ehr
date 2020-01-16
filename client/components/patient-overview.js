@@ -16,16 +16,16 @@ const template = (patients) => `
 
     <thead class="thead-dark">
       <tr>
-        <th>Last name</th>
-        <th>First name</th>
+        <th>Name</th>
+        <th>Date of birth</th>
       </tr>
     </thead>
 
     <tbody>
       ${patients.map(patient => `
         <tr>
-          <td><a href='#patient-details/${patient.id}'>${patient.name.family}</a></td>
-          <td>${patient.name.given}</td>
+          <td><a href='#patient-details/${patient.id}'>${patient.name.given} ${patient.name.family}</a></td>
+          <td>${patient.birthDate}</td>
         </tr>
       `).join('')}
     </tbody>

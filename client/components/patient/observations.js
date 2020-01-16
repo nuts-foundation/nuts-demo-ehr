@@ -23,7 +23,7 @@ const template = (observations) => `
   ${observations.map(observation => `
     <div class="card"><div class="card-body">
       <code>${observation.timestamp}</code>
-      <p>${observation.content}</p>
+      <p>${observation.content.replace('\n', '</p><p>')}</p>
     </div></div>
     &nbsp;
   `).join('')}

@@ -56,6 +56,29 @@ To make this process easier the applications will output their registry
 information on startup. Add that information to your registry's
 `organisations.json`.
 
+Add some endpoints to `endpoints.json` of type `urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`
+like this:
+```
+  {
+    "endpointType": "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
+    "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
+    "status": "active",
+    "version": "0.1.0",
+    "URL": "http://localhost:80"
+  },
+```
+
+And connect them to an organization in the `endpoint_organizations.json` file like this:
+```
+  {
+    "status": "active",
+    "organization": "urn:oid:2.16.840.1.113883.2.4.6.1:12345678",
+    "endpoint": "0e906b06-db48-452c-bb61-559f239a06ca"
+  },
+```
+
+For hot reloading of the registry to be triggered, every file should be touched.
+
 ## Learning from this application
 
 If you're curious as to how this application interfaces with the Nuts node,

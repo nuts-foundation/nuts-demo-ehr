@@ -13,7 +13,7 @@ export default {
       // Render child components
       Details.render(patient);
       Observations.render(patient);
-      RemoteObservations.render(patient, 1);
+      RemoteObservations.render(patient);
       Network.render(patient);
     });
   }

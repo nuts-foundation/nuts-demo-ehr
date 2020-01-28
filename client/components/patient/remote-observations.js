@@ -1,7 +1,7 @@
 let patientId;
 
 export default {
-  render: (patient, organisationURN) => {
+  render: (patient) => {
     patientId = patient.id;
     renderObservations(patientId)
   }

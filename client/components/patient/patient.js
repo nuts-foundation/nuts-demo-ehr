@@ -1,5 +1,6 @@
 import Details      from './details';
 import Observations from './observations';
+import RemoteObservations from './remote-observations';
 import Network      from './network';
 
 export default {
@@ -12,6 +13,7 @@ export default {
       // Render child components
       Details.render(patient);
       Observations.render(patient);
+      RemoteObservations.render(patient, 1);
       Network.render(patient);
     });
   }
@@ -33,11 +35,15 @@ const template = (patient) => `
       <a class="nav-link" data-open="#patient-observations">Observations</a>
     </li>
     <li class="nav-item">
+      <a class="nav-link" data-open="#remote-patient-observations">External Observations</a>
+    </li>
+    <li class="nav-item">
       <a class="nav-link" data-open="#patient-network">Network</a>
     </li>
   </ul>
 
   <section class="tab-pane active" id="patient-details" data-group="patient-tab-panes" data-follower="a[data-open='#patient-details']"></section>
   <section class="tab-pane" id="patient-observations" data-group="patient-tab-panes" data-follower="a[data-open='#patient-observations']"></section>
+  <section class="tab-pane" id="remote-patient-observations" data-group="patient-tab-panes" data-follower="a[data-open='#remote-patient-observations']"></section>
   <section class="tab-pane" id="patient-network" data-group="patient-tab-panes" data-follower="a[data-open='#patient-network']"></section>
 `;

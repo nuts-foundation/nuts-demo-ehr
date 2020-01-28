@@ -1,33 +1,31 @@
+let patientId;
+
 export default {
   render: (patient, organisationURN) => {
-    // document.getElementById('patient-details').innerHTML = template(patient);
-    console.log("Hoi");
+    patientId = patient.id;
+    renderObservations(patientId)
   }
 }
 
-const template = (patient) => `
-  <table class="table table-borderless table-bordered">
-    <tbody>
-      <tr>
-        <th>BSN</th>
-        <td>${patient.bsn}</td>
-      </tr>
-      <tr>
-        <th>Last name</th>
-        <td>${patient.name.family}</td>
-      </tr>
-      <tr>
-        <th>First name</th>
-        <td>${patient.name.given}</td>
-      </tr>
-      <tr>
-        <th>Date of birth</th>
-        <td>${patient.birthDate}</td>
-      </tr>
-      <tr>
-        <th>Gender</th>
-        <td>${patient.gender}</td>
-      </tr>
-    </tbody>
-  </table>
+async function renderObservations(patientId) {
+  return fetch(`/api/observation/remoteByPatientId/${patientId}`)
+  .then(response => response.json())
+  .then(observations => {
+    document.getElementById('remote-patient-observations').innerHTML = template(observations);
+  });
+}
+
+const template = (observations) => `
+  &nbsp;
+
+  ${!observations.length ? "No remote observations found" : ""}
+
+  ${observations.map(observation => `
+    <div class="card"><div class="card-body">
+      <code>${observation.timestamp}</code>
+      <p>${observation.content.replace('\n', '</p><p>')}</p>
+    </div></div>
+    &nbsp;
+  `).join('')}
+
 `;

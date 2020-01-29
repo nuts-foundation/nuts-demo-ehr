@@ -42,29 +42,20 @@ router.get('/remoteByPatientId/:patient_id', findPatient, async(req, res)=> {
     // Endpoint type of this custom jston health data api endpoint
     const DEMO_ENDPOINT_TYPE = "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr"
     // for each consent, get endpoints
-    const mapOfEndpoints = function() {
-      return Promise.all(
+    const endpoints = await Promise.all(
         consents.results.map( async (item, i) => {
           return registry.endpointsByOrganisationId(item.custodian, DEMO_ENDPOINT_TYPE)
         })
       )
-    }
-
-    const endpoints = await mapOfEndpoints()
     const urls = endpoints.flat().map((ep) => ep.URL)
 
-
     // for each endpoint, get observations
-    const getRemoteObservationsFunc = function() {
-      return Promise.all(
+    const remoteObservations = await Promise.all(
         urls.map(async (baseURL) => {
-
           const url = baseURL + '/external/patient/' + patientBSN + '/observations';
           return axios.get(url)
         }))
-    }
 
-    remoteObservations = await getRemoteObservationsFunc()
     const observations = remoteObservations.flatMap((response)=> response.data)
 
     res.status(200).send(observations).end()

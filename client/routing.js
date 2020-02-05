@@ -4,6 +4,7 @@ const router = new Thimbleful.Router();
 import patientOverview from './components/patient-overview';
 import inbox           from './components/inbox';
 import patient         from './components/patient/patient';
+import irmaLogin       from './components/irma-login';
 
 export default {
   load: () => {
@@ -15,6 +16,11 @@ export default {
       openPage(link);
       inbox.render(); // This may come in later, that's ok
     });
+
+    router.addRoute('irma-login', async link => {
+      irmaLogin.render();
+      openPage('irma-login');
+    })
 
     router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
       await patient.render(matches[1]);

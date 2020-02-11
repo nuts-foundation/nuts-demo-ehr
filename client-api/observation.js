@@ -1,10 +1,10 @@
 const router        = require('express').Router();
-const {observation} = require('../resources/database');
 const config        = require('../util/config');
 const axios         = require('axios');
 
 const {
   patient,
+  observation
 } = require('../resources/database');
 
 const {

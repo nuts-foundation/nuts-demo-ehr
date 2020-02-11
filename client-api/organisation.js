@@ -1,5 +1,4 @@
 const router     = require('express').Router();
-// const Request    = require('../util/request');
 const config     = require('../util/config');
 const {registry} = require('../resources/nuts-node');
 

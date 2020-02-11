@@ -31,7 +31,7 @@ You should now have three instances of this EHR running on:
 
 Also, as a bonus, you can display two or all three side by side by going to:
 
-* http://localhost/duo.html ⸺ Shows the applications on ports 80 and 82
+* http://localhost/duo.html ⸺ Shows the applications on ports 80 and 81
 * http://localhost/triple.html ⸺ Shows all three applications
 
 ### Configuring the application(s)
@@ -52,32 +52,53 @@ will have to add them to the Nuts registry. Again, if you followed
 [Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network),
 you can find your registry in `nuts-network-local/config/registry`.
 
+#### 1. Add the organisations
+
 To make this process easier the applications will output their registry
 information on startup. Add that information to your registry's
 `organisations.json`.
 
-Add some endpoints to `endpoints.json` of type `urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`
-like this:
-```
-  {
-    "endpointType": "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
-    "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
-    "status": "active",
-    "version": "0.1.0",
-    "URL": "http://localhost:80"
-  },
+#### 2. Add the endpoints
+
+You can add the locations of the APIs to the `endpoints.json` file as endpoints
+of the type `urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`. Also, each
+Nuts node that can receive consent needs an endpoint of the type
+`urn:nuts:endpoint:consent`.
+
+So for each application add this endpoint to `endpoints.json`:
+
+```json
+{
+  "endpointType": "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
+  "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
+  "status": "active",
+  "version": "0.1.0",
+  "URL": "http://localhost:80"
+}
 ```
 
-And connect them to an organization in the `endpoint_organizations.json` file like this:
-```
-  {
-    "status": "active",
-    "organization": "urn:oid:2.16.840.1.113883.2.4.6.1:12345678",
-    "endpoint": "0e906b06-db48-452c-bb61-559f239a06ca"
-  },
+Make sure you give each one a unique identifier and have it point to the right
+URL. Also, make sure both Nuts nodes have a consent endpoint (should be okay if
+you're using `nuts-network-local`).
+
+#### 3. Connect the endpoints to organisations
+
+Connect your endpoints to organizations in the `endpoint_organizations.json`
+file like this:
+
+```json
+{
+  "status": "active",
+  "organization": "urn:oid:2.16.840.1.113883.2.4.6.1:12345678",
+  "endpoint": "0e906b06-db48-452c-bb61-559f239a06ca"
+}
 ```
 
-For hot reloading of the registry to be triggered, every file should be touched.
+Make sure you add two entries for each organisation, one for the API and one for
+the Nuts node consent endpoint.
+
+Note that for hot reloading of the registry to be triggered, every one of these
+three file needs to be touched.
 
 ## Learning from this application
 

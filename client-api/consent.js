@@ -21,11 +21,6 @@ router.get('/:patient_id/received', findPatient, async (req, res) => {
       actor:   config.organisation
     });
 
-    // Fetch consents in transit
-    const pending = await eventStore.allEvents();
-    // Can we filter this on patient somehow..? :/
-    console.log(pending);
-
     // Map URNs to sane organisations
     let organisations = [];
     if ( consents.totalResults > 0 && consents.results )

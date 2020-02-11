@@ -4,36 +4,30 @@ export default {
     return fetch('/api/consent/inbox')
     .then(response => response.json())
     .then(json => {
-      const transactions = json.map(o => ({
-        status: o.name,
-        organisations: o.payload.consentRecords.map(r => r.organisations).flat()
-      }));
-      console.log(transactions);
-      document.getElementById('inbox').innerHTML = template(transactions);
+      if ( json.length > 0 )
+        document.getElementById('inbox').innerHTML = template(json);
     });
   }
 }
 
-const template = (transactions) => `
+const template = (inbox) => `
   <h2>Inbox</h2>
 
   <table class="table table-borderless table-bordered table-hover">
 
     <thead class="thead-dark">
       <tr>
-        <th>Status</th>
         <th>BSN</th>
-        <th>Organisations involved</th>
+        <th>Organisation</th>
         <!-- <th>Actions</th> -->
       </tr>
     </thead>
 
     <tbody>
-      ${transactions.length > 0 ? transactions.map(transaction => `
+      ${inbox.length > 0 ? inbox.map(incoming => `
         <tr>
-          <td>${transaction.status}</td>
-          <td>Unknown</td>
-          <td>${transaction.organisations.map(o => o.name)}</td>
+          <td>${incoming.bsn}</td>
+          <td>${incoming.organisation.name}</td>
           <!-- <td><a href="#stuff">Accept</a> / <a href="#stuff">Reject</a></td> -->
         </tr>
       `).join('') : `

@@ -3,6 +3,7 @@ const router = new Thimbleful.Router();
 
 import patientOverview from './components/patient-overview';
 import inbox           from './components/inbox';
+import transactions    from './components/transactions';
 import patient         from './components/patient/patient';
 import irmaLogin       from './components/irma-login';
 
@@ -14,7 +15,10 @@ export default {
     router.addRoute('dashboard', async link => {
       await patientOverview.render();
       openPage(link);
-      inbox.render(); // This may come in later, that's ok
+
+      // These may come in later, that's ok
+      inbox.render();
+      transactions.render();
     });
 
     router.addRoute('irma-login', async link => {

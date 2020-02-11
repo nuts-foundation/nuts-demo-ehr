@@ -75,14 +75,61 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
 });
 
 router.get('/inbox', async (req, res) => {
+  // This action is pretty complicated right now. This is because we have to
+  // "work around" the lack of a proper API for this right now.
+
+  try {
+    // Get all events that are completed (Node auto-acks everything by default)
+    let events = await eventStore.allEvents();
+    events = events.events.filter(e => e.name == 'completed');
+
+    // Collect patients for inbox here
+    const inbox = [];
+
+    // Try to find the events in the consent store and match with known patients
+    for ( let event of events || [] ) {
+      for ( let record of event.payload.consentRecords ) {
+        // Who is the counter-party?
+        const notMe = record.metadata.organisationSecureKeys.find(o =>
+          o.legalEntity != `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
+        );
+
+        // Assume the counter-party is custodian
+        const consent = await consentStore.consentsFor({
+          custodian: { urn: notMe.legalEntity },
+          actor: config.organisation
+        });
+
+        // Is this an actual consent?
+        if ( consent.totalResults === 0 ) continue;
+
+        // Is this patient known?
+        const BSNs = consent.results.map(c => c.subject.split(':').pop());
+        for ( let bsn of BSNs ) {
+          const p = await patient.byBSN(bsn);
+
+          // Put unknown patients in the inbox
+          if ( !p )
+            inbox.push({
+              bsn,
+              organisation: await registry.organizationById(notMe.legalEntity)
+            });
+        }
+      }
+    }
+
+    res.status(200).send(inbox || []).end();
+  } catch(e) {
+    res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
+  }
+});
+
+router.get('/transactions', async (req, res) => {
   try {
     const events = await eventStore.allEvents();
 
     // Map URNs in events to sane organisations
     for ( let event of events.events || [] ) {
-      // Decode payload
-      event.payload = JSON.parse(new Buffer(event.payload, 'base64').toString());
-
       // Event can have multiple consent records
       for ( let record of event.payload.consentRecords ) {
         const organisations = [];

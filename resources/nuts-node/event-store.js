@@ -7,6 +7,13 @@ const call = openAPIHelper.call({
 });
 
 module.exports = {
-  allEvents: async ()      => call('list'),
-  getEvent:  async (jobId) => call('getEvent', jobId)
+  allEvents: async ()      => decodePayloads(await call('list')),
+  getEvent:  async (jobId) => await call('getEvent', jobId)
 };
+
+function decodePayloads(events) {
+  for ( let event of events.events || [] ) {
+    event.payload = JSON.parse(Buffer.from(event.payload, 'base64').toString());
+  }
+  return events;
+}

@@ -78,9 +78,20 @@ router.get('/inbox', async (req, res) => {
   try {
     const events = await eventStore.allEvents();
 
-    // Map URNs to sane organisations
-    for ( event of events.events || [] ) {
-      event.organisation = await registry.organizationById(event.initiatorLegalEntity);
+    // Map URNs in events to sane organisations
+    for ( let event of events.events || [] ) {
+      // Decode payload
+      event.payload = JSON.parse(new Buffer(event.payload, 'base64').toString());
+
+      // Event can have multiple consent records
+      for ( let record of event.payload.consentRecords ) {
+        const organisations = [];
+        // Consent record has multiple organisations
+        for ( let org of record.metadata.organisationSecureKeys ) {
+          organisations.push(await registry.organizationById(org.legalEntity));
+        }
+        record.organisations = organisations;
+      }
     }
 
     res.status(200).send(events.events || []).end();

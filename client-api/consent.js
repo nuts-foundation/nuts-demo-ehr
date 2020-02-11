@@ -72,22 +72,22 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
 router.get('/inbox', async (req, res) => {
   try {
     // Get all consents I have been granted
-    let consents = await consentStore.consentsFor({
+    const consents = await consentStore.consentsFor({
       actor: config.organisation
     });
 
-    // Strip out those that have known patients
+    // Add those that have unknown patients to the inbox
     const inbox = [];
     for ( let consent of consents.results ) {
       const bsn = consent.subject.split(':').pop();
       if ( await patient.byBSN(bsn) === undefined )
         inbox.push({
-          bsn,
+          bsn:          bsn,
           organisation: await registry.organizationById(consent.custodian)
         });
     }
 
-    res.status(200).send(inbox || []).end();
+    res.status(200).send(inbox).end();
   } catch(e) {
     res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
   }

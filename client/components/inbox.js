@@ -43,9 +43,7 @@ const template = (inbox) => `
         </tr>
       `).join('') : `
         <tr>
-          <td></td>
-          <td>None</td>
-          <td></td>
+          <td colspan="2" style="text-align: center"><em>None</em></td>
         </tr>
       `}
     </tbody>

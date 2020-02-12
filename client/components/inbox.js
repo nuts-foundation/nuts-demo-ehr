@@ -16,8 +16,8 @@ function update(element) {
   .then(json => {
     element.innerHTML = template(json.sort((a,b) => a.bsn.localeCompare(b.bsn)));
   })
-  .catch(() => {
-    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox</p>`;
+  .catch(error => {
+    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox: ${error}</p>`;
   });
 }
 

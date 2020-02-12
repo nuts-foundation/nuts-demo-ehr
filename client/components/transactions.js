@@ -20,8 +20,8 @@ function update(element) {
     }));
     document.getElementById('transactions').innerHTML = template(transactions);
   })
-  .catch(() => {
-    element.innerHTML = `<h2>Transactions</h2><p>Could not load transactions</p>`;
+  .catch(error => {
+    element.innerHTML = `<h2>Transactions</h2><p>Could not load transactions: ${error}</p>`;
   });
 }
 

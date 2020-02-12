@@ -9,18 +9,16 @@ export default function call(url, element) {
       setState(element, 'loaded');
       return response.json();
     } else {
-      console.info("Response is not OK");
       console.error(response);
       setState(element, 'error');
-      return Promise.reject();
+      return response.text().then(t => Promise.reject(t));
     }
 
   })
   .catch(error => {
-    console.info("Response is not OK");
     console.error(error);
     setState(element, 'error');
-    return Promise.reject();
+    return Promise.reject(error);
   });
 }
 

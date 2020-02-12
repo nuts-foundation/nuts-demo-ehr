@@ -100,14 +100,15 @@ router.get('/transactions', async (req, res) => {
     // Map URNs in events to sane organisations
     for ( let event of events.events || [] ) {
       // Event can have multiple consent records
-      for ( let record of event.payload.consentRecords ) {
-        const organisations = [];
-        // Consent record has multiple organisations
-        for ( let org of record.metadata.organisationSecureKeys ) {
-          organisations.push(await registry.organizationById(org.legalEntity));
+      if ( event.payload.consentRecords )
+        for ( let record of event.payload.consentRecords ) {
+          const organisations = [];
+          // Consent record has multiple organisations
+          for ( let org of record.metadata.organisationSecureKeys ) {
+            organisations.push(await registry.organizationById(org.legalEntity));
+          }
+          record.organisations = organisations;
         }
-        record.organisations = organisations;
-      }
     }
 
     res.status(200).send(events.events || []).end();

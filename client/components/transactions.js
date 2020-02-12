@@ -1,17 +1,28 @@
+import call from '../component-loader';
+let interval = false;
+
 export default {
-  // Fetch all new consents and render to the inbox
   render: () => {
-    return fetch('/api/consent/transactions')
-    .then(response => response.json())
-    .then(json => {
-      const transactions = json.map(o => ({
-        status: o.name,
-        organisations: o.payload.consentRecords.map(r => r.organisations).flat()
-      }));
-      if ( transactions.length > 0 )
-        document.getElementById('transactions').innerHTML = template(transactions);
-    });
+    const element = document.getElementById('transactions');
+    if ( !interval )
+       interval = window.setInterval(() => update(element), 3000);
+    update(element);
+    return Promise.resolve();
   }
+}
+
+function update(element) {
+  call('/api/consent/transactions', element)
+  .then(json => {
+    const transactions = json.map(o => ({
+      status: o.name,
+      organisations: o.payload.consentRecords.map(r => r.organisations).flat()
+    }));
+    document.getElementById('transactions').innerHTML = template(transactions);
+  })
+  .catch(() => {
+    element.innerHTML = `<h2>Transactions</h2><p>Could not load transactions</p>`;
+  });
 }
 
 const template = (transactions) => `

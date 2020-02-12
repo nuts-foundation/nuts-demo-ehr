@@ -1,13 +1,24 @@
+import call from '../component-loader';
+let interval = false;
+
 export default {
-  // Fetch all new consents and render to the inbox
   render: () => {
-    return fetch('/api/consent/inbox')
-    .then(response => response.json())
-    .then(json => {
-      if ( json.length > 0 )
-        document.getElementById('inbox').innerHTML = template(json);
-    });
+    const element = document.getElementById('inbox');
+    if ( !interval )
+      interval = window.setInterval(() => update(element), 3000);
+    update(element);
+    return Promise.resolve();
   }
+}
+
+function update(element) {
+  call('/api/consent/inbox', element)
+  .then(json => {
+    element.innerHTML = template(json.sort((a,b) => a.bsn.localeCompare(b.bsn)));
+  })
+  .catch(() => {
+    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox</p>`;
+  });
 }
 
 const template = (inbox) => `

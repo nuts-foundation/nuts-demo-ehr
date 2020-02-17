@@ -45,6 +45,38 @@ node 'Bundy' and the other two will connect to node 'Dahmer'.
 You can also change port numbers, organisation details and default health
 records in the config files.
 
+### Configuring the Nuts node
+
+You'll need to change a few things in the Nuts node config if you want to use
+the IRMA flows. In the `nuts-network-local/config/bundy/nuts.yaml` and
+`nuts-network-local/config/dahmer/nuts.yaml` files you will find a line that
+reads:
+
+```yaml
+auth:
+  publicUrl: https://example.org
+```
+
+You will need to change this to a URL that both your browser and your phone can
+connect to the Nuts node on. So this can be something like:
+
+```yaml
+auth:
+  publicUrl: http://192.168.1.xx:11323
+```
+
+Or you can use a service like ngrok to proxy requests to your local machine.
+
+You may also want to set this value to allow you to test using
+[demo attributes](https://privacybydesign.foundation/attribute-index/en/irma-demo.html):
+
+```yaml
+auth:
+  irmaSchemeManager: irma-demo
+```
+
+You will need to restart your Nuts nodes to enable these changes.
+
 ### Adding to the Nuts register
 
 If you want to allow the applications to find each other and exchange data, you

@@ -33,7 +33,10 @@ export default {
     });
 
     router.addRoute(/patient-network\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
+      if ( !patient.rendered() )
+        await patient.render(matches[1]);
       await remoteOrganisation.render(matches[1], matches[2]);
+      openPage('patient');
     });
   }
 }

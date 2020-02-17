@@ -14,6 +14,10 @@ export default {
       Observations.render(patient);
       Network.render(patient);
     });
+  },
+
+  rendered: () => {
+    return document.getElementById('patient').children.length > 0;
   }
 }
 

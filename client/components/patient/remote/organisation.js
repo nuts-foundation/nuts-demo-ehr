@@ -6,9 +6,12 @@ export default {
     return fetch(`/api/organisation/byURN/${organisation}`)
     .then(result => result.json())
     .then(organisation => {
-      const {tab, pane} = addTab(organisation.name, `org-${hash(organisation.identifier)}`);
-      tab.querySelector('a').click();
-      return observations.render(pane, patient, organisation);
+      if ( !document.getElementById(`org-${hash(organisation.identifier)}`) ) {
+        const {tab, pane} = addTab(organisation.name, `org-${hash(organisation.identifier)}`);
+        observations.render(pane, patient, organisation);
+      }
+      document.querySelector(`a[data-open='#org-${hash(organisation.identifier)}']`).click();
+      return;
     });
   }
 }

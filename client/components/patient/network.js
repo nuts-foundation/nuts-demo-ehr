@@ -38,7 +38,7 @@ function stopIntervals() {
 
 async function renderNetwork() {
   const network = document.getElementById('patient-network');
-  network.innerHTML = template([], []);
+  network.innerHTML = template();
   const received = network.querySelector('#received-list');
   const given    = network.querySelector('#given-list');
 
@@ -57,7 +57,9 @@ async function renderReceived(element) {
     if ( json.length == 0 )
       element.innerHTML = `<li><em>None</em></li>`;
     else
-      element.innerHTML = json.map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`);
+      element.innerHTML = json.sort((a,b) => a.name.localeCompare(b.name))
+                              .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
+                              .join('');
   })
   .catch(error => {
     element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
@@ -70,7 +72,9 @@ async function renderGiven(element) {
     if ( json.length == 0 )
       element.innerHTML = `<li><em>None</em></li>`;
     else
-      element.innerHTML = json.map(c => `<li>${c.name}</li>`);
+      element.innerHTML = json.sort((a,b) => a.name.localeCompare(b.name))
+                              .map(c => `<li>${c.name}</li>`)
+                              .join('');
   })
   .catch(error => {
     element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
@@ -119,16 +123,14 @@ function storeConsent(consent) {
   });
 }
 
-const template = (receivedConsents, givenConsents) => `
+const template = () => `
   &nbsp;
 
   <div class="card">
     <div class="card-body">
       <p>Organisations that have shared information with you:</p>
       <ul id='received-list'>
-      ${receivedConsents.length > 0 ? receivedConsents.map(consent => `
-        <li><a href="#patient-network/${patientId}/${consent.identifier}">${consent.name}</a></li>
-      `).join('') : '<li><i>None</i></li>'}
+        <li><i>None</i></li>
       </ul>
     </div>
   </div>
@@ -139,9 +141,7 @@ const template = (receivedConsents, givenConsents) => `
     <div class="card-body">
       <p>Organisations you're sharing information with:</p>
       <ul id='given-list'>
-      ${givenConsents.length > 0 ? givenConsents.map(consent => `
-        <li>${consent.name}</li>
-      `).join('') : '<li><i>None</i></li>'}
+        <li><i>None</i></li>
       </ul>
 
       <p><button class="btn btn-primary" data-toggle="#patient-add-consent">Add</button></p>

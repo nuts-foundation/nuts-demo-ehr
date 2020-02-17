@@ -64,26 +64,6 @@
       "birthDate": "10-9-2019"
     },
     {
-      "id": "04e0d57e-9efb-40a2-9158-a9094cc50836",
-      "bsn": "771040194",
-      "name": {
-        "given": "Milan",
-        "family": "Dijk"
-      },
-      "gender": "female",
-      "birthDate": "14-5-2019"
-    },
-    {
-      "id": "94c9d453-5f88-4119-8d10-123b7bc4ba3d",
-      "bsn": "672724056",
-      "name": {
-        "given": "Jan",
-        "family": "Haan"
-      },
-      "gender": "female",
-      "birthDate": "27-10-2019"
-    },
-    {
       "id": "738fd5b0-2e68-46a9-9551-b2c71a4c60c5",
       "bsn": "588786385",
       "name": {

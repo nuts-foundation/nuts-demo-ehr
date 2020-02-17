@@ -32,7 +32,7 @@ export default {
     try {
       const result = await irma.start();
       window.irmaLogin = true;
-      window.history.back();
+      window.setTimeout(() => window.history.back(), 1200);
     } catch (e) {
       console.error(`Trouble running IRMA flow: `, e);
     }

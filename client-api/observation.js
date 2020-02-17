@@ -1,16 +1,57 @@
-const router        = require('express').Router();
-const {observation} = require('../resources/database');
+const router = require('express').Router();
+const config = require('../util/config');
+const axios  = require('axios');
+
+const {
+  patient,
+  observation
+} = require('../resources/database');
+
+const {
+  consentStore,
+  registry
+} = require('../resources/nuts-node');
 
 router.get('/byPatientId/:id', async (req, res) => {
   try {
-    // Query the "database" for the requested observations
-    const o = await observation.byPatientId(req.params.id);
-    if ( o )
-      res.status(200).send(o).end();
-    else
-      res.status(404).send('Observation not found').end();
+    const observations = await observation.byPatientId(req.params.id);
+    if ( observations ) res.status(200).send(observations).end();
+    else                res.status(404).send('Observation not found').end();
   } catch(e) {
     res.status(500).send(`Error in database query for observations by patient id: ${e}`);
+  }
+});
+
+router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async(req, res)=> {
+  try {
+    // Are we allowed to make this request?
+    const consents = await consentStore.consentsFor({
+      subject:   req.patient,
+      actor:     config.organisation,
+      custodian: { urn: req.params.urn }
+    });
+
+    if ( !consents || consents.totalResults === 0 )
+      return res.status(401).send("You don't have consent for this request").end();
+
+    // Can we find remote endpoints?
+    const DEMO_ENDPOINT_TYPE = "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr";
+    const endpoints = await registry.endpointsByOrganisationId(req.params.urn, DEMO_ENDPOINT_TYPE);
+
+    if ( !endpoints || endpoints.length === 0 )
+      return res.status(500).send("Can't find remote endpoints").end();
+
+    // Fetch available observations from all available endpoints
+    const observations = await Promise.all(
+      endpoints.map(e => {
+        const url = `${e.URL}/${req.patient.bsn}/observations`;
+        return axios.get(url).then(response => response.data);
+      })
+    );
+
+    res.status(200).send(observations.flat()).end();
+  } catch(e) {
+    res.status(500).send(`Error while getting remote observations: ${e}`)
   }
 });
 
@@ -27,5 +68,14 @@ router.put('/', async (req, res) => {
     res.status(500).send(`Error in database query for storing a new observation: ${e}`);
   }
 });
+
+async function findPatient(req, res, next) {
+  try {
+    req.patient = await patient.byId(req.params.patient_id);
+    next();
+  } catch(e) {
+    res.status(404).send(`Could not find a patient with id ${req.params.patient_id}: ${e}`);
+  }
+}
 
 module.exports = router;

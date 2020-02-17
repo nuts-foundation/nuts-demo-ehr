@@ -1,15 +1,27 @@
+import call from '../component-loader';
+let interval = false;
+
 export default {
-  // Fetch all new consents and render to the inbox
   render: () => {
-    return fetch('/api/consent/inbox')
-    .then(response => response.json())
-    .then(json => {
-      document.getElementById('inbox').innerHTML = template(json);
-    });
+    const element = document.getElementById('inbox');
+    if ( !interval )
+      interval = window.setInterval(() => update(element), 3000);
+    update(element);
+    return Promise.resolve();
   }
 }
 
-const template = (events) => `
+function update(element) {
+  call('/api/consent/inbox', element)
+  .then(json => {
+    element.innerHTML = template(json.sort((a,b) => a.bsn.localeCompare(b.bsn)));
+  })
+  .catch(error => {
+    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox: ${error}</p>`;
+  });
+}
+
+const template = (inbox) => `
   <h2>Inbox</h2>
 
   <table class="table table-borderless table-bordered table-hover">
@@ -17,23 +29,21 @@ const template = (events) => `
     <thead class="thead-dark">
       <tr>
         <th>BSN</th>
-        <th>External organisation</th>
-        <th>Actions</th>
+        <th>Organisation</th>
+        <!-- <th>Actions</th> -->
       </tr>
     </thead>
 
     <tbody>
-      ${events.length > 0 ? events.map(evnt => `
+      ${inbox.length > 0 ? inbox.map(incoming => `
         <tr>
-          <td>Unknown</td>
-          <td>${evnt.organisation.name}</td>
-          <td><a href="#stuff">Accept</a> / <a href="#stuff">Reject</a></td>
+          <td>${incoming.bsn}</td>
+          <td>${incoming.organisation.name}</td>
+          <!-- <td><a href="#stuff">Accept</a> / <a href="#stuff">Reject</a></td> -->
         </tr>
       `).join('') : `
         <tr>
-          <td></td>
-          <td>None</td>
-          <td></td>
+          <td colspan="2" style="text-align: center"><em>None</em></td>
         </tr>
       `}
     </tbody>

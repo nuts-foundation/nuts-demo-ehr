@@ -21,11 +21,6 @@ router.get('/:patient_id/received', findPatient, async (req, res) => {
       actor:   config.organisation
     });
 
-    // Fetch consents in transit
-    const pending = await eventStore.allEvents();
-    // Can we filter this on patient somehow..? :/
-    console.log(pending);
-
     // Map URNs to sane organisations
     let organisations = [];
     if ( consents.totalResults > 0 && consents.results )
@@ -76,11 +71,48 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
 
 router.get('/inbox', async (req, res) => {
   try {
+    // Get all consents I have been granted
+    const consents = await consentStore.consentsFor({
+      actor: config.organisation
+    });
+
+    // If no consent found
+    if ( !consents || consents.totalResults === 0 )
+      return res.status(200).send([]).end();
+
+    // Add those that have unknown patients to the inbox
+    const inbox = [];
+    for ( let consent of consents.results ) {
+      const bsn = consent.subject.split(':').pop();
+      if ( await patient.byBSN(bsn) === undefined )
+        inbox.push({
+          bsn:          bsn,
+          organisation: await registry.organizationById(consent.custodian)
+        });
+    }
+
+    res.status(200).send(inbox).end();
+  } catch(e) {
+    res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
+  }
+});
+
+router.get('/transactions', async (req, res) => {
+  try {
     const events = await eventStore.allEvents();
 
-    // Map URNs to sane organisations
-    for ( event of events.events || [] ) {
-      event.organisation = await registry.organizationById(event.initiatorLegalEntity);
+    // Map URNs in events to sane organisations
+    for ( let event of events.events || [] ) {
+      // Event can have multiple consent records
+      if ( event.payload.consentRecords )
+        for ( let record of event.payload.consentRecords ) {
+          const organisations = [];
+          // Consent record has multiple organisations
+          for ( let org of record.metadata.organisationSecureKeys ) {
+            organisations.push(await registry.organizationById(org.legalEntity));
+          }
+          record.organisations = organisations;
+        }
     }
 
     res.status(200).send(events.events || []).end();

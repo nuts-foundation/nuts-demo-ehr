@@ -15,7 +15,7 @@ router.get('/:patient_id', findPatient, handleNutsAuth, async (req, res) => {
   res.status(200).send(req.patient).end();
 });
 
-router.get('/:patient_id/observations', findPatient, handleNutsAuth, async (req, res) => {
+router.get('/:patient_id/observations', findPatient, async (req, res) => {
   try {
     // Query the "database" for the requested observations
     const o = await observation.byPatientId(req.patient.id);
@@ -30,7 +30,7 @@ router.get('/:patient_id/observations', findPatient, handleNutsAuth, async (req,
 
 async function findPatient(req, res, next) {
   try {
-    req.patient = await patient.byId(req.params.patient_id);
+    req.patient = await patient.byBSN(req.params.patient_id);
     next();
   } catch(e) {
     res.status(404).send(`Could not find a patient with id ${req.params.patient_id}: ${e}`);

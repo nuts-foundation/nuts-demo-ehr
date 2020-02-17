@@ -1,10 +1,12 @@
 import Thimbleful from 'thimbleful';
+import call       from '../../component-loader';
 
 let patientId;
 
 export default {
   render: async (patient) => {
     patientId = patient.id;
+    stopIntervals();
     await renderNetwork();
 
     document.getElementById('patient-add-consent-org').addEventListener('keyup', (e) => {
@@ -21,11 +23,58 @@ export default {
   }
 }
 
-async function renderNetwork() {
-  const received = await fetch(`/api/consent/${patientId}/received`).then(r => r.json());
-  const given    = await fetch(`/api/consent/${patientId}/given`).then(r => r.json());
+let receivedInterval, givenInterval;
 
-  document.getElementById('patient-network').innerHTML = template(received, given);
+function stopIntervals() {
+  if ( receivedInterval ) {
+    window.clearInterval(receivedInterval);
+    receivedInterval = null;
+  }
+  if ( givenInterval ) {
+    window.clearInterval(givenInterval);
+    givenInterval = null;
+  }
+}
+
+async function renderNetwork() {
+  const network = document.getElementById('patient-network');
+  network.innerHTML = template([], []);
+  const received = network.querySelector('#received-list');
+  const given    = network.querySelector('#given-list');
+
+  if ( !receivedInterval )
+    receivedInterval = window.setInterval(() => renderReceived(received), 3000);
+  renderReceived(received);
+
+  if ( !givenInterval )
+    givenInterval = window.setInterval(() => renderGiven(given), 3000);
+  renderGiven(given);
+}
+
+async function renderReceived(element) {
+  return call(`/api/consent/${patientId}/received`, element)
+  .then(json => {
+    if ( json.length == 0 )
+      element.innerHTML = `<li><em>None</em></li>`;
+    else
+      element.innerHTML = json.map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`);
+  })
+  .catch(error => {
+    element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
+  });
+}
+
+async function renderGiven(element) {
+  return call(`/api/consent/${patientId}/given`, element)
+  .then(json => {
+    if ( json.length == 0 )
+      element.innerHTML = `<li><em>None</em></li>`;
+    else
+      element.innerHTML = json.map(c => `<li>${c.name}</li>`);
+  })
+  .catch(error => {
+    element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
+  });
 }
 
 function renderAutoComplete(results) {
@@ -76,7 +125,7 @@ const template = (receivedConsents, givenConsents) => `
   <div class="card">
     <div class="card-body">
       <p>Organisations that have shared information with you:</p>
-      <ul>
+      <ul id='received-list'>
       ${receivedConsents.length > 0 ? receivedConsents.map(consent => `
         <li><a href="#patient-network/${patientId}/${consent.identifier}">${consent.name}</a></li>
       `).join('') : '<li><i>None</i></li>'}
@@ -89,7 +138,7 @@ const template = (receivedConsents, givenConsents) => `
   <div class="card">
     <div class="card-body">
       <p>Organisations you're sharing information with:</p>
-      <ul>
+      <ul id='given-list'>
       ${givenConsents.length > 0 ? givenConsents.map(consent => `
         <li>${consent.name}</li>
       `).join('') : '<li><i>None</i></li>'}

@@ -57,3 +57,35 @@ section.page.active, section.tab-pane.active {
   z-index: 100;
   width: calc(100% - 30px);
 }
+
+section.loading, section.loaded, section.error {
+  position: relative;
+  transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+section.error {
+  background-color: rgba(255,0,0,0.1);
+  box-shadow: 0px 0px 3vw 3vw rgba(255,0,0,0.1);
+}
+section.loading:before, section.loaded:before {
+  content: ' ';
+  display: block;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,0,0,0.1);
+  border-left: 3px solid rgba(255,0,0,0.5);
+  animation: loading-anim 1.1s infinite linear;
+  transition: opacity 1s ease;
+  opacity: 1;
+}
+section.loaded:before {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+@keyframes loading-anim {
+  0%   { transform: rotate(0deg);   }
+  100% { transform: rotate(360deg); }
+}

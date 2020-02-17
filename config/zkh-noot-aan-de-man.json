@@ -1,7 +1,8 @@
 {
   "server": {
-    "port":    82,
-    "verbose": true
+    "port":          82,
+    "verbose":       true,
+    "sessionSecret": "j46g4iy7567k65h7jkhg7k34jh34kj"
   },
   "nuts": {
     "node": "localhost:21323"

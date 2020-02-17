@@ -1,4 +1,5 @@
 const express    = require('express');
+const session    = require('express-session');
 const bodyParser = require('body-parser');
 const config     = require('./util/config');
 const Logger     = require('./util/logger');
@@ -16,6 +17,12 @@ app.use('/', (req, res, next) => {
   Logger.log(`Received request for ${req.url}`, req.headers['x-forwarded-for'] || req.connection.remoteAddress);
   next();
 });
+
+app.use(session({
+  secret:            config.server.sessionSecret,
+  resave:            false,
+  saveUninitialized: false
+}));
 
 app.use(express.static('public'));
 app.use(express.json());

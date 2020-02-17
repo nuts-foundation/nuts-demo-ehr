@@ -14,9 +14,10 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
+    "express-session": "^1.17.0",
     "irma-core": "file://../irma-frontend-packages/irma-core",
-    "irma-web": "file://../irma-frontend-packages/plugins/irma-web",
     "irma-server": "file://../irma-frontend-packages/plugins/irma-server",
+    "irma-web": "file://../irma-frontend-packages/plugins/irma-web",
     "openapi-client-axios": "^3.2.4",
     "uuid": "^3.3.3"
   },

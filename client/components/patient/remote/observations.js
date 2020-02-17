@@ -5,6 +5,10 @@ let lastPatient;
 export default {
   render: (element, patient, organisation) => {
 
+    if ( !window.irmaLogin ) {
+      return window.location.hash = 'irma-login';
+    }
+
     if ( patient != lastPatient ) {
       Object.values(intervals).map(i => window.clearInterval(i));
       intervals = {};

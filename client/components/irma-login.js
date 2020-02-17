@@ -1,35 +1,46 @@
 const IrmaCore = require('irma-core');
-const Dummy    = require('irma-dummy');
+const Server   = require('irma-server');
 const Web      = require('irma-web');
 
-
 export default {
-  render: () => {
-    console.log("irma login");
-    document.getElementById('irma-login').innerHTML = template;
+  render: async () => {
+    document.getElementById('irma-login').innerHTML = template();
 
     const irma = new IrmaCore({
+      element: '#irma-web-form',
       debugging: true,
-      dummy: 'happy path',
-      element: '#irma',
-      timing: {
-        start: 1000,
-        scan: 6000,
-        app: 2000
+
+      session: {
+        url: '/api/authentication',
+
+        start: {
+          url: o => `${o.url}/new-session`,
+          method: 'GET',
+          qrFromResult: r => r.qr_code_info
+        },
+        result: false
+      },
+
+      state: {
+        serverSentEvents: false
       }
     });
 
-    irma.use(Dummy);
+    irma.use(Server);
     irma.use(Web);
 
-    irma.start('localhost:21323', {request: 'content'}).then(() => {
-        window.irmaLogin = true;
-        window.history.back();
-    })
-
+    try {
+      const result = await irma.start();
+      window.irmaLogin = true;
+      window.setTimeout(() => window.history.back(), 1200);
+    } catch (e) {
+      console.error(`Trouble running IRMA flow: `, e);
+    }
   }
 }
 
-const template = `
-<div id="irma"></div>
-`
+const template = () => `
+  <section class='irma-web-center-child' style='height: 80vh;'>
+    <section id='irma-web-form'></section>
+  </section>
+`;

@@ -16,9 +16,12 @@ export default {
         start: {
           url: o => `${o.url}/new-session`,
           method: 'GET',
-          qrFromResult: r => r.qr_code_info
+          qrFromResult: r => r
         },
-        result: false
+        result: {
+          url: o => `${o.url}/session-done`,
+          method: 'GET'
+        }
       },
 
       state: {

@@ -13,11 +13,9 @@ module.exports = {
 
 function loginContract() {
   return {
-    "type": "BehandelaarLogin",
-    "language": "NL",
-    "version": "v1",
-    "legalEntity": "urn:oid:2.16.840.1.113883.2.4.6.1:48000000",
-    "valid_from": "2019-06-24T14:32:00+02:00",
-    "valid_to": "2019-12-24T14:32:00+02:00"
+    type:        "BehandelaarLogin",
+    language:    "NL",
+    version:     "v1",
+    legalEntity: config.organisation.name
   }
 }

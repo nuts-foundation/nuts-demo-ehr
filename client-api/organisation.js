@@ -15,4 +15,13 @@ router.get('/search/:query', async (req, res) => {
   }
 });
 
+router.get('/byURN/:urn', async (req, res) => {
+  try {
+    const organisation = await registry.organizationById(req.params.urn);
+    res.status(200).send(organisation).end();
+  } catch(error) {
+    return res.status(500).send(`Error in fetching organisation: ${error}`);
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,6 @@
-const router        = require('express').Router();
-const config        = require('../util/config');
-const axios         = require('axios');
+const router = require('express').Router();
+const config = require('../util/config');
+const axios  = require('axios');
 
 const {
   patient,
@@ -14,52 +14,42 @@ const {
 
 router.get('/byPatientId/:id', async (req, res) => {
   try {
-    // Query the "database" for the requested observations
-    const o = await observation.byPatientId(req.params.id);
-    if ( o )
-      res.status(200).send(o).end();
-    else
-      res.status(404).send('Observation not found').end();
+    const observations = await observation.byPatientId(req.params.id);
+    if ( observations ) res.status(200).send(observations).end();
+    else                res.status(404).send('Observation not found').end();
   } catch(e) {
     res.status(500).send(`Error in database query for observations by patient id: ${e}`);
   }
 });
 
-router.get('/remoteByPatientId/:patient_id', findPatient, async(req, res)=> {
+router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async(req, res)=> {
   try {
-    var patientId = req.params.patient_id
-    var patientBSN = req.patient.bsn
-
-    // get received consents
+    // Are we allowed to make this request?
     const consents = await consentStore.consentsFor({
-      subject: patientId,
-      actor:   config.organisation
+      subject:   req.patient,
+      actor:     config.organisation,
+      custodian: { urn: req.params.urn }
     });
 
-    if ( consents.totalResults == 0 )
-      return res.status(200).send([])
+    if ( !consents || consents.totalResults === 0 )
+      return res.status(401).send("You don't have consent for this request").end();
 
-    // Endpoint type of this custom jston health data api endpoint
-    const DEMO_ENDPOINT_TYPE = "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr"
-    // for each consent, get endpoints
-    const endpoints = await Promise.all(
-        consents.results.map( async (item, i) => {
-          return registry.endpointsByOrganisationId(item.custodian, DEMO_ENDPOINT_TYPE)
-        })
-      )
-    const urls = endpoints.flat().map((ep) => ep.URL)
+    // Can we find remote endpoints?
+    const DEMO_ENDPOINT_TYPE = "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr";
+    const endpoints = await registry.endpointsByOrganisationId(req.params.urn, DEMO_ENDPOINT_TYPE);
 
-    // for each endpoint, get observations
-    const remoteObservations = await Promise.all(
-        urls.map(async (baseURL) => {
-          const url = baseURL + '/external/patient/' + patientBSN + '/observations';
-          return axios.get(url)
-        }))
+    if ( !endpoints || endpoints.length === 0 )
+      return res.status(500).send("Can't find remote endpoints").end();
 
-    const observations = remoteObservations.flatMap((response)=> response.data)
+    // Fetch available observations from all available endpoints
+    const observations = await Promise.all(
+      endpoints.map(e => {
+        const url = `${e.URL}/${req.patient.bsn}/observations`;
+        return axios.get(url).then(response => response.data);
+      })
+    );
 
-    res.status(200).send(observations).end()
-
+    res.status(200).send(observations.flat()).end();
   } catch(e) {
     res.status(500).send(`Error while getting remote observations: ${e}`)
   }

@@ -76,6 +76,10 @@ router.get('/inbox', async (req, res) => {
       actor: config.organisation
     });
 
+    // If no consent found
+    if ( !consents || consents.totalResults === 0 )
+      return res.status(200).send([]).end();
+
     // Add those that have unknown patients to the inbox
     const inbox = [];
     for ( let consent of consents.results ) {

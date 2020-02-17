@@ -73,7 +73,7 @@ So for each application add this endpoint to `endpoints.json`:
   "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
   "status": "active",
   "version": "0.1.0",
-  "URL": "http://localhost:80"
+  "URL": "http://localhost:80/external/patient"
 }
 ```
 

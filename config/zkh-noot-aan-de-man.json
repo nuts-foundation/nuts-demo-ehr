@@ -5,7 +5,8 @@
     "sessionSecret": "j46g4iy7567k65h7jkhg7k34jh34kj"
   },
   "nuts": {
-    "node": "localhost:21323"
+    "node": "localhost:21323",
+    "nats": "nats://localhost:21324"
   },
   "organisation": {
     "name":   "Medisch Centrum Noot aan de Man",

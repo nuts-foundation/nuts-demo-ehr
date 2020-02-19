@@ -2,8 +2,6 @@ import call from '../../../component-loader';
 
 export default {
   render: (element, patient, organisation) => {
-    console.log("Rendering remote observations", Date.now());
-    console.log(element);
     update(element, patient, organisation);
     return Promise.resolve();
   }

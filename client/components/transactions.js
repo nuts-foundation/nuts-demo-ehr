@@ -1,28 +1,23 @@
-import call from '../component-loader';
-let interval = false;
+import events from '../events';
 
 export default {
   render: () => {
-    const element = document.getElementById('transactions');
-    if ( !interval )
-       interval = window.setInterval(() => update(element), 3000);
-    update(element);
+    events.subscribe({
+      path: '/api/consent',
+      topic: 'transactions',
+      message: m => {
+        const json = JSON.parse(m)
+                         .map(o => ({
+                           status: o.name,
+                           organisations: o.payload.consentRecords.map(r => r.organisations).flat()
+                         }))
+
+        document.getElementById('transactions').innerHTML = template(json);
+      }
+    });
+
     return Promise.resolve();
   }
-}
-
-function update(element) {
-  call('/api/consent/transactions', element)
-  .then(json => {
-    const transactions = json.map(o => ({
-      status: o.name,
-      organisations: o.payload.consentRecords.map(r => r.organisations).flat()
-    }));
-    document.getElementById('transactions').innerHTML = template(transactions);
-  })
-  .catch(error => {
-    element.innerHTML = `<h2>Transactions</h2><p>Could not load transactions: ${error}</p>`;
-  });
 }
 
 const template = (transactions) => `

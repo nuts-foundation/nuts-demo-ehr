@@ -1,24 +1,20 @@
-import call from '../component-loader';
-let interval = false;
+import events from '../events';
 
 export default {
   render: () => {
-    const element = document.getElementById('inbox');
-    if ( !interval )
-      interval = window.setInterval(() => update(element), 3000);
-    update(element);
+    events.subscribe({
+      path: '/api/consent',
+      topic: 'inbox',
+      message: m => {
+        const json = JSON.parse(m)
+                         .sort((a,b) => a.bsn.localeCompare(b.bsn))
+
+        document.getElementById('inbox').innerHTML = template(json);
+      }
+    });
+
     return Promise.resolve();
   }
-}
-
-function update(element) {
-  call('/api/consent/inbox', element)
-  .then(json => {
-    element.innerHTML = template(json.sort((a,b) => a.bsn.localeCompare(b.bsn)));
-  })
-  .catch(error => {
-    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox: ${error}</p>`;
-  });
 }
 
 const template = (inbox) => `

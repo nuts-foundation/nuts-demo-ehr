@@ -1,5 +1,8 @@
 const router  = require('express').Router();
 const config  = require('../util/config');
+const events  = require('../util/events');
+const NATS    = require('nats')
+const nc      = NATS.connect(config.nuts.nats);
 
 const {
   patient,
@@ -12,6 +15,93 @@ const {
   eventStore,
   registry
 } = require('../resources/nuts-node');
+
+
+/** Server-Sent Events API **/
+
+// Mount events endpoint
+router.use('/events', events);
+
+// Publish initial values for these topics:
+publishInbox();
+publishTransactions();
+
+// Subscribe to NATS events and keep client up to date
+nc.subscribe('*.*.*.consentRequest', (msg, reply, subject) => {
+  // Only parse the bit that smells like JSON 😉
+  const json = JSON.parse(msg.match('\{.*\}').pop());
+  json.payload = JSON.parse(Buffer.from(json.payload, 'base64').toString());
+
+  console.log(`Received consentRequest event on '${subject}':`, json);
+
+  // For now just republish everything we've got 😅
+  publishInbox();
+  publishTransactions();
+});
+
+async function publishInbox() {
+  try {
+    // Get all consents I have been granted
+    const consents = await consentStore.consentsFor({
+      actor: config.organisation
+    });
+
+    // If no consent found
+    if ( !consents || consents.totalResults === 0 )
+      return events.publish({
+        topic: 'inbox',
+        message: '[]'
+      });
+
+    // Add those that have unknown patients to the inbox
+    const inbox = [];
+    for ( let consent of consents.results ) {
+      const bsn = consent.subject.split(':').pop();
+      if ( await patient.byBSN(bsn) === undefined )
+        inbox.push({
+          bsn:          bsn,
+          organisation: await registry.organizationById(consent.custodian)
+        });
+    }
+
+    events.publish({
+      topic: 'inbox',
+      message: JSON.stringify(inbox)
+    });
+  } catch(e) {
+    console.errror(`Error in Nuts node query for consent events: ${e}`);
+  }
+}
+
+async function publishTransactions() {
+  try {
+    const evnts = await eventStore.allEvents();
+
+    // Map URNs in events to sane organisations
+    for ( let event of evnts.events || [] ) {
+      // Event can have multiple consent records
+      if ( event.payload.consentRecords )
+        for ( let record of event.payload.consentRecords ) {
+          const organisations = [];
+          // Consent record has multiple organisations
+          for ( let org of record.metadata.organisationSecureKeys ) {
+            organisations.push(await registry.organizationById(org.legalEntity));
+          }
+          record.organisations = organisations;
+        }
+    }
+
+    events.publish({
+      topic: 'transactions',
+      message: JSON.stringify(evnts.events) || '[]'
+    });
+  } catch(e) {
+    console.error(`Error in Nuts node query for consent events: ${e}`);
+  }
+}
+
+
+/** Normal API requests **/
 
 router.get('/:patient_id/received', findPatient, async (req, res) => {
   try {
@@ -66,58 +156,6 @@ router.get('/:patient_id/given', findPatient, async (req, res) => {
     res.status(200).send(organisations).end();
   } catch(e) {
     res.status(500).send(`Error in Nuts node query for finding consents: ${e}`);
-  }
-});
-
-router.get('/inbox', async (req, res) => {
-  try {
-    // Get all consents I have been granted
-    const consents = await consentStore.consentsFor({
-      actor: config.organisation
-    });
-
-    // If no consent found
-    if ( !consents || consents.totalResults === 0 )
-      return res.status(200).send([]).end();
-
-    // Add those that have unknown patients to the inbox
-    const inbox = [];
-    for ( let consent of consents.results ) {
-      const bsn = consent.subject.split(':').pop();
-      if ( await patient.byBSN(bsn) === undefined )
-        inbox.push({
-          bsn:          bsn,
-          organisation: await registry.organizationById(consent.custodian)
-        });
-    }
-
-    res.status(200).send(inbox).end();
-  } catch(e) {
-    res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
-  }
-});
-
-router.get('/transactions', async (req, res) => {
-  try {
-    const events = await eventStore.allEvents();
-
-    // Map URNs in events to sane organisations
-    for ( let event of events.events || [] ) {
-      // Event can have multiple consent records
-      if ( event.payload.consentRecords )
-        for ( let record of event.payload.consentRecords ) {
-          const organisations = [];
-          // Consent record has multiple organisations
-          for ( let org of record.metadata.organisationSecureKeys ) {
-            organisations.push(await registry.organizationById(org.legalEntity));
-          }
-          record.organisations = organisations;
-        }
-    }
-
-    res.status(200).send(events.events || []).end();
-  } catch(e) {
-    res.status(500).send(`Error in Nuts node query for consent events: ${e}`);
   }
 });
 

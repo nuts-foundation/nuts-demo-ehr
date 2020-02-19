@@ -3,11 +3,14 @@ const router = require('express').Router();
 
 const {
   patient,
-  observation
+  observation,
+  accessLog
 } = require('../resources/database');
 
 const {
-  consentStore
+  consentStore,
+  auth,
+  registry
 } = require('../resources/nuts-node');
 
 router.get('/:patient_id', findPatient, handleNutsAuth, async (req, res) => {
@@ -15,7 +18,7 @@ router.get('/:patient_id', findPatient, handleNutsAuth, async (req, res) => {
   res.status(200).send(req.patient).end();
 });
 
-router.get('/:patient_id/observations', findPatient, async (req, res) => {
+router.get('/:patient_id/observations', findPatient, handleNutsAuth, async (req, res) => {
   try {
     // Query the "database" for the requested observations
     const o = await observation.byPatientId(req.patient.id);
@@ -33,30 +36,71 @@ async function findPatient(req, res, next) {
     req.patient = await patient.byBSN(req.params.patient_id);
     next();
   } catch(e) {
-    res.status(404).send(`Could not find a patient with id ${req.params.patient_id}: ${e}`);
+    // Give 500 in all cases so we don't leak information about patients in care
+    return console.error(`Can't find patient with bsn ${req.params.patient_id}`) && res.status(500).end();
   }
 }
 
 async function handleNutsAuth(req, res, next) {
+  // Who is making the request?
+  let actor;
   try {
-    if ( !req.headers.token )
-      return res.status(403).send(`Request not allowed without access token`).end();
+    // TODO: This should in future be determined based on client certificate:
+    actor = await registry.organizationById(req.headers.urn);
+  } catch(e) {
+    // Give 500 in all cases so we don't leak information about patients in care
+    return console.error(`Could not fetch organisation ${req.headers.urn}: ${e}`) && res.status(500).end();
+  }
 
-    const allowed = await consentStore.checkConsent({
+  // Is this organisation allowed to make this request?
+  try{
+    const consent = await consentStore.checkConsent({
       subject:   req.patient,
-      custodian: config.organisation,
-      actor:     {
-        agb: req.headers.token
-      }
+      actor:     actor,
+      custodian: config.organisation
     });
 
-    if ( allowed.consentGiven !== 'true' )
-      return res.status(403).send(`Request not allowed for actor with AGB ${req.headers.token}`).end();
-
-    next();
+    if ( !consent || consent.consentGiven != 'yes' )
+      // Consent was not given for this organisation
+      // Give 500 in all cases so we don't leak information about patients in care
+      return console.error(`No consent found for actor ${actor}`) && res.status(500);
   } catch(e) {
-    res.status(500).send(`Error in Nuts query for consent: ${e}`);
+    // Give 500 in all cases so we don't leak information about patients in care
+    return console.error(`Could not fetch consent for triple ${req.patient}, ${actor}, ${config.organisation}: ${e}`) && res.status(500).end();
   }
+
+  // Is this user validly authenticated with IRMA?
+  let contract;
+  try {
+    contract = await auth.validateContract({
+      contract_format: 'JWT',
+      contract_string: req.headers.user,
+      acting_party_cn: 'Demo EHR' // << This is a TODO on the part of the Nuts node
+    });
+
+    if ( !contract || contract.validation_result != 'VALID' )
+      // IRMA contract is not valid according to Nuts node
+      // Give 500 in all cases so we don't leak information about patients in care
+      return console.error(`No valid IRMA contract`) && res.status(500);
+  } catch(e) {
+    // Give 500 in all cases so we don't leak information about patients in care
+    return console.error(`Could not validate contract: ${e}`) && res.status(500).end();
+  }
+
+  try {
+    // Log this request for our own audits
+    accessLog.store({
+      timestamp: Date.now(),
+      patientId: req.patient.id,
+      actor:     actor,
+      user:      contract.signer_attributes
+    });
+  } catch(e) {
+    // Give 500 in all cases so we don't leak information about patients in care
+    return console.error(`Could not save request audit: ${e}`) && res.status(500).end();
+  }
+
+  next();
 }
 
 module.exports = router;

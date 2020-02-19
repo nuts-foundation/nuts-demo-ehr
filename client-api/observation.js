@@ -49,7 +49,14 @@ router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async(req, res)=>
     const observations = await Promise.all(
       endpoints.map(e => {
         const url = `${e.URL}/${req.patient.bsn}/observations`;
-        return axios.get(url).then(response => response.data);
+        return axios.get(url, {
+          headers: {
+            // "Security" headers
+            'urn':  `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
+            'user': req.session.nuts_auth_token
+          }
+        })
+        .then(response => response.data);
       })
     );
 

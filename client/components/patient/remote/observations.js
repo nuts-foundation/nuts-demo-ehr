@@ -27,7 +27,7 @@ function update(element, patient, organisation) {
   .catch(error => {
     element.innerHTML = `
       &nbsp;
-      <p style="text-align: right"><button id="remote-observations-reload">🔁 Reload</button></p>
+      <p style="text-align: right"><button class="btn btn-primary" id="remote-observations-reload">🔄 Reload</button></p>
       <h2>Error</h2><p>Could not load remote observations: ${error}</p>
     `;
     addReloadListener(element, patient, organisation);
@@ -42,7 +42,7 @@ function addReloadListener(element, patient, organisation) {
 
 const observationsTemplate = (observations) => `
   &nbsp;
-  <p style="text-align: right"><button id="remote-observations-reload">🔁 Reload</button></p>
+  <p style="text-align: right"><button class="btn btn-primary" id="remote-observations-reload">🔄 Reload</button></p>
 
   ${observations.length === 0 ? "<p><em>No remote observations found</em></p>" : ""}
 

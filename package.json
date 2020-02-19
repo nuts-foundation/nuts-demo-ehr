@@ -18,6 +18,7 @@
     "irma-core": "file://../irma-frontend-packages/irma-core",
     "irma-server": "file://../irma-frontend-packages/plugins/irma-server",
     "irma-web": "file://../irma-frontend-packages/plugins/irma-web",
+    "nats": "^1.4.0",
     "openapi-client-axios": "^3.2.4",
     "uuid": "^3.3.3"
   },

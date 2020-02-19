@@ -1,40 +1,50 @@
 import call from '../../../component-loader';
-let intervals = {};
-let lastPatient;
 
 export default {
   render: (element, patient, organisation) => {
-
-    if ( !window.irmaLogin ) {
-      return window.location.hash = 'irma-login';
-    }
-
-    if ( patient != lastPatient ) {
-      Object.values(intervals).map(i => window.clearInterval(i));
-      intervals = {};
-      lastPatient = patient;
-    }
-
-    if ( !intervals[organisation] )
-      intervals[organisation] = window.setInterval(() => update(element, patient, organisation), 3000);
+    console.log("Rendering remote observations", Date.now());
+    console.log(element);
     update(element, patient, organisation);
-
     return Promise.resolve();
   }
 }
 
 function update(element, patient, organisation) {
-  call(`/api/observation/remoteByPatientId/${patient}/${organisation.identifier}`, element)
+  element.classList.add('loading');
+  fetch(`/api/observation/remoteByPatientId/${patient}/${organisation.identifier}`)
+  .then(response => {
+    element.classList.remove('loading');
+    if ( response.status == 401 ) {
+      // We're not authenticated (anymore), go to IRMA flow
+      window.location.hash = 'irma-login';
+      return response.text().then(t => Promise.reject(t));
+    } else {
+      return response.json();
+    }
+  })
   .then(json => {
     element.innerHTML = observationsTemplate(json);
+    addReloadListener(element, patient, organisation);
   })
   .catch(error => {
-    element.innerHTML = `<h2>Error</h2><p>Could not load remote observations: ${error}</p>`;
+    element.innerHTML = `
+      &nbsp;
+      <p style="text-align: right"><button id="remote-observations-reload">🔁 Reload</button></p>
+      <h2>Error</h2><p>Could not load remote observations: ${error}</p>
+    `;
+    addReloadListener(element, patient, organisation);
+  });
+}
+
+function addReloadListener(element, patient, organisation) {
+  document.getElementById('remote-observations-reload').addEventListener('click', () => {
+    update(element, patient, organisation);
   });
 }
 
 const observationsTemplate = (observations) => `
   &nbsp;
+  <p style="text-align: right"><button id="remote-observations-reload">🔁 Reload</button></p>
 
   ${observations.length === 0 ? "<p><em>No remote observations found</em></p>" : ""}
 

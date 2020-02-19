@@ -24,7 +24,7 @@ router.get('/byPatientId/:id', async (req, res) => {
 
 router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async(req, res)=> {
   try {
-    // Are we allowed to make this request?
+    // Is our application allowed to make this request?
     const consents = await consentStore.consentsFor({
       subject:   req.patient,
       actor:     config.organisation,
@@ -32,7 +32,11 @@ router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async(req, res)=>
     });
 
     if ( !consents || consents.totalResults === 0 )
-      return res.status(401).send("You don't have consent for this request").end();
+      return res.status(403).send("You don't have consent for this request").end();
+
+    // Is this user authenticated with IRMA?
+    if ( !req.session.nuts_auth_token )
+      return res.status(401).send("You're not authenticated").end();
 
     // Can we find remote endpoints?
     const DEMO_ENDPOINT_TYPE = "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr";

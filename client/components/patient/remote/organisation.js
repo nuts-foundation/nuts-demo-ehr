@@ -6,11 +6,20 @@ export default {
     return fetch(`/api/organisation/byURN/${organisation}`)
     .then(result => result.json())
     .then(organisation => {
+      // Add tab and pane if they aren't in the dom yet
       if ( !document.getElementById(`org-${hash(organisation.identifier)}`) ) {
-        const {tab, pane} = addTab(organisation.name, `org-${hash(organisation.identifier)}`);
-        observations.render(pane, patient, organisation);
+        addTab(organisation.name, `org-${hash(organisation.identifier)}`);
       }
-      document.querySelector(`a[data-open='#org-${hash(organisation.identifier)}']`).click();
+
+      // Find our organisation's tab and pane
+      let tab  = document.querySelector(`a[data-open='#org-${hash(organisation.identifier)}']`);
+      let pane = document.getElementById(`org-${hash(organisation.identifier)}`);
+
+      // Fill it with observations
+      observations.render(pane, patient, organisation);
+
+      // And open it
+      tab.click();
       return;
     });
   }

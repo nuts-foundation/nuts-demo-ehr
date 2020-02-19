@@ -24,6 +24,8 @@ function update(element) {
 const template = (inbox) => `
   <h2>Inbox</h2>
 
+  <p><em>Patients not (yet) in care that you have been given permission for.</em></p>
+
   <table class="table table-borderless table-bordered table-hover">
 
     <thead class="thead-dark">

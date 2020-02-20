@@ -130,7 +130,7 @@ async function getTransactions() {
         }
     }
 
-    return evnts.events;
+    return evnts.events || [];
   } catch(e) {
     console.error(`Error in Nuts node query for consent events: ${e}`);
   }

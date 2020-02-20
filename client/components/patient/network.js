@@ -66,6 +66,7 @@ Thimbleful.Click.instance().register('#patient-add-consent-button', (e) => {
   const organisationURN = document.querySelector('input[name="organisation-id"]').value;
   const reason = document.getElementById('patient-add-consent-reason').value;
   storeConsent({ organisationURN, reason });
+  document.getElementById('patient-add-consent').classList.remove('active');
 });
 
 function storeConsent(consent) {

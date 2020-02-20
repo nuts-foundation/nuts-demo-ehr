@@ -2,12 +2,18 @@ import io from '../socketio';
 const socket = io.consent();
 
 socket.on('transactions', m => {
-  const transactions = m.map(o => ({
-    status: o.name,
-    organisations: o.payload.consentRecords.map(r => r.organisations).flat()
-  }));
+  try {
+    const transactions = m.map(o => ({
+      status: o.name,
+      organisations: o.payload.consentRecords.map(r => r.organisations).flat()
+    }));
 
-  document.getElementById('transactions').innerHTML = template(transactions);
+    document.getElementById('transactions').innerHTML = template(transactions);
+  } catch(e) {
+    // In some states, the payload has no consentRecords.
+    // Just silently fail here for now.
+    console.info('Failing silently when mapping ', m);
+  }
 });
 
 export default {

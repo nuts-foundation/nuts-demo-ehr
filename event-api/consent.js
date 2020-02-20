@@ -66,15 +66,15 @@ module.exports = async io => {
     // For now just republish everything we've got 😅
 
     inbox = await getInbox();
-    io.sockets.emit('inbox', inbox);
+    io.emit('inbox', inbox);
 
     transactions = await getTransactions();
-    io.sockets.emit('transactions', transactions);
+    io.emit('transactions', transactions);
 
     for ( let p of watchedPatients ) {
       const patientObj = await patient.byId(p.patientId);
-      p.socket.emit('givenConsents', await getGivenConsents(myPatient));
-      p.socket.emit('receivedConsents', await getReceivedConsents(myPatient));
+      p.socket.emit('givenConsents', await getGivenConsents(patientObj));
+      p.socket.emit('receivedConsents', await getReceivedConsents(patientObj));
     }
   });
 

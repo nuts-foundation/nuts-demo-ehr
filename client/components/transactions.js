@@ -1,21 +1,18 @@
-import events from '../events';
+import io from '../socketio';
+const socket = io.consent();
+
+socket.on('transactions', m => {
+  const transactions = m.map(o => ({
+    status: o.name,
+    organisations: o.payload.consentRecords.map(r => r.organisations).flat()
+  }));
+
+  document.getElementById('transactions').innerHTML = template(transactions);
+});
 
 export default {
   render: () => {
-    events.subscribe({
-      path: '/api/consent',
-      topic: 'transactions',
-      message: m => {
-        const json = JSON.parse(m)
-                         .map(o => ({
-                           status: o.name,
-                           organisations: o.payload.consentRecords.map(r => r.organisations).flat()
-                         }))
-
-        document.getElementById('transactions').innerHTML = template(json);
-      }
-    });
-
+    socket.emit('get', 'transactions');
     return Promise.resolve();
   }
 }

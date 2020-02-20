@@ -1,18 +1,14 @@
-import events from '../events';
+import io from '../socketio';
+const socket = io.consent();
+
+socket.on('inbox', m => {
+  const json = m.sort((a,b) => a.bsn.localeCompare(b.bsn))
+  document.getElementById('inbox').innerHTML = template(json);
+});
 
 export default {
   render: () => {
-    events.subscribe({
-      path: '/api/consent',
-      topic: 'inbox',
-      message: m => {
-        const json = JSON.parse(m)
-                         .sort((a,b) => a.bsn.localeCompare(b.bsn))
-
-        document.getElementById('inbox').innerHTML = template(json);
-      }
-    });
-
+    socket.emit('get', 'inbox');
     return Promise.resolve();
   }
 }

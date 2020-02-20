@@ -20,7 +20,11 @@ const {
 /** Server-Sent Events API **/
 
 // Mount events endpoint
-router.use('/events', events);
+eventsEndpoint = events(client => {
+  console.log(`New client joined topic ${client.topic}`);
+});
+
+router.use('/events', eventsEndpoint);
 
 // Publish initial values for these topics:
 publishInbox();
@@ -48,7 +52,7 @@ async function publishInbox() {
 
     // If no consent found
     if ( !consents || consents.totalResults === 0 )
-      return events.publish({
+      return eventsEndpoint.publish({
         topic: 'inbox',
         message: '[]'
       });
@@ -64,12 +68,12 @@ async function publishInbox() {
         });
     }
 
-    events.publish({
+    eventsEndpoint.publish({
       topic: 'inbox',
       message: JSON.stringify(inbox)
     });
   } catch(e) {
-    console.errror(`Error in Nuts node query for consent events: ${e}`);
+    console.error(`Error in Nuts node query for consent events: ${e}`);
   }
 }
 
@@ -91,12 +95,40 @@ async function publishTransactions() {
         }
     }
 
-    events.publish({
+    eventsEndpoint.publish({
       topic: 'transactions',
       message: JSON.stringify(evnts.events) || '[]'
     });
   } catch(e) {
     console.error(`Error in Nuts node query for consent events: ${e}`);
+  }
+}
+
+async function publishReceivedConsents() {
+  try {
+    // Which patients are clients subscribed to?
+    const topics = events.topics()
+                         .filter(topic => topic.startsWith('patient-'));
+
+    for ( const topic of topics ) {
+      // Fetch received consents for those patients
+      const consents = await consentStore.consentsFor({
+        subject: await patient.byId(topic.replace('patient-', '')),
+        actor:   config.organisation
+      });
+
+      // Map URNs to sane organisations
+      let organisations = [];
+      if ( consents.totalResults > 0 && consents.results )
+        organisations = await urnsToOrgs(consents.results.map(o => o.custodian));
+
+      eventsEndpoint.publish({
+        topic,
+        message: JSON.stringify(organisations) || '[]'
+      });
+    }
+  } catch(e) {
+    console.error(`Error in Nuts node query for finding consents: ${e}`);
   }
 }
 

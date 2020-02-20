@@ -1,5 +1,3 @@
-import call from '../../../component-loader';
-
 export default {
   render: (element, patient, organisation) => {
     update(element, patient, organisation);

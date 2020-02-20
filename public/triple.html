@@ -24,7 +24,7 @@
         applications.forEach(app => {
           const frame = document.createElement('iframe');
           frame.src = app.url;
-          frame.style.boxShadow = `0px 0px 2vw ${app.colour}`;
+          frame.style.boxShadow = `0px 0px 1vw ${app.colour}`;
           frame.style.border = `1px solid ${app.colour}`;
           document.body.appendChild(frame);
         });
@@ -43,17 +43,32 @@
       body {
         padding: 1.5vh 0.75vw;
         align: center;
-        display: flex;
+        position: relative;
         align-items: center;
         justify-content: center;
         flex-wrap: wrap;
       }
 
       iframe {
-        width: 45vw;
-        height: 43vh;
+        position: absolute;
+        top: 3.5vh;
+        right: 2.5vw;
+        width: 46vw;
+        height: 44vh;
         margin: auto;
         border: 0;
+      }
+
+      iframe:first-child {
+        height: 93vh;
+        left: 2.5vw;
+        top: 3.5vh;
+        right: auto;
+      }
+
+      iframe:last-child {
+        top: auto;
+        bottom: 3.5vh;
       }
     </style>
   </head>

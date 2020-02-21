@@ -22,6 +22,7 @@ module.exports = async io => {
 
   io.on('connection', socket => {
     socket.on('disconnect', () => {
+      // TODO: clean up watchedPatients
       console.log("One client less listening to consent events");
     });
 
@@ -90,10 +91,7 @@ async function getInbox() {
 
     // If no consent found
     if ( !consents || consents.totalResults === 0 )
-      return eventsEndpoint.publish({
-        topic: 'inbox',
-        message: '[]'
-      });
+      return [];
 
     // Add those that have unknown patients to the inbox
     const inbox = [];

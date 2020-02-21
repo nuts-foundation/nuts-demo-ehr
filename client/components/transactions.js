@@ -28,7 +28,7 @@ const template = (transactions) => `
       ${transactions.length > 0 ? transactions.map(transaction => `
         <tr>
           <td>${transaction.status}</td>
-          <td>${transaction.organisations.map(o => o.name)}</td>
+          <td>${transaction.organisations.map(o => o.name).join(', ')}</td>
         </tr>
       `).join('') : `
         <tr>

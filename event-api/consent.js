@@ -22,8 +22,8 @@ module.exports = async io => {
 
   io.on('connection', socket => {
     socket.on('disconnect', () => {
-      // TODO: clean up watchedPatients
-      console.log("One client less listening to consent events");
+      // Unsubscribe from any patients
+      watchedPatients = watchedPatients.filter(p => p.socket !== socket);
     });
 
     // Get me the latest of these, now
@@ -138,10 +138,10 @@ async function getTransactions() {
 
         // Only unique organisations
         organisations: organisations.filter((obj, pos, arr) =>
-                        arr.map(mapObj =>
-                          mapObj['name']
-                        ).indexOf(obj['name']) === pos
-                      )
+                         arr.map(mapObj =>
+                           mapObj['name']
+                         ).indexOf(obj['name']) === pos
+                       )
       });
     }
 

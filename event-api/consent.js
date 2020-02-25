@@ -22,7 +22,8 @@ module.exports = async io => {
 
   io.on('connection', socket => {
     socket.on('disconnect', () => {
-      console.log("One client less listening to consent events");
+      // Unsubscribe from any patients
+      watchedPatients = watchedPatients.filter(p => p.socket !== socket);
     });
 
     // Get me the latest of these, now
@@ -90,10 +91,7 @@ async function getInbox() {
 
     // If no consent found
     if ( !consents || consents.totalResults === 0 )
-      return eventsEndpoint.publish({
-        topic: 'inbox',
-        message: '[]'
-      });
+      return [];
 
     // Add those that have unknown patients to the inbox
     const inbox = [];
@@ -116,21 +114,38 @@ async function getTransactions() {
   try {
     const evnts = await eventStore.allEvents();
 
+    const transactions = [];
     // Map URNs in events to sane organisations
     for ( let event of evnts.events || [] ) {
       // Event can have multiple consent records
+      const organisations = [];
+      if ( event.payload.legalEntity )
+        organisations.push(await registry.organizationById(event.payload.legalEntity));
+      if ( event.payload.legalEntities )
+        for ( let org of event.payload.legalEntities )
+          organisations.push(await registry.organizationById(org));
       if ( event.payload.consentRecords )
         for ( let record of event.payload.consentRecords ) {
-          const organisations = [];
           // Consent record has multiple organisations
           for ( let org of record.metadata.organisationSecureKeys ) {
             organisations.push(await registry.organizationById(org.legalEntity));
           }
           record.organisations = organisations;
         }
+
+      transactions.push({
+        status: event.name,
+
+        // Only unique organisations
+        organisations: organisations.filter((obj, pos, arr) =>
+                         arr.map(mapObj =>
+                           mapObj['name']
+                         ).indexOf(obj['name']) === pos
+                       )
+      });
     }
 
-    return evnts.events || [];
+    return transactions;
   } catch(e) {
     console.error(`Error in Nuts node query for consent events: ${e}`);
   }

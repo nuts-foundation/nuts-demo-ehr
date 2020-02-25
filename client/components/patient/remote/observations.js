@@ -33,14 +33,14 @@ function update(element, patient, organisation) {
 }
 
 function addReloadListener(element, patient, organisation) {
-  document.getElementById('remote-observations-reload').addEventListener('click', () => {
+  element.querySelector('.remote-observations-reload').addEventListener('click', () => {
     update(element, patient, organisation);
   });
 }
 
 const observationsTemplate = (observations) => `
   &nbsp;
-  <p style="text-align: right"><button class="btn btn-primary" id="remote-observations-reload">🔄 Reload</button></p>
+  <p style="text-align: right"><button class="btn btn-primary remote-observations-reload">🔄 Reload</button></p>
 
   ${observations.length === 0 ? "<p><em>No remote observations found</em></p>" : ""}
 

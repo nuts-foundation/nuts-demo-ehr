@@ -1,18 +1,15 @@
-let patientId;
+import io from '../../socketio';
+const socket = io.accessLogs();
+
+socket.on('logs', m => {
+  document.getElementById('patient-logs').innerHTML = template(m);
+});
 
 export default {
-  render: (patient) => {
-    patientId = patient.id;
-    renderLogs(patientId);
+  render: patient => {
+    socket.emit('subscribe', patient.id);
+    return Promise.resolve();
   }
-}
-
-function renderLogs(patientId) {
-  return fetch(`/api/accessLog/byPatientId/${patientId}`)
-  .then(response => response.json())
-  .then(logs => {
-    document.getElementById('patient-logs').innerHTML = template(logs);
-  });
 }
 
 const template = (logs) => `

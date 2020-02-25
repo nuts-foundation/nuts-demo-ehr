@@ -1,13 +1,31 @@
 import Thimbleful from 'thimbleful';
-import call       from '../../component-loader';
+
+import io from '../../socketio';
+const socket = io.consent();
+
+socket.on('receivedConsents', m => {
+  document.querySelector('#patient-network #received-list').innerHTML =
+    m.sort((a,b) => a.name.localeCompare(b.name))
+     .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
+     .join('') || '<li><i>None</i></li>';
+});
+
+socket.on('givenConsents', m => {
+  document.querySelector('#patient-network #given-list').innerHTML =
+    m.sort((a,b) => a.name.localeCompare(b.name))
+     .map(c => `<li>${c.name}</li>`)
+     .join('') || '<li><i>None</i></li>';
+});
 
 let patientId;
 
 export default {
   render: async (patient) => {
     patientId = patient.id;
-    stopIntervals();
-    await renderNetwork();
+    const network = document.getElementById('patient-network');
+    network.innerHTML = template();
+
+    socket.emit('subscribe', patient.id);
 
     document.getElementById('patient-add-consent-org').addEventListener('keyup', (e) => {
       const input = e.target.value;
@@ -21,64 +39,6 @@ export default {
       }
     });
   }
-}
-
-let receivedInterval, givenInterval;
-
-function stopIntervals() {
-  if ( receivedInterval ) {
-    window.clearInterval(receivedInterval);
-    receivedInterval = null;
-  }
-  if ( givenInterval ) {
-    window.clearInterval(givenInterval);
-    givenInterval = null;
-  }
-}
-
-async function renderNetwork() {
-  const network = document.getElementById('patient-network');
-  network.innerHTML = template();
-  const received = network.querySelector('#received-list');
-  const given    = network.querySelector('#given-list');
-
-  if ( !receivedInterval )
-    receivedInterval = window.setInterval(() => renderReceived(received), 3000);
-  renderReceived(received);
-
-  if ( !givenInterval )
-    givenInterval = window.setInterval(() => renderGiven(given), 3000);
-  renderGiven(given);
-}
-
-async function renderReceived(element) {
-  return call(`/api/consent/${patientId}/received`, element)
-  .then(json => {
-    if ( json.length == 0 )
-      element.innerHTML = `<li><em>None</em></li>`;
-    else
-      element.innerHTML = json.sort((a,b) => a.name.localeCompare(b.name))
-                              .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
-                              .join('');
-  })
-  .catch(error => {
-    element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
-  });
-}
-
-async function renderGiven(element) {
-  return call(`/api/consent/${patientId}/given`, element)
-  .then(json => {
-    if ( json.length == 0 )
-      element.innerHTML = `<li><em>None</em></li>`;
-    else
-      element.innerHTML = json.sort((a,b) => a.name.localeCompare(b.name))
-                              .map(c => `<li>${c.name}</li>`)
-                              .join('');
-  })
-  .catch(error => {
-    element.innerHTML = `<li><em>Could not load organisations: ${error}</em></li>`;
-  });
 }
 
 function renderAutoComplete(results) {
@@ -105,9 +65,8 @@ Thimbleful.Click.instance().register('a[data-organisation-id]', (e) => {
 Thimbleful.Click.instance().register('#patient-add-consent-button', (e) => {
   const organisationURN = document.querySelector('input[name="organisation-id"]').value;
   const reason = document.getElementById('patient-add-consent-reason').value;
-
-  storeConsent({ organisationURN, reason })
-  .then(() => renderNetwork());
+  storeConsent({ organisationURN, reason });
+  document.getElementById('patient-add-consent').classList.remove('active');
 });
 
 function storeConsent(consent) {

@@ -1,17 +1,20 @@
 const express    = require('express');
+const app        = express();
+const server     = require('http').Server(app);
+const io         = require('socket.io')(server);
 const session    = require('express-session');
 const bodyParser = require('body-parser');
-const config     = require('./util/config');
-const Logger     = require('./util/logger');
-const api        = require('./client-api');
-const external   = require('./external-api');
-const {crypto}   = require('./resources/nuts-node');
+
+const config      = require('./util/config');
+const Logger      = require('./util/logger');
+const clientAPI   = require('./client-api');
+const externalAPI = require('./external-api');
+const eventAPI    = require('./event-api');
+const {crypto}    = require('./resources/nuts-node');
 
 // Run server
 
 Logger.log(`Starting server at port ${config.server.port}`);
-
-const app = express();
 
 app.use('/', (req, res, next) => {
   Logger.log(`Received request for ${req.url}`, req.headers['x-forwarded-for'] || req.connection.remoteAddress);
@@ -27,10 +30,13 @@ app.use(session({
 app.use(express.static('public'));
 app.use(express.json());
 app.use(bodyParser.json());
-app.use('/api', api);
-app.use('/external', external);
 
-app.listen(config.server.port, () =>
+app.use('/api',      clientAPI);
+app.use('/external', externalAPI);
+
+eventAPI(io);  // Mount events API using socket.io
+
+server.listen(config.server.port, () =>
   Logger.log(`Server is listening on port ${config.server.port}`));
 
 // Register our organisation with the Nuts node on startup

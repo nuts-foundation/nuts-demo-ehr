@@ -1,24 +1,16 @@
-import call from '../component-loader';
-let interval = false;
+import io from '../socketio';
+const socket = io.consent();
+
+socket.on('inbox', m => {
+  const json = m.sort((a,b) => a.bsn.localeCompare(b.bsn))
+  document.getElementById('inbox').innerHTML = template(json);
+});
 
 export default {
   render: () => {
-    const element = document.getElementById('inbox');
-    if ( !interval )
-      interval = window.setInterval(() => update(element), 3000);
-    update(element);
+    socket.emit('get', 'inbox');
     return Promise.resolve();
   }
-}
-
-function update(element) {
-  call('/api/consent/inbox', element)
-  .then(json => {
-    element.innerHTML = template(json.sort((a,b) => a.bsn.localeCompare(b.bsn)));
-  })
-  .catch(error => {
-    element.innerHTML = `<h2>Inbox</h2><p>Could not load inbox: ${error}</p>`;
-  });
 }
 
 const template = (inbox) => `

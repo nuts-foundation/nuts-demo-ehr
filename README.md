@@ -47,6 +47,8 @@ records in the config files.
 
 ### Configuring the Nuts node
 
+### IRMA
+
 You'll need to change a few things in the Nuts node config if you want to use
 the IRMA flows. In the `nuts-network-local/config/bundy/nuts.yaml` and
 `nuts-network-local/config/dahmer/nuts.yaml` files you will find a line that
@@ -73,6 +75,29 @@ You may also want to set this value to allow you to test using
 ```yaml
 auth:
   irmaSchemeManager: irma-demo
+```
+
+You will need to restart your Nuts nodes to enable these changes.
+
+#### NATS events
+
+In order to receive consent events from the Nuts node you will have to allow the
+demo EHR to talk to NATS. You do this by adding these port forwards to
+`nuts-network-local/docker-compose.yml`:
+
+```yaml
+bundy-nuts-service-space:
+  ...
+  ports:
+    - "11323:1323"
+    - "11324:4222" # <-- Add this
+  ...
+dahmer-nuts-service-space:
+  ...
+  ports:
+    - "21323:1323"
+    - "21324:4222" # <-- Add this
+  ...
 ```
 
 You will need to restart your Nuts nodes to enable these changes.

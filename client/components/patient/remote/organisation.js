@@ -1,4 +1,3 @@
-import call         from '../../../component-loader';
 import observations from './observations';
 
 export default {

@@ -5,7 +5,8 @@
     "sessionSecret": "987gdf876ghdh76d8hg6hg8jg6j87"
   },
   "nuts": {
-    "node": "localhost:21323"
+    "node": "localhost:21323",
+    "nats": "nats://localhost:21324"
   },
   "organisation": {
     "name":   "Huisartsenpraktijk Nootenboom",

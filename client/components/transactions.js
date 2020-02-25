@@ -1,28 +1,26 @@
-import call from '../component-loader';
-let interval = false;
+import io from '../socketio';
+const socket = io.consent();
 
-export default {
-  render: () => {
-    const element = document.getElementById('transactions');
-    if ( !interval )
-       interval = window.setInterval(() => update(element), 3000);
-    update(element);
-    return Promise.resolve();
-  }
-}
-
-function update(element) {
-  call('/api/consent/transactions', element)
-  .then(json => {
-    const transactions = json.map(o => ({
+socket.on('transactions', m => {
+  try {
+    const transactions = m.map(o => ({
       status: o.name,
       organisations: o.payload.consentRecords.map(r => r.organisations).flat()
     }));
+
     document.getElementById('transactions').innerHTML = template(transactions);
-  })
-  .catch(error => {
-    element.innerHTML = `<h2>Transactions</h2><p>Could not load transactions: ${error}</p>`;
-  });
+  } catch(e) {
+    // In some states, the payload has no consentRecords.
+    // Just silently fail here for now.
+    console.info('Failing silently when mapping ', m);
+  }
+});
+
+export default {
+  render: () => {
+    socket.emit('get', 'transactions');
+    return Promise.resolve();
+  }
 }
 
 const template = (transactions) => `

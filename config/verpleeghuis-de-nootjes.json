@@ -5,7 +5,8 @@
     "sessionSecret": "fg89h6fgj56h7j65hgj65f6"
   },
   "nuts": {
-    "node": "localhost:11323"
+    "node": "localhost:11323",
+    "nats": "nats://localhost:11324"
   },
   "organisation": {
     "name":   "Verpleeghuis De Nootjes",

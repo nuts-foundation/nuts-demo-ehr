@@ -1,20 +1,20 @@
-import Thimbleful from 'thimbleful';
+import Thimbleful from 'thimbleful'
 
-let patientId;
+let patientId
 
 export default {
   render: (patient) => {
-    patientId = patient.id;
-    renderObservations(patientId);
+    patientId = patient.id
+    renderObservations(patientId)
   }
 }
 
-function renderObservations(patientId) {
+function renderObservations (patientId) {
   return fetch(`/api/observation/byPatientId/${patientId}`)
-  .then(response => response.json())
-  .then(observations => {
-    document.getElementById('patient-observations').innerHTML = template(observations);
-  });
+    .then(response => response.json())
+    .then(observations => {
+      document.getElementById('patient-observations').innerHTML = template(observations)
+    })
 }
 
 const template = (observations) => `
@@ -36,23 +36,23 @@ const template = (observations) => `
 
   <textarea class="form-control" rows="5" id="new-observation"></textarea>
   <button class="btn btn-primary float-right" id="add-observation">Save</button>
-`;
+`
 
 // Add click handler for storing new observations
 Thimbleful.Click.instance().register('button#add-observation', (e) => {
-  const ta = document.getElementById('new-observation');
+  const ta = document.getElementById('new-observation')
 
   storeObservation({
     patientId: patientId,
     content: ta.value
   })
-  .then(() => {
-    ta.value = '';
-    renderObservations(patientId);
-  });
-});
+    .then(() => {
+      ta.value = ''
+      renderObservations(patientId)
+    })
+})
 
-function storeObservation(observation) {
+function storeObservation (observation) {
   return fetch('/api/observation', {
     method: 'PUT',
     headers: {
@@ -60,7 +60,7 @@ function storeObservation(observation) {
     },
     body: JSON.stringify(observation)
   })
-  .then(response => {
-    if ( response.status != 201 ) throw 'Error storing observation';
-  });
+    .then(response => {
+      if (response.status != 201) throw 'Error storing observation'
+    })
 }

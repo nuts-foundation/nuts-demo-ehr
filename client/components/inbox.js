@@ -1,15 +1,15 @@
-import io from '../socketio';
-const socket = io.consent();
+import io from '../socketio'
+const socket = io.consent()
 
 socket.on('inbox', m => {
-  const json = m.sort((a,b) => a.bsn.localeCompare(b.bsn))
-  document.getElementById('inbox').innerHTML = template(json);
-});
+  const json = m.sort((a, b) => a.bsn.localeCompare(b.bsn))
+  document.getElementById('inbox').innerHTML = template(json)
+})
 
 export default {
   render: () => {
-    socket.emit('get', 'inbox');
-    return Promise.resolve();
+    socket.emit('get', 'inbox')
+    return Promise.resolve()
   }
 }
 
@@ -43,4 +43,4 @@ const template = (inbox) => `
     </tbody>
 
   </table>
-`;
+`

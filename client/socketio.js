@@ -1,9 +1,9 @@
-import io from 'socket.io-client';
+import io from 'socket.io-client'
 
-const consent    = io('/consent');
-const accessLogs = io('/accessLogs');
+const consent = io('/consent')
+const accessLogs = io('/accessLogs')
 
 export default {
-  consent:    () => consent,
+  consent: () => consent,
   accessLogs: () => accessLogs
-};
+}

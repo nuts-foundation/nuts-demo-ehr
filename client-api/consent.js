@@ -1,14 +1,14 @@
-const router  = require('express').Router();
-const config  = require('../util/config');
+const router = require('express').Router()
+const config = require('../util/config')
 
 const {
   patient,
   consentInTransit
-} = require('../resources/database');
+} = require('../resources/database')
 
 const {
-  consentLogic,
-} = require('../resources/nuts-node');
+  consentLogic
+} = require('../resources/nuts-node')
 
 router.put('/:patient_id', findPatient, async (req, res) => {
   try {
@@ -19,33 +19,32 @@ router.put('/:patient_id', findPatient, async (req, res) => {
         urn: req.body.organisationURN
       },
       custodian: config.organisation
-    }, req.body.reason);
+    }, req.body.reason)
 
-    if ( result.resultCode !== 'OK' )
-      return res.status(500).send(`Error in Nuts node query for storing a new consent, result is not OK: ${result}`);
+    if (result.resultCode !== 'OK') { return res.status(500).send(`Error in Nuts node query for storing a new consent, result is not OK: ${result}`) }
 
     // Create a "consent in transit" record locally to track its status
     await consentInTransit.store({
-      jobId:      result.jobId,
-      subject:    req.patient.bsn,
-      actor:      req.body.organisationURN,
-      custodian:  config.organisation.agb,
+      jobId: result.jobId,
+      subject: req.patient.bsn,
+      actor: req.body.organisationURN,
+      custodian: config.organisation.agb,
       proofTitle: req.body.reason
-    });
+    })
 
-    res.status(201).send(result).end();
-  } catch(e) {
-    res.status(500).send(`Error in Nuts node query for storing a new consent: ${e}`);
+    res.status(201).send(result).end()
+  } catch (e) {
+    res.status(500).send(`Error in Nuts node query for storing a new consent: ${e}`)
   }
-});
+})
 
-async function findPatient(req, res, next) {
+async function findPatient (req, res, next) {
   try {
-    req.patient = await patient.byId(req.params.patient_id);
-    next();
-  } catch(e) {
-    res.status(404).send(`Could not find a patient with id ${req.params.patient_id}: ${e}`);
+    req.patient = await patient.byId(req.params.patient_id)
+    next()
+  } catch (e) {
+    res.status(404).send(`Could not find a patient with id ${req.params.patient_id}: ${e}`)
   }
 }
 
-module.exports = router;
+module.exports = router

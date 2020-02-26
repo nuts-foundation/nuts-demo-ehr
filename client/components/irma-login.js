@@ -1,10 +1,10 @@
-const IrmaCore = require('irma-core');
-const Server   = require('irma-server');
-const Web      = require('irma-web');
+const IrmaCore = require('irma-core')
+const Server = require('irma-server')
+const Web = require('irma-web')
 
 export default {
   render: async () => {
-    document.getElementById('irma-login').innerHTML = template();
+    document.getElementById('irma-login').innerHTML = template()
 
     const irma = new IrmaCore({
       debugging: true,
@@ -12,7 +12,7 @@ export default {
 
       language: 'en',
       translations: {
-        header:    'Identify yourself with <i class="irma-web-logo">IRMA</i>',
+        header: 'Identify yourself with <i class="irma-web-logo">IRMA</i>',
         cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t identify you and you can\'t request data'
       },
 
@@ -33,16 +33,16 @@ export default {
       state: {
         serverSentEvents: false
       }
-    });
+    })
 
-    irma.use(Server);
-    irma.use(Web);
+    irma.use(Server)
+    irma.use(Web)
 
     try {
-      const result = await irma.start();
-      window.setTimeout(() => window.history.back(), 1200);
+      const result = await irma.start()
+      window.setTimeout(() => window.history.back(), 1200)
     } catch (e) {
-      console.error(`Trouble running IRMA flow: `, e);
+      console.error('Trouble running IRMA flow: ', e)
     }
   }
 }
@@ -56,4 +56,4 @@ const template = () => `
     <section id='irma-web-form' style="margin: 2em 0;"></section>
     <p><a href="javascript:window.history.go(-2);">&laquo; Back</a></p>
   </section>
-`;
+`

@@ -1,5 +1,5 @@
-const config       = require('../../util/config');
-const observations = config.observations;
+const config = require('../../util/config')
+const observations = config.observations
 
 module.exports = {
   byPatientId: (id) => {
@@ -7,8 +7,8 @@ module.exports = {
   },
 
   store: (observation) => {
-    observation.id = Math.max(...observations.map(o => o.id)) + 1;
-    observations.push(observation);
-    return Promise.resolve(observation);
+    observation.id = Math.max(...observations.map(o => o.id)) + 1
+    observations.push(observation)
+    return Promise.resolve(observation)
   }
-};
+}

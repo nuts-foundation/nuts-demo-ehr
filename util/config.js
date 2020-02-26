@@ -1,4 +1,4 @@
-const file = process.env.CONFIG;
-const config = require(`../${file}`);
+const file = process.env.CONFIG
+const config = require(`../${file}`)
 
-module.exports = config;
+module.exports = config

@@ -1,6 +1,6 @@
 export default {
   render: (patient) => {
-    document.getElementById('patient-details').innerHTML = template(patient);
+    document.getElementById('patient-details').innerHTML = template(patient)
   }
 }
 
@@ -29,4 +29,4 @@ const template = (patient) => `
       </tr>
     </tbody>
   </table>
-`;
+`

@@ -1,75 +1,75 @@
-import Thimbleful from 'thimbleful';
+import Thimbleful from 'thimbleful'
 
-import io from '../../socketio';
-const socket = io.consent();
+import io from '../../socketio'
+const socket = io.consent()
 
 socket.on('receivedConsents', m => {
   document.querySelector('#patient-network #received-list').innerHTML =
-    m.sort((a,b) => a.name.localeCompare(b.name))
-     .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
-     .join('') || '<li><i>None</i></li>';
-});
+    m.sort((a, b) => a.name.localeCompare(b.name))
+      .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
+      .join('') || '<li><i>None</i></li>'
+})
 
 socket.on('givenConsents', m => {
   document.querySelector('#patient-network #given-list').innerHTML =
-    m.sort((a,b) => a.name.localeCompare(b.name))
-     .map(c => `<li>${c.name}</li>`)
-     .join('') || '<li><i>None</i></li>';
-});
+    m.sort((a, b) => a.name.localeCompare(b.name))
+      .map(c => `<li>${c.name}</li>`)
+      .join('') || '<li><i>None</i></li>'
+})
 
-let patientId;
+let patientId
 
 export default {
   render: async (patient) => {
-    patientId = patient.id;
-    const network = document.getElementById('patient-network');
-    network.innerHTML = template();
+    patientId = patient.id
+    const network = document.getElementById('patient-network')
+    network.innerHTML = template()
 
-    socket.emit('subscribe', patient.id);
+    socket.emit('subscribe', patient.id)
 
     document.getElementById('patient-add-consent-org').addEventListener('keyup', (e) => {
-      const input = e.target.value;
-      if ( input.length >= 2 ) {
+      const input = e.target.value
+      if (input.length >= 2) {
         fetch(`/api/organisation/search/${input}`)
-        .then(response => response.json())
-        .then(result => renderAutoComplete(result));
+          .then(response => response.json())
+          .then(result => renderAutoComplete(result))
       }
-      if ( input.length == 0 ) {
-        renderAutoComplete([]);
+      if (input.length == 0) {
+        renderAutoComplete([])
       }
-    });
+    })
   }
 }
 
-function renderAutoComplete(results) {
+function renderAutoComplete (results) {
   document.getElementById('patient-consent-auto-complete')
-          .innerHTML = results.map(result => `
+    .innerHTML = results.map(result => `
     <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
           data-organisation-id="${result.identifier}" data-organisation-name="${result.name}">
       ${result.name}
       <span class="badge badge-primary badge-pill">${result.identifier.split(':').pop()}</span>
     </a>
-  `).join('');
+  `).join('')
 }
 
 // Selecting an option from the auto-complete dropdown
 Thimbleful.Click.instance().register('a[data-organisation-id]', (e) => {
-  const id = e.target.attributes['data-organisation-id'].value;
-  const name = e.target.attributes['data-organisation-name'].value;
-  document.querySelector('input[name="organisation-id"]').value = id;
-  document.getElementById('patient-add-consent-org').value = name;
-  document.getElementById('patient-consent-auto-complete').innerHTML = '';
-});
+  const id = e.target.attributes['data-organisation-id'].value
+  const name = e.target.attributes['data-organisation-name'].value
+  document.querySelector('input[name="organisation-id"]').value = id
+  document.getElementById('patient-add-consent-org').value = name
+  document.getElementById('patient-consent-auto-complete').innerHTML = ''
+})
 
 // Storing new consent
 Thimbleful.Click.instance().register('#patient-add-consent-button', (e) => {
-  const organisationURN = document.querySelector('input[name="organisation-id"]').value;
-  const reason = document.getElementById('patient-add-consent-reason').value;
-  storeConsent({ organisationURN, reason });
-  document.getElementById('patient-add-consent').classList.remove('active');
-});
+  const organisationURN = document.querySelector('input[name="organisation-id"]').value
+  const reason = document.getElementById('patient-add-consent-reason').value
+  storeConsent({ organisationURN, reason })
+  document.getElementById('patient-add-consent').classList.remove('active')
+})
 
-function storeConsent(consent) {
+function storeConsent (consent) {
   return fetch(`/api/consent/${patientId}`, {
     method: 'PUT',
     headers: {
@@ -77,9 +77,9 @@ function storeConsent(consent) {
     },
     body: JSON.stringify(consent)
   })
-  .then(response => {
-    if ( response.status != 201 ) throw 'Error storing observation';
-  });
+    .then(response => {
+      if (response.status != 201) throw 'Error storing observation'
+    })
 }
 
 const template = () => `
@@ -133,4 +133,4 @@ const template = () => `
       </section>
     </div>
   </div>
-`;
+`

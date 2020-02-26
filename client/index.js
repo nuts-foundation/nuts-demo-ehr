@@ -1,12 +1,12 @@
-import Thimbleful from 'thimbleful';
-import header     from './components/header';
-import routing    from './routing';
+import Thimbleful from 'thimbleful'
+import header from './components/header'
+import routing from './routing'
 
 // Render organisation name, colour and user
-header.render();
+header.render()
 
 // Load the routes
-routing.load();
+routing.load()
 
 // Enable data attributes for interface components
-new Thimbleful.Energize("#app");
+new Thimbleful.Energize('#app')

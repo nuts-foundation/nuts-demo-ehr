@@ -1,14 +1,14 @@
-import io from '../socketio';
-const socket = io.consent();
+import io from '../socketio'
+const socket = io.consent()
 
 socket.on('transactions', transactions => {
-  document.getElementById('transactions').innerHTML = template(transactions);
-});
+  document.getElementById('transactions').innerHTML = template(transactions)
+})
 
 export default {
   render: () => {
-    socket.emit('get', 'transactions');
-    return Promise.resolve();
+    socket.emit('get', 'transactions')
+    return Promise.resolve()
   }
 }
 
@@ -38,4 +38,4 @@ const template = (transactions) => `
     </tbody>
 
   </table>
-`;
+`

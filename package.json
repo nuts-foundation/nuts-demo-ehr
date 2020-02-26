@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "cat NOTICE && concurrently \"npm run start_1\" \"npm run start_2\" \"npm run start_3\" \"webpack\"",
-    "test": "mocha --recursive --watch",
+    "test": "standard && mocha --recursive --watch",
     "start_1": "CONFIG=config/zkh-noot-aan-de-man.json nodemon index.js",
     "start_2": "CONFIG=config/huisarts-nootenboom.json nodemon index.js",
     "start_3": "CONFIG=config/verpleeghuis-de-nootjes.json nodemon index.js"
@@ -31,6 +31,7 @@
     "thimbleful": "^0.0.2",
     "webpack": "^4.41.0",
     "webpack-cli": "^3.3.9",
-    "webpack-dev-server": "^3.8.2"
+    "webpack-dev-server": "^3.8.2",
+    "standard": "*"
   }
 }

@@ -1,18 +1,18 @@
-const path = require('path');
+const path = require('path')
 
 module.exports = {
   mode: 'development',
 
   entry: {
-    'index': './client/index.js'
+    index: './client/index.js'
   },
 
-	output: {
-		path: path.join(__dirname, 'public'),
-		filename: '[name].js'
-	},
+  output: {
+    path: path.join(__dirname, 'public'),
+    filename: '[name].js'
+  },
 
-	watch: true,
+  watch: true,
   watchOptions: {
     ignored: [
       '/node_modules/',
@@ -22,4 +22,4 @@ module.exports = {
       '/util/'
     ]
   }
-};
+}

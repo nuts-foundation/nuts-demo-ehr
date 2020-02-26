@@ -1,6 +1,9 @@
 const config  = require('../util/config');
 const NATS    = require('nats')
 const nc      = NATS.connect(config.nuts.nats);
+nc.on('error', (err) => {
+  console.log(err)
+})
 
 const {
   patient,

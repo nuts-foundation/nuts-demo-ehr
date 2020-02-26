@@ -6,6 +6,8 @@ import transactions from './components/transactions'
 import patient from './components/patient/patient'
 import irmaLogin from './components/irma-login'
 import remoteOrganisation from './components/patient/remote/organisation'
+import sso from './components/sso'
+
 const router = new Thimbleful.Router()
 
 export default {
@@ -36,6 +38,11 @@ export default {
       if (!patient.rendered()) { await patient.render(matches[1]) }
       await remoteOrganisation.render(matches[1], matches[2])
       openPage('patient')
+    })
+
+    router.addRoute(/sso\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
+      await sso.render(matches[1], matches[2])
+      openPage('sso')
     })
   }
 }

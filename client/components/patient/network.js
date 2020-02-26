@@ -6,7 +6,13 @@ const socket = io.consent()
 socket.on('receivedConsents', m => {
   document.querySelector('#patient-network #received-list').innerHTML =
     m.sort((a, b) => a.name.localeCompare(b.name))
-      .map(c => `<li><a href="#patient-network/${patientId}/${c.identifier}">${c.name}</a></li>`)
+      .map(c => `<li>
+      ${c.name} -
+      <a href="#patient-network/${patientId}/${c.identifier}">Dossier entries</a>
+      |
+      <a href="#sso/${patientId}/${c.identifier}">SSO</a>
+      </li>
+     `)
       .join('') || '<li><i>None</i></li>'
 })
 

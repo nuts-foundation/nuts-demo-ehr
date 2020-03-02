@@ -48,12 +48,21 @@ crypto.getPublicKey(config.organisation.agb)
   .catch(e => {
     if (!e.response || e.response.status != 404) { return Logger.error('Error registering organisation, is your Nuts node up?', e) }
 
+
     crypto.generateKeyPair(config.organisation.agb)
-      .then(pubKey => Logger.log(`Registered! Public key for copy'n'pastin:\n${JSON.stringify({
-    name: config.organisation.name,
-    identifier: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
-    publicKey: pubKey.replace(/\n/g, '\n')
-  })}`))
+      .then(pubKey => {
+        let exampleVendorClaimEvent = {
+          'type': 'VendorClaimEvent',
+          'payload': {
+            'vendorIdentifier': '',
+            'orgName': config.organisation.name,
+            'orgIdentifier': `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
+            'orgKeys': [pubKey]
+          }
+        }
+
+        Logger.log(`Registered! Public key for copy'n'pastin:\n${JSON.stringify(exampleVendorClaimEvent)}`)
+      })
       .catch(e => {
         Logger.error('Error registering organisation, is your Nuts node up?', e)
       })

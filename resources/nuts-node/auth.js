@@ -1,14 +1,32 @@
 const config = require('../../util/config')
-const call = require('./open-api-helper').call({
+var FormData = require('form-data')
+const apiHelper = require('./open-api-helper')
+const definitionLocation = 'https://raw.githubusercontent.com/nuts-foundation/nuts-auth/0cdd505d38ac3387062437ffe25863ca2cc4a11a/docs/_static/nuts-auth.yaml'
+const call = apiHelper.call({
   baseURL: `http://${config.nuts.node}`,
-  definition: 'https://raw.githubusercontent.com/nuts-foundation/nuts-auth/master/docs/_static/nuts-auth.yaml'
+  definition: definitionLocation
 })
 
 module.exports = {
   createLoginSession: async () => await call('createSession', null, loginContract()),
   createSession: async (contract) => await call('createSession', null, contract),
   sessionRequestStatus: async (id) => await call('sessionRequestStatus', id),
-  validateContract: async (contract) => await call('validateContract', null, contract)
+  validateContract: async (contract) => await call('validateContract', null, contract),
+  createJwtBearerToken: async (context) => await call('createJwtBearerToken', null, context),
+  createAccessToken: async (baseUrl, jwtBearerToken) => {
+    let formData = new FormData()
+    formData.append('grant_type', 'urn:ietf:params:oauth:grant-type:jwt-bearer')
+    formData.append('assertion', jwtBearerToken)
+    let headers = {
+      'X-Nuts-LegalEntity': 'Demo EHR',
+      ...formData.getHeaders()
+    }
+    const otherAuth = apiHelper.call({
+      baseURL: baseUrl,
+      definition: definitionLocation
+    })
+    return await otherAuth('createAccessToken', null, formData, headers)
+  }
 }
 
 function loginContract () {
@@ -16,6 +34,6 @@ function loginContract () {
     type: 'BehandelaarLogin',
     language: 'NL',
     version: 'v1',
-    legalEntity: config.organisation.name
+    legalEntity: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
   }
 }

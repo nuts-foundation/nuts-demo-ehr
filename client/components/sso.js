@@ -1,5 +1,8 @@
 export default {
   render: async (patient, orgId) => {
+    return fetch(`/api/jump?patient=${patient}&custodian=${orgId}`)
+      .then(response => response.json())
+      .then(json => { })
     document.getElementById('sso').innerHTML = template()
   }
 }

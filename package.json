@@ -15,6 +15,7 @@
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
+    "form-data": "^3.0.0",
     "irma-core": "file://../irma-frontend-packages/irma-core",
     "irma-server": "file://../irma-frontend-packages/plugins/irma-server",
     "irma-web": "file://../irma-frontend-packages/plugins/irma-web",

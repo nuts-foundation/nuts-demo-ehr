@@ -7,10 +7,18 @@ module.exports = {
   },
 
   byId: (id) => {
-    return Promise.resolve(patients.find((patient) => patient.id == id))
+    let patient = patients.find((patient) => patient.id == id)
+    if (!patient) {
+      return Promise.reject('not found')
+    }
+    return Promise.resolve(patient)
   },
 
   byBSN: (bsn) => {
-    return Promise.resolve(patients.find((patient) => patient.bsn == bsn))
+    let patient = patients.find((patient) => patient.bsn == bsn)
+    if (!patient) {
+      return Promise.reject('not found')
+    }
+    return Promise.resolve(patient)
   }
 }

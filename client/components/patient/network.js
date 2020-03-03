@@ -10,7 +10,7 @@ socket.on('receivedConsents', m => {
       ${c.name} -
       <a href="#patient-network/${patientId}/${c.identifier}">Dossier entries</a>
       |
-      <a href="#sso/${patientId}/${c.identifier}">SSO</a>
+      <a href="/sso/jump?patient=${patientId}&custodian=${c.identifier}">SSO</a>
       </li>
      `)
       .join('') || '<li><i>None</i></li>'

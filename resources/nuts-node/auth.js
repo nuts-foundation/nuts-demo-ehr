@@ -14,6 +14,8 @@ module.exports = {
   validateContract: async (contract) => await call('validateContract', null, contract),
   createJwtBearerToken: async (context) => await call('createJwtBearerToken', null, context),
   createAccessToken: async (baseUrl, jwtBearerToken) => {
+    // createAccessToken is a bit weird since it follows the OAuth spec and needs a FormData object instead of a plain json document
+    // The baseUrl is added since the createAccessToken is usually performed on an other Nuts node than your own
     let formData = new FormData()
     formData.append('grant_type', 'urn:ietf:params:oauth:grant-type:jwt-bearer')
     formData.append('assertion', jwtBearerToken)
@@ -26,6 +28,15 @@ module.exports = {
       definition: definitionLocation
     })
     return await otherAuth('createAccessToken', null, formData, headers)
+  },
+
+  introspectAccessToken: async (accessToken) =>{
+    let formData = new FormData()
+    formData.append('token', accessToken)
+    let headers = {
+      ...formData.getHeaders()
+    }
+    return await call('introspectAccessToken', null, formData, headers)
   }
 }
 

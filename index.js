@@ -9,6 +9,7 @@ const config = require('./util/config')
 const Logger = require('./util/logger')
 const clientAPI = require('./client-api')
 const externalAPI = require('./external-api')
+const ssoHandler = require('./sso/sso')
 const eventAPI = require('./event-api')
 const { crypto } = require('./resources/nuts-node')
 
@@ -33,6 +34,7 @@ app.use(bodyParser.json())
 
 app.use('/api', clientAPI)
 app.use('/external', externalAPI)
+app.use('/sso', ssoHandler)
 
 eventAPI(io) // Mount events API using socket.io
 
@@ -47,7 +49,6 @@ crypto.getPublicKey(config.organisation.agb)
   .then(() => Logger.log('Organisation already registered'))
   .catch(e => {
     if (!e.response || e.response.status != 404) { return Logger.error('Error registering organisation, is your Nuts node up?', e) }
-
 
     crypto.generateKeyPair(config.organisation.agb)
       .then(pubKey => {

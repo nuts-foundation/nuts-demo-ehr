@@ -2,7 +2,11 @@
 export default {
   render: () => {
     fetch('/api/organisation/me')
-      .then(response => response.json())
+      .then(response => {
+        if (response.ok)
+          return response.json()
+        throw response
+      })
       .then(json => {
         const navbar = document.querySelector('nav.navbar')
 
@@ -10,6 +14,13 @@ export default {
         navbar.innerHTML = template(json)
 
         document.title = json.name
+      })
+      .catch(reason => {
+        if ('status' in reason && reason.status === 403) {
+          window.localStorage.setItem('afterLoginReturnUrl', window.location)
+          window.location.hash = 'irma-login'
+        }
+        console.log(reason)
       })
   }
 }

@@ -3,7 +3,11 @@ const config = require('../util/config')
 const { registry } = require('../resources/nuts-node')
 
 router.get('/me', async (req, res) => {
-  res.status(200).send(config.organisation).end()
+  let info = {
+    ...config.organisation,
+    user: req.session.user
+  }
+  res.status(200).send(info).end()
 })
 
 router.get('/search/:query', async (req, res) => {

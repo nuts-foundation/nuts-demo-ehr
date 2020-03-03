@@ -10,7 +10,7 @@ router.get('/jump', findPatient, async (req, res) => {
 
 
   if (!req.session.nuts_auth_token) {
-    res.redirect("/#irma-login")
+    res.redirect('/#irma-login')
   }
 
   // build context
@@ -36,11 +36,11 @@ router.get('/jump', findPatient, async (req, res) => {
   // Get the access token at the custodians Nuts node
   let accessTokenResponse
   try {
-    accessTokenResponse = await auth.createAccessToken("http://localhost:11323", jwtBearerTokenResponse.bearer_token)
+    accessTokenResponse = await auth.createAccessToken('http://localhost:11323', jwtBearerTokenResponse.bearer_token)
     console.log(accessTokenResponse)
     // Make the jump!
     res.redirect(`http://localhost:80/sso/land?token=${accessTokenResponse.access_token}`)
-  } catch(e) {
+  } catch (e) {
     if (e.response) {
       console.log(e.response.data)
       res.status(500).send(`error while creating access token: ${JSON.stringify(e.response.data)}`)
@@ -60,7 +60,10 @@ router.get('/land', async (req, res) => {
   // Introspect the token at the local Nuts node
   let introspectionResponse = await auth.introspectAccessToken(accessToken)
   if (!introspectionResponse.active) {
-    res.status(401).send("invalid token")
+    res.status(401).send('invalid token')
+  }
+
+  req.session.user = introspectionResponse.name
   }
 
   res.status(200).send(introspectionResponse)

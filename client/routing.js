@@ -6,7 +6,6 @@ import transactions from './components/transactions'
 import patient from './components/patient/patient'
 import irmaLogin from './components/irma-login'
 import remoteOrganisation from './components/patient/remote/organisation'
-import sso from './components/sso'
 import header from './components/header'
 
 const router = new Thimbleful.Router()

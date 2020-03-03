@@ -2,9 +2,7 @@ const router = require('express').Router()
 const config = require('../util/config')
 const { auth } = require('../resources/nuts-node')
 
-const {
-  patient,
-} = require('../resources/database')
+const patientResource = require('../resources/database').patient
 
 router.get('/jump', findPatient, async (req, res) => {
 
@@ -64,14 +62,21 @@ router.get('/land', async (req, res) => {
   }
 
   req.session.user = introspectionResponse.name
+
+  let patientBsn = introspectionResponse.sid.split(':').pop()
+  let patient = await patientResource.byBSN(patientBsn)
+
+  if (!patient) {
+    res.status(401).send('patient not found')
   }
 
-  res.status(200).send(introspectionResponse)
+  res.redirect(`/#patient-details/${patient.id}`)
+  // res.status(200).send(introspectionResponse)
 })
 
 async function findPatient (req, res, next) {
   try {
-    req.patient = await patient.byId(req.query.patient)
+    req.patient = await patientResource.byId(req.query.patient)
     next()
   } catch (e) {
     res.status(404).send(`Could not find a patient with id ${req.query.patient}: ${e}`)

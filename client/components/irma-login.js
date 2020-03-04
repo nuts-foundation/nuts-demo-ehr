@@ -57,10 +57,8 @@ export default {
 const template = () => `
   <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
     <p style="max-width: 450px; text-align: center;">
-      You are about to request data from an <b>external organisation</b>.
-      You will need to identify yourself for this using IRMA.
+      You can now login to the DEMO EHR using IRMA.
     </p>
     <section id='irma-web-form' style="margin: 2em 0;"></section>
-    <p><a href="javascript:window.history.go(-2);">&laquo; Back</a></p>
   </section>
 `

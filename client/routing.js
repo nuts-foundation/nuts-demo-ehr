@@ -5,6 +5,7 @@ import inbox from './components/inbox'
 import transactions from './components/transactions'
 import patient from './components/patient/patient'
 import irmaLogin from './components/irma-login'
+import logout from './components/logout'
 import remoteOrganisation from './components/patient/remote/organisation'
 import header from './components/header'
 
@@ -33,6 +34,11 @@ export default {
       irmaLogin.render()
     })
 
+    router.addRoute('logout', async link => {
+      openPage('public', 'logout')
+      logout.render()
+    })
+
     router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
       openPage('private', 'patient')
       // Render organisation name, colour and user
@@ -41,7 +47,7 @@ export default {
     })
 
     router.addRoute(/patient-network\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
-      openPage('private', patient)
+      openPage('private', 'patient')
       // Render organisation name, colour and user
       header.render()
       if (!patient.rendered()) { await patient.render(matches[1]) }

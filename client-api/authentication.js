@@ -33,4 +33,9 @@ router.get('/session-done', async (req, res) => {
   }
 })
 
+router.get('/logout', (req, res)=> {
+  req.session.destroy()
+  res.status(204).end()
+})
+
 module.exports = router

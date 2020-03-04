@@ -18,8 +18,8 @@ const { crypto } = require('./resources/nuts-node')
 
 Logger.log(`Starting server at port ${config.server.port}`)
 
-app.use('/', (req, res, next) => {
-  Logger.log(`Received request for ${req.url}`, req.headers['x-forwarded-for'] || req.connection.remoteAddress)
+app.use((req, res, next) => {
+  Logger.log(`Received request for ${config.organisation.name}:${config.server.port}${req.url}`, req.headers['x-forwarded-for'] || req.connection.remoteAddress)
   next()
 })
 
@@ -27,8 +27,9 @@ app.use('/', (req, res, next) => {
 // Remove the following 2 lines and the 'store' property if you prefer an in-memory store.
 let RedisStore = require('connect-redis')(session)
 let redisClient = redis.createClient()
+redisClient.on('error', console.error)
 app.use(session({
-  store: new RedisStore({ client: redisClient, prefix: 'session-' + config.server.agb }),
+  store: new RedisStore({ client: redisClient, prefix: `session-${config.organisation.agb}:` }),
   secret: config.server.sessionSecret,
   resave: false,
   saveUninitialized: false

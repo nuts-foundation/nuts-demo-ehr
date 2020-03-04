@@ -1,25 +1,25 @@
-import Details      from './details';
-import Observations from './observations';
-import Network      from './network';
-import Logs         from './access-logs';
+import Details from './details'
+import Observations from './observations'
+import Network from './network'
+import Logs from './access-logs'
 
 export default {
   render: (patientId) => {
     return fetch(`/api/patient/${patientId}`)
-    .then(response => response.json())
-    .then(patient => {
-      document.getElementById('patient').innerHTML = template(patient);
+      .then(response => response.json())
+      .then(patient => {
+        document.getElementById('patient').innerHTML = template(patient)
 
-      // Render child components
-      Details.render(patient);
-      Observations.render(patient);
-      Network.render(patient);
-      Logs.render(patient);
-    });
+        // Render child components
+        Details.render(patient)
+        Observations.render(patient)
+        Network.render(patient)
+        Logs.render(patient)
+      })
   },
 
   rendered: () => {
-    return document.getElementById('patient').children.length > 0;
+    return document.getElementById('patient').children.length > 0
   }
 }
 
@@ -50,4 +50,4 @@ const template = (patient) => `
   <section class="tab-pane" id="patient-observations" data-group="patient-tab-panes" data-follower="a[data-open='#patient-observations']"></section>
   <section class="tab-pane" id="patient-logs" data-group="patient-tab-panes" data-follower="a[data-open='#patient-logs']"></section>
   <section class="tab-pane" id="patient-network" data-group="patient-tab-panes" data-follower="a[data-open='#patient-network']"></section>
-`;
+`

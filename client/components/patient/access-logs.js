@@ -1,14 +1,14 @@
-import io from '../../socketio';
-const socket = io.accessLogs();
+import io from '../../socketio'
+const socket = io.accessLogs()
 
 socket.on('logs', m => {
-  document.getElementById('patient-logs').innerHTML = template(m);
-});
+  document.getElementById('patient-logs').innerHTML = template(m)
+})
 
 export default {
   render: patient => {
-    socket.emit('subscribe', patient.id);
-    return Promise.resolve();
+    socket.emit('subscribe', patient.id)
+    return Promise.resolve()
   }
 }
 
@@ -31,4 +31,4 @@ const template = (logs) => `
       `).join('') : '<tr><td colspan="3" style="text-align: center;"><em>None</em></td></tr>'}
     </tbody>
   </table>
-`;
+`

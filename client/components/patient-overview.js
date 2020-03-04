@@ -2,10 +2,10 @@ export default {
   // Fetch all patients and render to the table
   render: () => {
     return fetch('/api/patient/all')
-    .then(response => response.json())
-    .then(json => {
-      document.getElementById('patient-overview').innerHTML = template(json);
-    });
+      .then(response => response.json())
+      .then(json => {
+        document.getElementById('patient-overview').innerHTML = template(json)
+      })
   }
 }
 
@@ -31,4 +31,4 @@ const template = (patients) => `
     </tbody>
 
   </table>
-`;
+`

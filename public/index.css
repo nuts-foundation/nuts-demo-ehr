@@ -41,10 +41,10 @@ i.user-icon:after {
   margin-left: -0.5em;
 }
 
-section.page, section.tab-pane {
+section.page, section.tab-pane, section.layout {
   display: none;
 }
-section.page.active, section.tab-pane.active {
+section.page.active, section.tab-pane.active, section.layout.active{
   display: block;
 }
 

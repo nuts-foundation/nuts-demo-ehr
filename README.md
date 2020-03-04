@@ -23,6 +23,11 @@ npm install
 npm start
 ```
 
+Note that it needs a running redis server for session persistence. You can start one by running a docker node:
+```bash
+docker run --name some-redis -d redis
+```
+
 You should now have three instances of this EHR running on:
 
 * http://localhost:80 ⸺ Verpleeghuis de Nootjes

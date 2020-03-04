@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const server = require('http').Server(app)
 const io = require('socket.io')(server)
+const redis = require('redis')
 const session = require('express-session')
 const bodyParser = require('body-parser')
 
@@ -22,7 +23,12 @@ app.use('/', (req, res, next) => {
   next()
 })
 
+// Use Redis for session persistence.
+// Remove the following 2 lines and the 'store' property if you prefer an in-memory store.
+let RedisStore = require('connect-redis')(session)
+let redisClient = redis.createClient()
 app.use(session({
+  store: new RedisStore({ client: redisClient, prefix: 'session-' + config.server.agb }),
   secret: config.server.sessionSecret,
   resave: false,
   saveUninitialized: false

@@ -15,7 +15,6 @@ const eventAPI = require('./event-api')
 const { crypto } = require('./resources/nuts-node')
 
 // Run server
-
 Logger.log(`Starting server at port ${config.server.port}`)
 
 app.use((req, res, next) => {
@@ -32,6 +31,7 @@ app.use(session({
   store: new RedisStore({ client: redisClient, prefix: `session-${config.organisation.agb}:` }),
   secret: config.server.sessionSecret,
   resave: false,
+  name: `session-${config.organisation.agb}`,
   saveUninitialized: false
 }))
 

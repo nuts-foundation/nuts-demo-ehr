@@ -25,7 +25,8 @@ app.use((req, res, next) => {
 // Use Redis for session persistence.
 // Remove the following 2 lines and the 'store' property if you prefer an in-memory store.
 let RedisStore = require('connect-redis')(session)
-let redisClient = redis.createClient()
+let redisServer = process.env.REDIS_SERVER_ADDRESS || "localhost"
+let redisClient = redis.createClient({host: redisServer})
 redisClient.on('error', console.error)
 app.use(session({
   store: new RedisStore({ client: redisClient, prefix: `session-${config.organisation.agb}:` }),

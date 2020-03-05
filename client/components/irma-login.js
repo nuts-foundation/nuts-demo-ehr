@@ -1,6 +1,6 @@
-const IrmaCore = require('irma-core')
-const Server = require('irma-server')
-const Web = require('irma-web')
+const IrmaCore = require('@nuts-foundation/irma-core')
+const Server = require('@nuts-foundation/irma-server')
+const Web = require('@nuts-foundation/irma-web')
 
 export default {
   render: async () => {

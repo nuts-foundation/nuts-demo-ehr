@@ -5,13 +5,12 @@ const { auth, registry } = require('../resources/nuts-node')
 const patientResource = require('../resources/database').patient
 
 router.get('/jump', findPatient, async (req, res) => {
-
   if (!req.session.nuts_auth_token) {
     res.redirect('/#irma-login')
   }
 
   // build context
-  let context = {
+  const context = {
     subject: `urn:oid:2.16.840.1.113883.2.4.6.3:${req.patient.bsn}`,
     actor: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
     custodian: req.query.custodian,
@@ -33,7 +32,7 @@ router.get('/jump', findPatient, async (req, res) => {
   // Get the correct endpoint
   let endpointResponse
   try {
-    let type = "urn:oid:1.3.6.1.4.1.54851.1:nuts-sso"
+    const type = 'urn:oid:1.3.6.1.4.1.54851.1:nuts-sso'
     endpointResponse = await registry.endpointsByOrganisationId(req.query.custodian, type)
   } catch (e) {
     if (e.response) {
@@ -43,10 +42,10 @@ router.get('/jump', findPatient, async (req, res) => {
     }
   }
 
-  console.log("endpointResponse", endpointResponse)
-  let endpointEntry = endpointResponse.pop()
-  let accessTokenEndpoint = endpointEntry.properties.authenticationServerURL
-  let jumpEndpoint = endpointEntry.URL
+  console.log('endpointResponse', endpointResponse)
+  const endpointEntry = endpointResponse.pop()
+  const accessTokenEndpoint = endpointEntry.properties.authenticationServerURL
+  const jumpEndpoint = endpointEntry.URL
 
   // Get the access token at the custodians Nuts node
   let accessTokenResponse
@@ -67,7 +66,7 @@ router.get('/jump', findPatient, async (req, res) => {
 })
 
 router.get('/land', async (req, res) => {
-  let accessToken = req.query.token
+  const accessToken = req.query.token
   if (!accessToken) {
     res.status(401).send('missing access token')
   }
@@ -83,6 +82,7 @@ router.get('/land', async (req, res) => {
     res.status(500).send('error while introspecting access token:', e)
   }
 
+  // set the user session
   req.session.user = introspectionResponse.name
 
   // Get bsn from urn

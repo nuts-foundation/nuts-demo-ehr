@@ -1,11 +1,11 @@
 export default {
   render: async () => {
     document.getElementById('logout').innerHTML = template()
-    fetch("/api/authentication/logout").then((response)=> {
+    fetch('/api/authentication/logout').then((response) => {
       if (response.ok && response.status === 204) {
-        console.log("logged out")
+        console.log('logged out')
       } else {
-        console.log("error during logout:", response)
+        console.log('error during logout:', response)
       }
     })
   }

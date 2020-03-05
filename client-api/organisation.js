@@ -3,12 +3,12 @@ const config = require('../util/config')
 const { registry } = require('../resources/nuts-node')
 
 router.get('/me', async (req, res) => {
-  let info = {
+  const info = {
     ...config.organisation,
     user: req.session.user
   }
   if (!info.user) {
-    return res.status(403).send("no active session")
+    return res.status(403).send('no active session')
   }
   res.status(200).send(info)
 })

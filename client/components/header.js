@@ -3,8 +3,7 @@ export default {
   render: () => {
     fetch('/api/organisation/me')
       .then(response => {
-        if (response.ok)
-          return response.json()
+        if (response.ok) { return response.json() }
         throw response
       })
       .then(json => {

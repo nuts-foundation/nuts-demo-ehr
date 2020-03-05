@@ -11,9 +11,9 @@ module.exports = {
     auth.init()
 
     return async function (method, params = null, body = null, headers = null) {
-      let config = {
+      const config = {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           ...headers
         }
       }

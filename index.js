@@ -24,9 +24,9 @@ app.use((req, res, next) => {
 
 // Use Redis for session persistence.
 // Remove the following 2 lines and the 'store' property if you prefer an in-memory store.
-let RedisStore = require('connect-redis')(session)
-let redisServer = process.env.REDIS_SERVER_ADDRESS || "localhost"
-let redisClient = redis.createClient({host: redisServer})
+const RedisStore = require('connect-redis')(session)
+const redisServer = process.env.REDIS_SERVER_ADDRESS || 'localhost'
+const redisClient = redis.createClient({ host: redisServer })
 redisClient.on('error', console.error)
 app.use(session({
   store: new RedisStore({ client: redisClient, prefix: `session-${config.organisation.agb}:` }),
@@ -60,13 +60,13 @@ crypto.getPublicKey(config.organisation.agb)
 
     crypto.generateKeyPair(config.organisation.agb)
       .then(pubKey => {
-        let exampleVendorClaimEvent = {
-          'type': 'VendorClaimEvent',
-          'payload': {
-            'vendorIdentifier': '',
-            'orgName': config.organisation.name,
-            'orgIdentifier': `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
-            'orgKeys': [pubKey]
+        const exampleVendorClaimEvent = {
+          type: 'VendorClaimEvent',
+          payload: {
+            vendorIdentifier: '',
+            orgName: config.organisation.name,
+            orgIdentifier: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
+            orgKeys: [pubKey]
           }
         }
 

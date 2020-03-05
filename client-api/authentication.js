@@ -21,8 +21,8 @@ router.get('/session-done', async (req, res) => {
       // extract the users full name from the disclosed attributes.
       // TODO: don't depend on the irma-demo schemeManager here
       console.log(status.disclosed)
-      let fullNameEntry = status.disclosed.find((el)=> el.identifier === "irma-demo.gemeente.personalData.fullname")
-      console.log("fullname:", fullNameEntry)
+      const fullNameEntry = status.disclosed.find((el) => el.identifier === 'irma-demo.gemeente.personalData.fullname')
+      console.log('fullname:', fullNameEntry)
       req.session.user = fullNameEntry.rawvalue
       console.log(req.session.user)
     }
@@ -33,7 +33,7 @@ router.get('/session-done', async (req, res) => {
   }
 })
 
-router.get('/logout', (req, res)=> {
+router.get('/logout', (req, res) => {
   req.session.destroy()
   res.status(204).end()
 })

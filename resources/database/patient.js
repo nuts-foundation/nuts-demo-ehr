@@ -7,7 +7,7 @@ module.exports = {
   },
 
   byId: (id) => {
-    let patient = patients.find((patient) => patient.id == id)
+    const patient = patients.find((patient) => patient.id == id)
     if (!patient) {
       return Promise.reject('not found')
     }
@@ -15,7 +15,7 @@ module.exports = {
   },
 
   byBSN: (bsn) => {
-    let patient = patients.find((patient) => patient.bsn == bsn)
+    const patient = patients.find((patient) => patient.bsn == bsn)
     if (!patient) {
       return Promise.reject('not found')
     }

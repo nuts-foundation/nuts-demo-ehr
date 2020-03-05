@@ -72,17 +72,23 @@ router.get('/land', async (req, res) => {
     res.status(401).send('missing access token')
   }
 
-  // Introspect the token at the local Nuts node
-  let introspectionResponse = await auth.introspectAccessToken(accessToken)
-  if (!introspectionResponse.active) {
-    res.status(401).send('invalid token')
+  let introspectionResponse
+  try {
+    // Introspect the token at the local Nuts node
+    introspectionResponse = await auth.introspectAccessToken(accessToken)
+    if (!introspectionResponse.active) {
+      res.status(401).send('invalid token')
+    }
+  } catch (e) {
+    res.status(500).send('error while introspecting access token:', e)
   }
 
   req.session.user = introspectionResponse.name
 
   // Get bsn from urn
-  let patientBsn = introspectionResponse.sid.split(':').pop()
-  let patient = await patientResource.byBSN(patientBsn)
+  const subjectId = introspectionResponse.sid
+  const patientBsn = subjectId.match(/urn:oid:2.16.840.1.113883.2.4.6.3:([0-9]{8,9})/).pop()
+  const patient = await patientResource.byBSN(patientBsn)
 
   if (!patient) {
     res.status(401).send('patient not found')

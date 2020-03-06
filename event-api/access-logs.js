@@ -1,8 +1,6 @@
-const config = require('../util/config')
 const events = require('../util/events')
 
 const {
-  patient,
   accessLog
 } = require('../resources/database')
 

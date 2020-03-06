@@ -1,5 +1,4 @@
 import Thimbleful from 'thimbleful'
-import header from './components/header'
 import routing from './routing'
 
 // Load the routes

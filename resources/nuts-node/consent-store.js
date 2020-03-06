@@ -7,8 +7,8 @@ const call = openAPIHelper.call({
 })
 
 module.exports = {
-  consentsFor: async (parties) => await call('queryConsent', null, query(parties)),
-  checkConsent: async (parties) => await call('checkConsent', null, combination(parties))
+  consentsFor: async (parties) => call('queryConsent', null, query(parties)),
+  checkConsent: async (parties) => call('checkConsent', null, combination(parties))
 }
 
 function query (parties) {

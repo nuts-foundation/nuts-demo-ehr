@@ -84,7 +84,7 @@ function storeConsent (consent) {
     body: JSON.stringify(consent)
   })
     .then(response => {
-      if (response.status != 201) throw 'Error storing observation'
+      if (response.status != 201) throw Error('Error storing observation')
     })
 }
 

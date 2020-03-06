@@ -3,7 +3,7 @@ const consents = []
 module.exports = {
   get: (match) => {
     return Promise.resolve(consents.filter((c) => {
-      for (prop in match) {
+      for (const prop in match) {
         if (c[prop] !== match[prop]) { return false }
       }
       return true

@@ -19,7 +19,7 @@ function update (element, patient, organisation) {
           return response.json()
         }
         // extract error message from body and wrap it in a rejected promise
-        return response.text().then((text) => new Promise((res, rej) => rej(text)))
+        return response.text().then((text) => new Promise((resolve, reject) => reject(text)))
       }
     })
     .then(json => {

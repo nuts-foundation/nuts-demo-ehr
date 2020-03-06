@@ -57,10 +57,11 @@ async function handleNutsAuth (req, res, next) {
       custodian: config.organisation
     })
 
-    if (!consent || consent.consentGiven != 'yes')
-    // Consent was not given for this organisation
-    // Give 500 in all cases so we don't leak information about patients in care
-    { return console.error(`No consent found for actor ${actor}`) && res.status(500) }
+    if (!consent || consent.consentGiven != 'yes') {
+      // Consent was not given for this organisation
+      // Give 500 in all cases so we don't leak information about patients in care
+      return console.error(`No consent found for actor ${actor}`) && res.status(500)
+    }
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care
     return console.error(`Could not fetch consent for triple ${req.patient}, ${actor}, ${config.organisation}: ${e}`) && res.status(500).end()
@@ -75,10 +76,11 @@ async function handleNutsAuth (req, res, next) {
       acting_party_cn: 'Demo EHR' // << This is a TODO on the part of the Nuts node
     })
 
-    if (!contract || contract.validation_result != 'VALID')
-    // IRMA contract is not valid according to Nuts node
-    // Give 500 in all cases so we don't leak information about patients in care
-    { return console.error('No valid IRMA contract') && res.status(500) }
+    if (!contract || contract.validation_result != 'VALID') {
+      // IRMA contract is not valid according to Nuts node
+      // Give 500 in all cases so we don't leak information about patients in care
+      return console.error('No valid IRMA contract') && res.status(500)
+    }
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care
     return console.error(`Could not validate contract: ${e}`) && res.status(500).end()

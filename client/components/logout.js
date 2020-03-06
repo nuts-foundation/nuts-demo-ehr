@@ -4,7 +4,7 @@ export default {
       if (response.ok && response.status === 204) {
         document.getElementById('logout').innerHTML = template()
       } else {
-        throw('Error logging you out' + response)
+        throw Error('Error logging you out' + response)
       }
     })
   }

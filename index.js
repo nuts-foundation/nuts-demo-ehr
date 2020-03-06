@@ -56,7 +56,7 @@ Logger.log(`Registering our organisation ${config.organisation.name}`)
 crypto.getPublicKey(config.organisation.agb)
   .then(() => Logger.log('Organisation already registered'))
   .catch(e => {
-    if (!e.response || e.response.status != 404) { return Logger.error('Error registering organisation, is your Nuts node up?', e) }
+    if (!e.response || e.response.status !== 404) { return Logger.error('Error registering organisation, is your Nuts node up?', e) }
 
     crypto.generateKeyPair(config.organisation.agb)
       .then(pubKey => {

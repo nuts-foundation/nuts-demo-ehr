@@ -39,7 +39,7 @@ export default {
     irma.use(Web)
 
     try {
-      const result = await irma.start()
+      await irma.start()
       window.setTimeout(() => {
         let callbackUrl = window.localStorage.getItem('afterLoginReturnUrl')
         window.localStorage.removeItem('afterLoginReturnUrl')

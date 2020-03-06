@@ -8,11 +8,11 @@ const call = apiHelper.call({
 })
 
 module.exports = {
-  createLoginSession: async () => await call('createSession', null, loginContract()),
-  createSession: async (contract) => await call('createSession', null, contract),
-  sessionRequestStatus: async (id) => await call('sessionRequestStatus', id),
-  validateContract: async (contract) => await call('validateContract', null, contract),
-  createJwtBearerToken: async (context) => await call('createJwtBearerToken', null, context),
+  createLoginSession: async () => call('createSession', null, loginContract()),
+  createSession: async (contract) => call('createSession', null, contract),
+  sessionRequestStatus: async (id) => call('sessionRequestStatus', id),
+  validateContract: async (contract) => call('validateContract', null, contract),
+  createJwtBearerToken: async (context) => call('createJwtBearerToken', null, context),
   createAccessToken: async (baseUrl, jwtBearerToken) => {
     // createAccessToken is a bit weird since it follows the OAuth spec and needs a FormData object instead of a plain json document
     // The baseUrl is added since the createAccessToken is usually performed on an other Nuts node than your own
@@ -27,7 +27,7 @@ module.exports = {
       baseURL: baseUrl,
       definition: definitionLocation
     })
-    return await otherAuth('createAccessToken', null, formData, headers)
+    return otherAuth('createAccessToken', null, formData, headers)
   },
 
   introspectAccessToken: async (accessToken) => {
@@ -36,7 +36,7 @@ module.exports = {
     const headers = {
       ...formData.getHeaders()
     }
-    return await call('introspectAccessToken', null, formData, headers)
+    return call('introspectAccessToken', null, formData, headers)
   }
 }
 

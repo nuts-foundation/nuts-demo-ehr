@@ -13,12 +13,12 @@ const {
   registry
 } = require('../resources/nuts-node')
 
-router.get('/:patient_id', findPatient, handleNutsAuth, async (req, res) => {
+router.get('/patient', handleNutsAuth, findPatient, logRequest, async (req, res) => {
   // Work already done by middleware
   res.status(200).send(req.patient).end()
 })
 
-router.get('/:patient_id/observations', findPatient, handleNutsAuth, async (req, res) => {
+router.get('/observations', handleNutsAuth, findPatient, logRequest, async (req, res) => {
   try {
     // Query the "database" for the requested observations
     const o = await observation.byPatientId(req.patient.id)
@@ -29,76 +29,82 @@ router.get('/:patient_id/observations', findPatient, handleNutsAuth, async (req,
 })
 
 async function findPatient (req, res, next) {
+  console.log('findPatient')
+  const requestContext = req.requestContext
+  const patientBsn = requestContext.sid.match(/urn:oid:2.16.840.1.113883.2.4.6.3:([0-9]{8,9})/).pop()
   try {
-    req.patient = await patient.byBSN(req.params.patient_id)
+    req.patient = await patient.byBSN(patientBsn)
     next()
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care
-    return console.error(`Can't find patient with bsn ${req.params.patient_id}`) && res.status(500).end()
+    console.error(`Can't find patient with bsn ${patientBsn}`)
+    return res.status(500).end()
   }
 }
 
 async function handleNutsAuth (req, res, next) {
-  // Who is making the request?
-  let actor
+  console.log('handleNutsAuh')
+  console.log('header:', req.headers)
+  const accessToken = req.headers.authorization
+  if (!accessToken) {
+    res.status(403).send('no authorization header provided')
+  }
+
+  // introspect token
+  let introspectionResponse
   try {
-    // TODO: This should in future be determined based on client certificate:
-    actor = await registry.organizationById(req.headers.urn)
+    // Introspect the token at the local Nuts node
+    introspectionResponse = await auth.introspectAccessToken(accessToken)
+    if (!introspectionResponse.active) {
+      res.status(401).send('invalid token')
+    }
   } catch (e) {
-    // Give 500 in all cases so we don't leak information about patients in care
-    return console.error(`Could not fetch organisation ${req.headers.urn}: ${e}`) && res.status(500).end()
+    res.status(500).send(`error while introspecting access token: ${e}`)
   }
 
   // Is this organisation allowed to make this request?
+  const consentQuery = {
+    subject: introspectionResponse.sid,
+    actor: introspectionResponse.sub,
+    custodian: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
+  }
   try {
-    const consent = await consentStore.checkConsent({
-      subject: req.patient,
-      actor: actor,
-      custodian: config.organisation
-    })
+    console.log('consentQuery:', consentQuery)
+    const consent = await consentStore.checkConsent(consentQuery)
+    console.log('consentResponse', consent)
 
     if (!consent || consent.consentGiven != 'yes') {
       // Consent was not given for this organisation
       // Give 500 in all cases so we don't leak information about patients in care
-      return console.error(`No consent found for actor ${actor}`) && res.status(500)
+      console.error(`No consent found for actor ${introspectionResponse.sub}`)
+      return res.status(500).end()
     }
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care
-    return console.error(`Could not fetch consent for triple ${req.patient}, ${actor}, ${config.organisation}: ${e}`) && res.status(500).end()
+    console.error(`Could not fetch consent for triple ${consentQuery.subject}, ${consentQuery.actor}, ${consentQuery.custodian}: ${e}`)
+    return res.status(500).end()
   }
 
-  // Is this user validly authenticated with IRMA?
-  let contract
-  try {
-    contract = await auth.validateContract({
-      contract_format: 'JWT',
-      contract_string: req.headers.user,
-      acting_party_cn: 'Demo EHR' // << This is a TODO on the part of the Nuts node
-    })
+  req.requestContext = introspectionResponse
 
-    if (!contract || contract.validation_result != 'VALID') {
-      // IRMA contract is not valid according to Nuts node
-      // Give 500 in all cases so we don't leak information about patients in care
-      return console.error('No valid IRMA contract') && res.status(500)
-    }
-  } catch (e) {
-    // Give 500 in all cases so we don't leak information about patients in care
-    return console.error(`Could not validate contract: ${e}`) && res.status(500).end()
-  }
+  next()
+}
 
+function logRequest (req, res, next) {
+  console.log('logRequest')
   try {
     // Log this request for our own audits
     accessLog.store({
       timestamp: Date.now(),
       patientId: req.patient.id,
-      actor: actor,
-      user: contract.signer_attributes
+      actor: req.requestContext.sub,
+      user: req.requestContext.name
     })
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care
-    return console.error(`Could not save request audit: ${e}`) && res.status(500).end()
+    console.error(`Could not save request audit: ${e}`)
+    return res.status(500).end()
   }
-
   next()
 }
 

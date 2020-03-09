@@ -26,9 +26,7 @@ function query (parties) {
 
 function combination (parties) {
   return {
-    custodian: openAPIHelper.urn(parties.custodian),
-    actor: openAPIHelper.urn(parties.actor),
-    subject: openAPIHelper.urn(parties.subject),
+    ...parties,
     dataClass: 'urn:oid:1.3.6.1.4.1.54851.1:MEDICAL'
   }
 }

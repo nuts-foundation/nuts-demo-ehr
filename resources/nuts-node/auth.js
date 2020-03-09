@@ -7,7 +7,7 @@ const call = apiHelper.call({
   definition: definitionLocation
 })
 
-module.exports = {
+const auth = {
   createLoginSession: async () => call('createSession', null, loginContract()),
   createSession: async (contract) => call('createSession', null, contract),
   sessionRequestStatus: async (id) => call('sessionRequestStatus', id),
@@ -37,8 +37,47 @@ module.exports = {
       ...formData.getHeaders()
     }
     return call('introspectAccessToken', null, formData, headers)
+  },
+
+  obtainAccessToken: async (context, endpoint) => {
+    // Get the JWT Bearer token at the local Nuts node
+    let jwtBearerTokenResponse
+    try {
+      jwtBearerTokenResponse = await auth.createJwtBearerToken(context)
+      console.log(jwtBearerTokenResponse)
+    } catch (e) {
+      console.log(e)
+      throw Error(`error while creating jwt bearer token: ${e.response.data}`)
+    }
+
+    const accessTokenEndpoint = endpoint.properties.authorizationServerURL
+
+    if (!accessTokenEndpoint) {
+      throw Error('no authorizationServerURL found in endpoint.properties')
+    }
+
+    console.log('accessTokenEndpoint:', accessTokenEndpoint)
+
+    // Get the access token at the custodians Nuts node
+    let accessTokenResponse
+    try {
+      accessTokenResponse = await auth.createAccessToken(accessTokenEndpoint, jwtBearerTokenResponse.bearer_token)
+      console.log(accessTokenResponse)
+    } catch (e) {
+      let error
+      if (e.response) {
+        error = JSON.stringify(e.response.data)
+      } else {
+        error = e
+      }
+      throw Error(`error while creating access token: ${error}`)
+    }
+
+    return accessTokenResponse.access_token
   }
 }
+
+module.exports = auth
 
 function loginContract () {
   return {

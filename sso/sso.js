@@ -5,6 +5,7 @@ const { auth, registry } = require('../resources/nuts-node')
 const patientResource = require('../resources/database').patient
 
 router.get('/jump', findPatient, async (req, res) => {
+  // Check if there is an existing nuts-auth-token (IRMA token)
   if (!req.session.nuts_auth_token) {
     res.redirect('/#irma-login')
   }
@@ -19,50 +20,29 @@ router.get('/jump', findPatient, async (req, res) => {
   }
   console.log(context)
 
-  // Get the JWT Bearer token at the local Nuts node
-  let jwtBearerTokenResponse
-  try {
-    jwtBearerTokenResponse = await auth.createJwtBearerToken(context)
-    console.log(jwtBearerTokenResponse)
-  } catch (e) {
-    console.log(e.response.data)
-    res.status(500).send(`error while creating jwt bearer token: ${e.response.data}`)
-  }
-
   // Get the correct endpoint
   let endpointResponse
   try {
     const type = 'urn:oid:1.3.6.1.4.1.54851.1:nuts-sso'
     endpointResponse = await registry.endpointsByOrganisationId(req.query.custodian, type)
   } catch (e) {
-    if (e.response) {
-      console.log(e.response.data)
-    } else {
-      console.log(e)
-    }
+    return res.status(500).send(`unable to find a nuts-sso endpoint for ${req.query.custodian}: ${e}`)
   }
-
   console.log('endpointResponse', endpointResponse)
-  const endpointEntry = endpointResponse.pop()
-  const accessTokenEndpoint = endpointEntry.properties.authenticationServerURL
-  const jumpEndpoint = endpointEntry.URL
+  const endpoint = endpointResponse.pop()
 
-  // Get the access token at the custodians Nuts node
-  let accessTokenResponse
+  // obtain access token based on the context and the endpoint.
+  // The endpoint should contain the authorization server endpoint in the properties bag
+  let accessToken
   try {
-    accessTokenResponse = await auth.createAccessToken(accessTokenEndpoint, jwtBearerTokenResponse.bearer_token)
-    console.log(accessTokenResponse)
-    // Make the jump!
-    res.redirect(`${jumpEndpoint}/sso/land?token=${accessTokenResponse.access_token}`)
+    accessToken = await auth.obtainAccessToken(context, endpoint)
   } catch (e) {
-    if (e.response) {
-      console.log(e.response.data)
-      res.status(500).send(`error while creating access token: ${JSON.stringify(e.response.data)}`)
-    } else {
-      console.log(e)
-      res.status(500).send(`error while creating access token: ${e}`)
-    }
+    return res.status(403).send(`unable to obtain an accessToken: ${e}`).end()
   }
+
+  // Make the jump!
+  const jumpEndpoint = endpoint.URL
+  res.redirect(`${jumpEndpoint}/sso/land?token=${accessToken}`)
 })
 
 router.get('/land', async (req, res) => {

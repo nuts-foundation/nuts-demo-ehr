@@ -5,7 +5,7 @@ const call = require('./open-api-helper').call({
 })
 
 module.exports = {
-  searchOrganizations: async (query) => call('searchOrganizations', { query }).sort((a, b) => a.name.localeCompare(b.name)),
+  searchOrganizations: async (query) => (await call('searchOrganizations', { query })).sort((a, b) => a.name.localeCompare(b.name)),
   organizationById: async (id) => call('organizationById', { id }),
   endpointsByOrganisationId: async (id, type) => call('endpointsByOrganisationId', { orgIds: id, type }),
   deregisterOrganization: async (id) => call('deregisterOrganization', id),

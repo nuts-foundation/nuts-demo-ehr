@@ -5,7 +5,10 @@ import inbox from './components/inbox'
 import transactions from './components/transactions'
 import patient from './components/patient/patient'
 import irmaLogin from './components/irma-login'
+import logout from './components/logout'
 import remoteOrganisation from './components/patient/remote/organisation'
+import header from './components/header'
+
 const router = new Thimbleful.Router()
 
 export default {
@@ -14,8 +17,12 @@ export default {
     if (!window.location.hash) window.location.hash = 'dashboard'
 
     router.addRoute('dashboard', async link => {
+      openPage('private', link)
+
+      // Render organisation name, colour and user
+      header.render()
+
       await patientOverview.render()
-      openPage(link)
 
       // These may come in later, that's ok
       inbox.render()
@@ -23,26 +30,37 @@ export default {
     })
 
     router.addRoute('irma-login', async link => {
+      openPage('public', 'irma-login')
       irmaLogin.render()
-      openPage('irma-login')
+    })
+
+    router.addRoute('logout', async link => {
+      openPage('public', 'logout')
+      logout.render()
     })
 
     router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
+      openPage('private', 'patient')
+      // Render organisation name, colour and user
+      header.render()
       await patient.render(matches[1])
-      openPage('patient')
     })
 
     router.addRoute(/patient-network\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
+      openPage('private', 'patient')
+      // Render organisation name, colour and user
+      header.render()
       if (!patient.rendered()) { await patient.render(matches[1]) }
       await remoteOrganisation.render(matches[1], matches[2])
-      openPage('patient')
     })
   }
 }
 
 // Show the given page, hide others
-function openPage (page) {
+function openPage (layout, page) {
+  document.querySelector('.layout.active').classList.remove('active')
   document.querySelector('.page.active').classList.remove('active')
   document.querySelector(`#${page}`).classList.add('active')
+  document.querySelector(`#${layout}`).classList.add('active')
   window.scrollTo(0, 0)
 }

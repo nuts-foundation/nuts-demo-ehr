@@ -1,5 +1,4 @@
 const router = require('express').Router()
-const config = require('../util/config')
 const { auth } = require('../resources/nuts-node')
 
 router.get('/new-session', async (req, res) => {
@@ -16,12 +15,23 @@ router.get('/session-done', async (req, res) => {
   try {
     const status = await auth.sessionRequestStatus(req.session.nuts_session)
 
-    if (status.status == 'DONE' && status.proofStatus == 'VALID') { req.session.nuts_auth_token = status.nuts_auth_token }
+    if (status.status == 'DONE' && status.proofStatus === 'VALID') {
+      req.session.nuts_auth_token = status.nuts_auth_token
+      // extract the users full name from the disclosed attributes.
+      // TODO: don't depend on the irma-demo schemeManager here
+      const fullNameEntry = status.disclosed.find((el) => el.identifier === 'irma-demo.gemeente.personalData.fullname')
+      req.session.user = fullNameEntry.rawvalue
+    }
 
     res.status(200).send(status).end()
   } catch (error) {
     return res.status(500).send(`Error in fetching session status: ${error}`)
   }
+})
+
+router.get('/logout', (req, res) => {
+  req.session.destroy()
+  res.status(204).end()
 })
 
 module.exports = router

@@ -1,6 +1,6 @@
-const IrmaCore = require('irma-core')
-const Server = require('irma-server')
-const Web = require('irma-web')
+const IrmaCore = require('@nuts-foundation/irma-core')
+const Server = require('@nuts-foundation/irma-server')
+const Web = require('@nuts-foundation/irma-web')
 
 export default {
   render: async () => {
@@ -39,8 +39,15 @@ export default {
     irma.use(Web)
 
     try {
-      const result = await irma.start()
-      window.setTimeout(() => window.history.back(), 1200)
+      await irma.start()
+      window.setTimeout(() => {
+        let callbackUrl = window.localStorage.getItem('afterLoginReturnUrl')
+        window.localStorage.removeItem('afterLoginReturnUrl')
+        if (!callbackUrl) {
+          callbackUrl = '#dashboard'
+        }
+        window.location = callbackUrl
+      }, 1200)
     } catch (e) {
       console.error('Trouble running IRMA flow: ', e)
     }
@@ -49,11 +56,9 @@ export default {
 
 const template = () => `
   <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
-    <p style="max-width: 450px; text-align: center;">
-      You are about to request data from an <b>external organisation</b>.
-      You will need to identify yourself for this using IRMA.
+    <p>
+      You can now login to the DEMO EHR using IRMA.
     </p>
     <section id='irma-web-form' style="margin: 2em 0;"></section>
-    <p><a href="javascript:window.history.go(-2);">&laquo; Back</a></p>
   </section>
 `

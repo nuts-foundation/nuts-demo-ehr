@@ -11,11 +11,15 @@ function update (element, patient, organisation) {
     .then(response => {
       element.classList.remove('loading')
       if (response.status == 401) {
-      // We're not authenticated (anymore), go to IRMA flow
+        // We're not authenticated (anymore), go to IRMA flow
         window.location.hash = 'irma-login'
         return response.text().then(t => Promise.reject(t))
       } else {
-        return response.json()
+        if (response.ok) {
+          return response.json()
+        }
+        // extract error message from body and wrap it in a rejected promise
+        return response.text().then((text) => new Promise((resolve, reject) => reject(text)))
       }
     })
     .then(json => {
@@ -25,7 +29,7 @@ function update (element, patient, organisation) {
     .catch(error => {
       element.innerHTML = `
       &nbsp;
-      <p style="text-align: right"><button class="btn btn-primary" id="remote-observations-reload">🔄 Reload</button></p>
+      <p style="text-align: right"><button class="btn btn-primary remote-observations-reload">🔄 Reload</button></p>
       <h2>Error</h2><p>Could not load remote observations: ${error}</p>
     `
       addReloadListener(element, patient, organisation)

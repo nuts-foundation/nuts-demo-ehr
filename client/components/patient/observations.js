@@ -61,6 +61,6 @@ function storeObservation (observation) {
     body: JSON.stringify(observation)
   })
     .then(response => {
-      if (response.status != 201) throw 'Error storing observation'
+      if (response.status != 201) throw Error('Error storing observation')
     })
 }

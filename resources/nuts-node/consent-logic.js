@@ -18,7 +18,7 @@ module.exports = {
   deleteConsent: async (parties) => {
     const record = consentRecord(parties)
     record.records.period.end = new Date()
-    return await call('createOrUpdateConsent', null, record)
+    return call('createOrUpdateConsent', null, record)
   }
 }
 

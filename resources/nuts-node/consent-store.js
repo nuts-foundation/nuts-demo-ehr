@@ -7,8 +7,8 @@ const call = openAPIHelper.call({
 })
 
 module.exports = {
-  consentsFor: async (parties) => await call('queryConsent', null, query(parties)),
-  checkConsent: async (parties) => await call('checkConsent', null, combination(parties))
+  consentsFor: async (parties) => call('queryConsent', null, query(parties)),
+  checkConsent: async (parties) => call('checkConsent', null, combination(parties))
 }
 
 function query (parties) {
@@ -26,9 +26,7 @@ function query (parties) {
 
 function combination (parties) {
   return {
-    custodian: openAPIHelper.urn(parties.custodian),
-    actor: openAPIHelper.urn(parties.actor),
-    subject: openAPIHelper.urn(parties.subject),
+    ...parties,
     dataClass: 'urn:oid:1.3.6.1.4.1.54851.1:MEDICAL'
   }
 }

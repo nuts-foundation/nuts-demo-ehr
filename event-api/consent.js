@@ -11,7 +11,6 @@ const {
 } = require('../resources/database')
 
 const {
-  consentLogic,
   consentStore,
   eventStore,
   registry
@@ -185,9 +184,9 @@ async function getGivenConsents (patient) {
 
     // Are these consents in transit still pending?
     const stillPending = []
-    for (consent of pending) {
+    for (const consent of pending) {
       const currentStatus = await eventStore.getEvent(consent.jobId)
-      if (currentStatus.name != 'completed') { stillPending.push(consent) }
+      if (currentStatus.name !== 'completed') { stillPending.push(consent) }
     }
 
     // Map URNs to sane organisations
@@ -206,7 +205,7 @@ async function getGivenConsents (patient) {
 
 async function urnsToOrgs (urns) {
   const orgs = []
-  for (urn of urns) {
+  for (const urn of urns) {
     try {
       orgs.push(await registry.organizationById(urn))
     } catch (e) {

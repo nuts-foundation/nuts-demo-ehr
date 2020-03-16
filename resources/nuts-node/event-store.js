@@ -8,7 +8,7 @@ const call = openAPIHelper.call({
 
 module.exports = {
   allEvents: async () => decodePayloads(await call('list')),
-  getEvent: async (jobId) => await call('getEvent', jobId)
+  getEvent: async (jobId) => call('getEvent', jobId)
 }
 
 function decodePayloads (events) {

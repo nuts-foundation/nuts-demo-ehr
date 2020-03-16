@@ -10,14 +10,16 @@ module.exports = {
     })
     auth.init()
 
-    return async function (method, params = null, body = null) {
-      try {
-        const client = await auth.getClient()
-        const result = await client[method](params, body)
-        return result.data
-      } catch (e) {
-        throw (e)
+    return async function (method, params = null, body = null, headers = null) {
+      const config = {
+        headers: {
+          Accept: 'application/json',
+          ...headers
+        }
       }
+      const client = await auth.getClient()
+      const result = await client[method](params, body, config)
+      return result.data
     }
   },
 

@@ -5,6 +5,6 @@ const call = require('./open-api-helper').call({
 })
 
 module.exports = {
-  generateKeyPair: async (agb) => await call('generateKeyPair', `urn:oid:2.16.840.1.113883.2.4.6.1:${agb}`),
-  getPublicKey: async (agb) => await call('publicKey', `urn:oid:2.16.840.1.113883.2.4.6.1:${agb}`)
+  generateKeyPair: async (agb) => call('generateKeyPair', `urn:oid:2.16.840.1.113883.2.4.6.1:${agb}`),
+  getPublicKey: async (agb) => call('publicKey', `urn:oid:2.16.840.1.113883.2.4.6.1:${agb}`)
 }

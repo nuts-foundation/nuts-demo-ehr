@@ -26,7 +26,10 @@ router.get('/jump', findPatient, async (req, res) => {
     const type = 'urn:oid:1.3.6.1.4.1.54851.1:nuts-sso'
     endpointResponse = await registry.endpointsByOrganisationId(req.query.custodian, type)
   } catch (e) {
-    return res.status(500).send(`unable to find a nuts-sso endpoint for ${req.query.custodian}: ${e}`)
+    return res.status(500).send(`something went wrong while fetching nuts-sso endpoint for ${req.query.custodian}: ${e}`)
+  }
+  if (!endpointResponse) {
+    return res.status(500).send(`unable to find a nuts-sso endpoint for ${req.query.custodian}`)
   }
   console.log('endpointResponse', endpointResponse)
   const endpoint = endpointResponse.pop()

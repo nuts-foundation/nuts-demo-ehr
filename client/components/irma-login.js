@@ -56,7 +56,7 @@ export default {
 
 const template = () => `
   <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
-    <p style="max-width: 450px; text-align: center;">
+    <p>
       You can now login to the DEMO EHR using IRMA.
     </p>
     <section id='irma-web-form' style="margin: 2em 0;"></section>

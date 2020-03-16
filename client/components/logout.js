@@ -12,7 +12,7 @@ export default {
 
 const template = () => `
   <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
-    <p style="max-width: 450px; text-align: center;">
+    <p>
       You are logged out.
       <a href="#irma-login">Click here to login again</a>
     </p>

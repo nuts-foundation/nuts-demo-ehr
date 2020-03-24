@@ -98,8 +98,3 @@ section.loaded:before {
     transform: rotate(360deg);
   }
 }
-
-.irma-web-center-child p {
-  max-width: 450px;
-  text-align: center;
-}

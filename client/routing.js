@@ -1,22 +1,23 @@
 import Thimbleful from 'thimbleful'
-
 import patientOverview from './components/patient-overview'
 import inbox from './components/inbox'
 import transactions from './components/transactions'
 import patient from './components/patient/patient'
-import irmaLogin from './components/irma-login'
+import login from './components/login'
+import irmaFlow from './components/irma-flow'
 import logout from './components/logout'
 import remoteOrganisation from './components/patient/remote/organisation'
 import header from './components/header'
 
-const router = new Thimbleful.Router()
+const Router = new Thimbleful.Router()
+login.load()
 
 export default {
   load: () => {
     // Root redirects to patient overview
     if (!window.location.hash) window.location.hash = 'dashboard'
 
-    router.addRoute('dashboard', async link => {
+    Router.addRoute('dashboard', async link => {
       openPage('private', link)
 
       // Render organisation name, colour and user
@@ -29,24 +30,29 @@ export default {
       transactions.render()
     })
 
-    router.addRoute('irma-login', async link => {
-      openPage('public', 'irma-login')
-      irmaLogin.render()
+    Router.addRoute(/login\/?([\da-z-]+)?/, async (link, matches, evnt) => {
+      openPage('public', 'login')
+      login.render(matches[1], evnt)
     })
 
-    router.addRoute('logout', async link => {
+    Router.addRoute('escalate', async link => {
+      openPage('public', 'login')
+      irmaFlow.render()
+    })
+
+    Router.addRoute('logout', async link => {
       openPage('public', 'logout')
       logout.render()
     })
 
-    router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
+    Router.addRoute(/patient-details\/([\da-z\-]+)(\/.*)?/, async (link, matches) => {
       openPage('private', 'patient')
       // Render organisation name, colour and user
       header.render()
       await patient.render(matches[1])
     })
 
-    router.addRoute(/patient-network\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
+    Router.addRoute(/patient-network\/([\da-z\-]+)\/(.*)?/, async (link, matches) => {
       openPage('private', 'patient')
       // Render organisation name, colour and user
       header.render()

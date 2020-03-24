@@ -17,7 +17,7 @@ export default {
       .catch(reason => {
         if ('status' in reason && reason.status === 403) {
           window.localStorage.setItem('afterLoginReturnUrl', window.location)
-          window.location.hash = 'irma-login'
+          window.location.hash = 'login'
         }
         console.log(reason)
       })

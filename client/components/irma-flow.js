@@ -3,18 +3,15 @@ const Server = require('@nuts-foundation/irma-server')
 const Web = require('@nuts-foundation/irma-web')
 
 export default {
-  render: async () => {
-    document.getElementById('irma-login').innerHTML = template()
+  render: async (element, translations) => {
+    element.innerHTML = template()
 
     const irma = new IrmaCore({
       debugging: true,
       element: '#irma-web-form',
 
       language: 'en',
-      translations: {
-        header: 'Identify yourself with <i class="irma-web-logo">IRMA</i>',
-        cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t identify you and you can\'t request data'
-      },
+      translations,
 
       session: {
         url: '/api/authentication',
@@ -55,10 +52,7 @@ export default {
 }
 
 const template = () => `
-  <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
-    <p>
-      You can now login to the DEMO EHR using IRMA.
-    </p>
+  <section class='irma-web-center-child'>
     <section id='irma-web-form' style="margin: 2em 0;"></section>
   </section>
 `

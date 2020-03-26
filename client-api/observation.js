@@ -52,17 +52,30 @@ router.get('/remoteByPatientId/:patient_id/:urn', findPatient, async (req, res) 
 
     const observations = await Promise.all(
       endpoints.map(endpoint => {
-        const url = `${endpoint.URL}/external/patient/observations`
+        const url = `${endpoint.URL}/observations`
 
-        return auth.obtainAccessToken(context, endpoint)
-          .then(accessToken =>
-            // Fetch available observations from all available endpoints
-            axios.get(url, { headers: { Authorization: accessToken } })
-              .then(response => response.data)
-              .catch((e) => {
-                throw Error(`Could not get observations from ${url}: ${e}`)
-              })
-          )
+        // Access tokens not supported in v0.12
+        if (config.nuts.version == "0.12") {
+          return axios.get(url, {
+            headers: {
+              sid: `urn:oid:2.16.840.1.113883.2.4.6.3:${req.patient.bsn}`,
+              sub: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`,
+              name: req.session.user,
+              Authorization: req.session.nuts_auth_token
+            }
+          })
+          .then(response => response.data);
+        } else {
+          return auth.obtainAccessToken(context, endpoint)
+            .then(accessToken =>
+              // Fetch available observations from all available endpoints
+              axios.get(url, { headers: { Authorization: accessToken } })
+                .then(response => response.data)
+                .catch((e) => {
+                  throw Error(`Could not get observations from ${url}: ${e}`)
+                })
+            )
+        }
       })
     )
 

@@ -123,15 +123,14 @@ information on startup. Add that information to your registry's
 #### 2. Add the endpoints
 
 You can add the locations of the APIs to the `endpoints.json` file as endpoints
-of the type `urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`. Also, each
-Nuts node that can receive consent needs an endpoint of the type
-`urn:nuts:endpoint:consent`.
+of the type `urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`. Also, each Nuts node that
+can receive consent needs an endpoint of the type `urn:nuts:endpoint:consent`.
 
 So for each application add this endpoint to `endpoints.json`:
 
 ```json
 {
-  "endpointType": "urn:ietf:rfc:3986:urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
+  "endpointType": "urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
   "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
   "status": "active",
   "version": "0.1.0",

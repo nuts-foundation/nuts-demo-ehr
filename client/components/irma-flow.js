@@ -38,12 +38,9 @@ export default {
     try {
       await irma.start()
       window.setTimeout(() => {
-        let callbackUrl = window.localStorage.getItem('afterLoginReturnUrl')
+        const callbackUrl = window.localStorage.getItem('afterLoginReturnUrl')
         window.localStorage.removeItem('afterLoginReturnUrl')
-        if (!callbackUrl) {
-          callbackUrl = '#dashboard'
-        }
-        window.location = callbackUrl
+        window.location.hash = callbackUrl || 'dashboard'
       }, 1200)
     } catch (e) {
       console.error('Trouble running IRMA flow: ', e)

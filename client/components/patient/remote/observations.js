@@ -12,6 +12,7 @@ function update (element, patient, organisation) {
       element.classList.remove('loading')
       if (response.status == 401) {
         // We're not authenticated (anymore), go to IRMA flow
+        window.localStorage.setItem('afterLoginReturnUrl', `patient-network/${patient}/${organisation.identifier}`)
         window.location.hash = 'escalate'
         return response.text().then(t => Promise.reject(t))
       } else {
@@ -28,10 +29,11 @@ function update (element, patient, organisation) {
     })
     .catch(error => {
       element.innerHTML = `
-      &nbsp;
-      <p style="text-align: right"><button class="btn btn-primary remote-observations-reload">🔄 Reload</button></p>
-      <h2>Error</h2><p>Could not load remote observations: ${error}</p>
-    `
+        &nbsp;
+        <p style="text-align: right"><button class="btn btn-primary remote-observations-reload">🔄 Reload</button></p>
+        <h2>Error</h2>
+        <p>Could not load remote observations: ${error}</p>
+      `
       addReloadListener(element, patient, organisation)
     })
 }

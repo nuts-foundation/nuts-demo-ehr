@@ -16,7 +16,7 @@ export default {
       })
       .catch(reason => {
         if ('status' in reason && reason.status === 403) {
-          window.localStorage.setItem('afterLoginReturnUrl', window.location)
+          window.localStorage.setItem('afterLoginReturnUrl', 'dashboard')
           window.location.hash = 'login'
         }
       })

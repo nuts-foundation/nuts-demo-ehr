@@ -6,7 +6,8 @@
   },
   "nuts": {
     "node": "localhost:21323",
-    "nats": "nats://localhost:21324"
+    "nats": "nats://localhost:21324",
+    "version": "0.12"
   },
   "organisation": {
     "name":   "Medisch Centrum Noot aan de Man",

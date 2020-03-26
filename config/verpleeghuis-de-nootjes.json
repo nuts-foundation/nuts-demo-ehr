@@ -6,7 +6,8 @@
   },
   "nuts": {
     "node": "localhost:11323",
-    "nats": "nats://localhost:11324"
+    "nats": "nats://localhost:11324",
+    "version": "0.12"
   },
   "organisation": {
     "name":   "Verpleeghuis De Nootjes",

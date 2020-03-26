@@ -84,6 +84,6 @@ function loginContract () {
     type: 'BehandelaarLogin',
     language: 'NL',
     version: 'v1',
-    legalEntity: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
+    legalEntity: config.nuts.version == "0.12" ? config.organisation.name : `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
   }
 }

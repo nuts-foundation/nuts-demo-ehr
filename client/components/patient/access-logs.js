@@ -26,7 +26,7 @@ const template = (logs) => `
       ${logs.length > 0 ? logs.map(log => `
         <tr>
           <td>${new Date(log.timestamp).toLocaleString('nl-NL')}</td>
-          <td>${log.actor}</td>
+          <td>${log.actor.name}</td>
           <td>${log.user}</td>
         </tr>
       `).join('') : '<tr><td colspan="3" style="text-align: center;"><em>None</em></td></tr>'}

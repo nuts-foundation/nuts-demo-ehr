@@ -29,7 +29,6 @@ router.get('/observations', handleNutsAuth, findPatient, logRequest, async (req,
 })
 
 async function findPatient (req, res, next) {
-  console.log('findPatient')
   const requestContext = req.requestContext
   const patientBsn = requestContext.sid.match(/urn:oid:2.16.840.1.113883.2.4.6.3:([0-9]{8,9})/).pop()
   try {
@@ -43,23 +42,25 @@ async function findPatient (req, res, next) {
 }
 
 async function handleNutsAuth (req, res, next) {
-  console.log('handleNutsAuh')
-  console.log('header:', req.headers)
   const accessToken = req.headers.authorization
   if (!accessToken) {
     res.status(403).send('no authorization header provided')
   }
 
-  // introspect token
+  // Access tokens not supported in v0.12
   let introspectionResponse
-  try {
-    // Introspect the token at the local Nuts node
-    introspectionResponse = await auth.introspectAccessToken(accessToken)
-    if (!introspectionResponse.active) {
-      res.status(401).send('invalid token')
+  if (config.nuts.version == "0.12") {
+    introspectionResponse = req.headers;
+  } else {
+    try {
+      // Introspect the token at the local Nuts node
+      introspectionResponse = await auth.introspectAccessToken(accessToken)
+      if (!introspectionResponse.active) {
+        res.status(401).send('invalid token')
+      }
+    } catch (e) {
+      res.status(500).send(`error while introspecting access token: ${e}`)
     }
-  } catch (e) {
-    res.status(500).send(`error while introspecting access token: ${e}`)
   }
 
   // Is this organisation allowed to make this request?
@@ -69,9 +70,7 @@ async function handleNutsAuth (req, res, next) {
     custodian: `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
   }
   try {
-    console.log('consentQuery:', consentQuery)
     const consent = await consentStore.checkConsent(consentQuery)
-    console.log('consentResponse', consent)
 
     if (!consent || consent.consentGiven != 'yes') {
       // Consent was not given for this organisation
@@ -90,15 +89,14 @@ async function handleNutsAuth (req, res, next) {
   next()
 }
 
-function logRequest (req, res, next) {
-  console.log('logRequest')
+async function logRequest (req, res, next) {
   try {
     // Log this request for our own audits
     accessLog.store({
       timestamp: Date.now(),
       patientId: req.patient.id,
-      actor: req.requestContext.sub,
-      user: req.requestContext.name
+      actor:     await registry.organizationById(req.requestContext.sub),
+      user:      req.requestContext.name
     })
   } catch (e) {
     // Give 500 in all cases so we don't leak information about patients in care

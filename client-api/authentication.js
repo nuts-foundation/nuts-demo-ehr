@@ -1,4 +1,5 @@
 const router = require('express').Router()
+const config = require('../util/config')
 const { auth } = require('../resources/nuts-node')
 
 router.get('/new-session', async (req, res) => {
@@ -17,10 +18,17 @@ router.get('/session-done', async (req, res) => {
 
     if (status.status == 'DONE' && status.proofStatus === 'VALID') {
       req.session.nuts_auth_token = status.nuts_auth_token
-      // extract the users full name from the disclosed attributes.
+
+      // Extract the user's full name from the disclosed attributes.
       // TODO: don't depend on the irma-demo schemeManager here
-      const fullNameEntry = status.disclosed.find((el) => el.identifier === 'irma-demo.gemeente.personalData.fullname')
-      req.session.user = fullNameEntry.rawvalue
+      const fullNameEntry = status.disclosed.find(el => el.identifier === 'irma-demo.gemeente.personalData.fullname')
+
+      // This is still experimental, and depends on the SSO feature to land in
+      // the Nuts node. When attribute not available, fall back on default user:
+      if (fullNameEntry)
+        req.session.user = fullNameEntry.rawvalue
+      else
+        req.session.user = req.session.user || config.organisation.user
     }
 
     res.status(200).send(status).end()

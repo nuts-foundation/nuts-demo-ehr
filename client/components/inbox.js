@@ -2,6 +2,7 @@ import io from '../socketio'
 const socket = io.consent()
 
 socket.on('inbox', m => {
+  if (!m) return
   const json = m.sort((a, b) => a.bsn.localeCompare(b.bsn))
   document.getElementById('inbox').innerHTML = template(json)
 })

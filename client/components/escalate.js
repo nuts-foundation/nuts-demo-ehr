@@ -14,12 +14,12 @@ export default {
 }
 
 const template = () => `
-<section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
-  <p style="max-width: 450px; text-align: center;">
-    You are about to view data from an <b>external organisation</b>.
-    You will need to identify yourself for this using IRMA.
-  </p>
-  <section id='escalate-irma' style="width: 100%"></section>
-  <p><a href="javascript:window.history.go(-2);">&laquo; Back</a></p>
-</section>
+  <section class='irma-web-center-child' style='height: 80vh; flex-direction: column;'>
+    <p style="max-width: 450px; text-align: center;">
+      You are about to view data from an <b>external organisation</b>.
+      You will need to identify yourself for this using IRMA.
+    </p>
+    <section id='escalate-irma' style="width: 100%"></section>
+    <p><a href="javascript:window.history.go(-2);">&laquo; Back</a></p>
+  </section>
 `

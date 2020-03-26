@@ -1,8 +1,7 @@
 const router = require('express').Router()
-const config = require('../util/config')
-const { auth, registry } = require('../resources/nuts-node')
-
-const patientResource = require('../resources/database').patient
+const config = require('../../util/config')
+const patientResource = require('../../resources/database/patient')
+const { auth, registry } = require('../../resources/nuts-node')
 
 router.get('/jump', findPatient, async (req, res) => {
   // Check if there is an existing nuts-auth-token (IRMA token)

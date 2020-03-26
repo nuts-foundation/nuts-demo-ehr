@@ -1,17 +1,17 @@
-const config = require('../util/config')
+const config = require('../../util/config')
 const router = require('express').Router()
 
 const {
   patient,
   observation,
   accessLog
-} = require('../resources/database')
+} = require('../../resources/database')
 
 const {
   consentStore,
   auth,
   registry
-} = require('../resources/nuts-node')
+} = require('../../resources/nuts-node')
 
 router.get('/patient', handleNutsAuth, findPatient, logRequest, async (req, res) => {
   // Work already done by middleware

@@ -1,6 +1,6 @@
 const router = require('express').Router()
-const config = require('../util/config')
-const { registry } = require('../resources/nuts-node')
+const config = require('../../util/config')
+const { registry } = require('../../resources/nuts-node')
 
 router.get('/me', async (req, res) => {
   const info = {

@@ -1,6 +1,6 @@
 const router = require('express').Router()
-const config = require('../util/config')
-const { auth } = require('../resources/nuts-node')
+const config = require('../../util/config')
+const { auth } = require('../../resources/nuts-node')
 
 router.get('/new-session', async (req, res) => {
   try {

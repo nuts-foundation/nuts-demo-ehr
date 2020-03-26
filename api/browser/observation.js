@@ -1,17 +1,17 @@
 const router = require('express').Router()
-const config = require('../util/config')
+const config = require('../../util/config')
 const axios = require('axios')
 
 const {
   patient,
   observation
-} = require('../resources/database')
+} = require('../../resources/database')
 
 const {
   consentStore,
   registry,
   auth
-} = require('../resources/nuts-node')
+} = require('../../resources/nuts-node')
 
 router.get('/byPatientId/:id', async (req, res) => {
   try {

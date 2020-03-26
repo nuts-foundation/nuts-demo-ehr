@@ -4,7 +4,7 @@ import inbox from './components/inbox'
 import transactions from './components/transactions'
 import patient from './components/patient/patient'
 import login from './components/login'
-import irmaFlow from './components/irma-flow'
+import escalate from './components/escalate'
 import logout from './components/logout'
 import remoteOrganisation from './components/patient/remote/organisation'
 import header from './components/header'
@@ -36,8 +36,8 @@ export default {
     })
 
     Router.addRoute('escalate', async link => {
-      openPage('public', 'login')
-      irmaFlow.render()
+      openPage('private', 'escalate')
+      escalate.render()
     })
 
     Router.addRoute('logout', async link => {

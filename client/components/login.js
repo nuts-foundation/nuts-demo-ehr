@@ -25,6 +25,7 @@ export default {
   },
 
   render: async (subroute, evnt) => {
+    document.title = 'Please log in 🔑'
     document.getElementById('login').innerHTML = template()
     Router.route(subroute, evnt)
   }

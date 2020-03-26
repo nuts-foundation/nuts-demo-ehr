@@ -49,16 +49,14 @@ function openTab(tab) {
 }
 
 const template = () => `
-  <h4 class="text-center mb-5">Please log in 🔑</h4>
-
   <div class="card mx-auto text-center" style="max-width: 33rem;">
     <div class="card-header">
       <ul class="nav nav-tabs card-header-tabs">
         <li class="nav-item">
-          <a class="nav-link active" href="#login">Username & Password</a>
+          <a class="nav-link active" href="#login">Traditional</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link irma" href="#login/irma">IRMA app</a>
+          <a class="nav-link irma" href="#login/irma">IRMA</a>
         </li>
       </ul>
     </div>

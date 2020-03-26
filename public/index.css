@@ -7,6 +7,10 @@ table {
   margin-top: 2rem;
 }
 
+.navbar-dark .navbar-text a {
+  color: rgba(255,255,255,.5);
+}
+
 i.user-icon {
   display: inline-block;
   width: 1.5em;
@@ -47,6 +51,10 @@ section.page, section.tab-pane, section.layout {
 
 section.page.active, section.tab-pane.active, section.layout.active {
   display: block;
+}
+
+section#public {
+  margin-top: 10vh;
 }
 
 .nav-tabs a.nav-link {

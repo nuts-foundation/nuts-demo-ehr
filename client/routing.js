@@ -41,7 +41,6 @@ export default {
     })
 
     Router.addRoute('logout', async link => {
-      openPage('public', 'logout')
       logout.render()
     })
 

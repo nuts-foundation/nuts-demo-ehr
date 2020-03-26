@@ -7,7 +7,7 @@ export default {
       document.getElementById('escalate-irma'),
       {
         header:    'Identify yourself with <i class="irma-web-logo">IRMA</i>',
-        cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t identify you and you can\'t request data'
+        cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t identify you and you can\'t view data'
       }
     )
   }

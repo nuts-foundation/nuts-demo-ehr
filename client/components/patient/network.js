@@ -4,6 +4,7 @@ import io from '../../socketio'
 const socket = io.consent()
 
 socket.on('receivedConsents', m => {
+  if (!m) return
   document.querySelector('#patient-network #received-list').innerHTML =
     m.sort((a, b) => a.name.localeCompare(b.name))
       .map(c => `<li>
@@ -17,6 +18,7 @@ socket.on('receivedConsents', m => {
 })
 
 socket.on('givenConsents', m => {
+  if (!m) return
   document.querySelector('#patient-network #given-list').innerHTML =
     m.sort((a, b) => a.name.localeCompare(b.name))
       .map(c => `<li>${c.name}</li>`)

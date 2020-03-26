@@ -2,6 +2,7 @@ import io from '../../socketio'
 const socket = io.accessLogs()
 
 socket.on('logs', m => {
+  if (!m) return
   document.getElementById('patient-logs').innerHTML = template(m)
 })
 

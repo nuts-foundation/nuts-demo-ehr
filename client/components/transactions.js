@@ -2,6 +2,7 @@ import io from '../socketio'
 const socket = io.consent()
 
 socket.on('transactions', transactions => {
+  if (!transactions) return
   document.getElementById('transactions').innerHTML = template(transactions)
 })
 

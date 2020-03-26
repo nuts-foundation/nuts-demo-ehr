@@ -12,7 +12,7 @@ function update (element, patient, organisation) {
       element.classList.remove('loading')
       if (response.status == 401) {
         // We're not authenticated (anymore), go to IRMA flow
-        window.location.hash = 'irma-login'
+        window.location.hash = 'escalate'
         return response.text().then(t => Promise.reject(t))
       } else {
         if (response.ok) {

@@ -7,7 +7,7 @@ const patientResource = require('../resources/database').patient
 router.get('/jump', findPatient, async (req, res) => {
   // Check if there is an existing nuts-auth-token (IRMA token)
   if (!req.session.nuts_auth_token) {
-    res.redirect('/#irma-login')
+    res.redirect('/#escalate')
   }
 
   // build context

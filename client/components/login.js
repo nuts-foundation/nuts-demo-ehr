@@ -64,20 +64,22 @@ const template = () => `
     </div>
     <div class="card-body">
       <form>
-        <p><em>(Any credentials will do 😉)</em></p>
-        <div class="form-group row">
-          <label for="username" class="col-sm-5 col-form-label text-right">Username:</label>
-          <div class="col-sm-7 text-left">
-            <input type="text" name="username" id="username"/>
+        <div class="form-group row justify-content-center">
+          <div class="col-sm-7">
+            <input class="form-control" placeholder="Username" type="text" name="username" id="username"/>
           </div>
         </div>
-        <div class="form-group row">
-          <label for="password" class="col-sm-5 col-form-label text-right">Password:</label>
-          <div class="col-sm-7 text-left">
-            <input type="password" name="password" id="password"/>
+        <div class="form-group row justify-content-center">
+          <div class="col-sm-7">
+            <input class="form-control" placeholder="Password" type="password" name="password" id="password"/>
           </div>
         </div>
         <button class="btn btn-primary">Log in</button>
+        <p style="margin: 2em 0 0 0">
+          <small><em>
+            (Any credentials will do 😉)
+          </em></small>
+        </p>
       </form>
     </div>
   </div>

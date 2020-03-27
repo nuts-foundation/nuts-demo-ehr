@@ -1,4 +1,4 @@
-const requireDir = require('../util/require-dir')
+const requireDir = require('../../util/require-dir')
 const routes = requireDir(__filename, __dirname)
 
 module.exports = io => {

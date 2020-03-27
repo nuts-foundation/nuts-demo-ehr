@@ -1,4 +1,4 @@
-const config = require('../util/config')
+const config = require('../../util/config')
 const NATS = require('nats')
 const nc = NATS.connect(config.nuts.nats)
 nc.on('error', (err) => {
@@ -8,13 +8,13 @@ nc.on('error', (err) => {
 const {
   patient,
   consentInTransit
-} = require('../resources/database')
+} = require('../../resources/database')
 
 const {
   consentStore,
   eventStore,
   registry
-} = require('../resources/nuts-node')
+} = require('../../resources/nuts-node')
 
 module.exports = async io => {
   let inbox = await getInbox()
@@ -201,7 +201,7 @@ async function getGivenConsents (patient) {
   } catch (e) {
     console.error(`Error in Nuts node query for finding consents: ${e}`)
   }
-};
+}
 
 async function urnsToOrgs (urns) {
   const orgs = []

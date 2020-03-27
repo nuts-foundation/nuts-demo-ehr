@@ -1,8 +1,5 @@
-const events = require('../util/events')
-
-const {
-  accessLog
-} = require('../resources/database')
+const events = require('../../util/events')
+const { accessLog } = require('../../resources/database')
 
 module.exports = async io => {
   let watchedPatients = []

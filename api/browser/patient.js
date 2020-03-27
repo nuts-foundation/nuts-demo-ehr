@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const { patient } = require('../resources/database')
+const { patient } = require('../../resources/database')
 
 router.get('/all', async (req, res) => {
   try {

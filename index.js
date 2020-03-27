@@ -8,10 +8,10 @@ const bodyParser = require('body-parser')
 
 const config = require('./util/config')
 const Logger = require('./util/logger')
-const clientAPI = require('./client-api')
-const externalAPI = require('./external-api')
-const ssoHandler = require('./sso/sso')
-const eventAPI = require('./event-api')
+const clientAPI = require('./api/browser')
+const externalAPI = require('./api/external')
+const ssoHandler = require('./api/sso')
+const eventAPI = require('./api/events')
 const { crypto } = require('./resources/nuts-node')
 
 // Run server

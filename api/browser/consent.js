@@ -1,14 +1,11 @@
 const router = require('express').Router()
-const config = require('../util/config')
+const config = require('../../util/config')
+const { consentLogic } = require('../../resources/nuts-node')
 
 const {
   patient,
   consentInTransit
-} = require('../resources/database')
-
-const {
-  consentLogic
-} = require('../resources/nuts-node')
+} = require('../../resources/database')
 
 router.put('/:patient_id', findPatient, async (req, res) => {
   try {

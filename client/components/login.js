@@ -36,7 +36,7 @@ function logIn(username) {
     },
     body: JSON.stringify({username})
   })
-  .then(() => window.location.hash = 'dashboard')
+  .then(() => window.location.hash = 'private/dashboard')
 }
 
 function openTab(tab) {
@@ -49,10 +49,10 @@ const template = () => `
     <div class="card-header">
       <ul class="nav nav-tabs card-header-tabs">
         <li class="nav-item">
-          <a class="nav-link active" href="#login">Traditional</a>
+          <a class="nav-link active" href="#public/login">Traditional</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link irma" href="#login/irma">IRMA</a>
+          <a class="nav-link irma" href="#public/login/irma">IRMA</a>
         </li>
       </ul>
     </div>

@@ -25,5 +25,5 @@ export default {
 
 const template = (me) => `
   <a class="navbar-brand" href="#">${me.name}</a>
-  <span class="navbar-text"><a href="/#logout" title="Click to log out">Logged in as ${me.user} <i class="user-icon"></i></a></span>
+  <span class="navbar-text"><a href="/#public/logout" title="Click to log out">Logged in as ${me.user} <i class="user-icon"></i></a></span>
 `

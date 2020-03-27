@@ -5,7 +5,7 @@ const socket = io.consent()
 
 socket.on('receivedConsents', m => {
   if (!m) return
-  document.querySelector('#patient-network #received-list').innerHTML =
+  document.querySelector('#patient-pane #received-list').innerHTML =
     m.sort((a, b) => a.name.localeCompare(b.name))
       .map(c => `<li>
       ${c.name} -
@@ -19,7 +19,7 @@ socket.on('receivedConsents', m => {
 
 socket.on('givenConsents', m => {
   if (!m) return
-  document.querySelector('#patient-network #given-list').innerHTML =
+  document.querySelector('#patient-pane #given-list').innerHTML =
     m.sort((a, b) => a.name.localeCompare(b.name))
       .map(c => `<li>${c.name}</li>`)
       .join('') || '<li><i>None</i></li>'
@@ -30,7 +30,7 @@ let patientId
 export default {
   render: async (patient) => {
     patientId = patient.id
-    const network = document.getElementById('patient-network')
+    const network = document.getElementById('patient-pane')
     network.innerHTML = template()
 
     socket.emit('subscribe', patient.id)

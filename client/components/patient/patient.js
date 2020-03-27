@@ -1,20 +1,44 @@
+import Thimbleful from 'thimbleful';
 import Details from './details'
 import Observations from './observations'
 import Network from './network'
 import Logs from './access-logs'
 
+const router = new Thimbleful.Router();
+let currentPatient;
+
+router.addRoutes({
+  details: () => {
+    Details.render(currentPatient);
+    openTab('patient-details');
+  },
+  observations: () => {
+    Observations.render(currentPatient);
+    openTab('patient-observations');
+  },
+  network: () => {
+    Network.render(currentPatient);
+    openTab('patient-network');
+  },
+  logs: () => {
+    Logs.render(currentPatient);
+    openTab('patient-logs');
+  }
+});
+
+function openTab(tab) {
+  document.querySelector('#patient .nav li a.active').classList.remove('active')
+  document.querySelector(`#patient .nav li a#${tab}`).classList.add('active')
+}
+
 export default {
-  render: (patientId) => {
+  render: (patientId, subpath) => {
     return fetch(`/api/patient/${patientId}`)
       .then(response => response.json())
       .then(patient => {
-        document.getElementById('patient').innerHTML = template(patient)
-
-        // Render child components
-        Details.render(patient)
-        Observations.render(patient)
-        Network.render(patient)
-        Logs.render(patient)
+        currentPatient = patient;
+        document.getElementById('patient').innerHTML = template(patient);
+        router.route(subpath);
       })
   },
 

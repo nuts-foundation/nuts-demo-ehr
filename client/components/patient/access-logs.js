@@ -3,7 +3,7 @@ const socket = io.accessLogs()
 
 socket.on('logs', m => {
   if (!m) return
-  document.getElementById('patient-logs').innerHTML = template(m)
+  document.getElementById('patient-pane').innerHTML = template(m)
 })
 
 export default {

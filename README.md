@@ -30,21 +30,21 @@ docker run -p 127.0.0.1:6379:6379 --rm --name demo-ehr-session-redis redis
 
 You should now have three instances of this EHR running on:
 
-* http://localhost:80 ⸺ Verpleeghuis de Nootjes
-* http://localhost:81 ⸺ Huisartsenpraktijk Nootenboom
-* http://localhost:82 ⸺ Medisch Centrum Noot aan de Man
+* http://localhost:8000 ⸺ Verpleeghuis de Nootjes
+* http://localhost:8001 ⸺ Huisartsenpraktijk Nootenboom
+* http://localhost:8002 ⸺ Medisch Centrum Noot aan de Man
 
 Also, as a bonus, you can display two or all three side by side by going to:
 
-* http://localhost/duo.html ⸺ Shows the applications on ports 80 and 81
-* http://localhost/triple.html ⸺ Shows all three applications
+* http://localhost:8000/duo.html ⸺ Shows the applications on ports 8000 and 8001
+* http://localhost:8000/triple.html ⸺ Shows all three applications
 
 ### Configuring the application(s)
 
 You can find the configuration files for all three applications in the `config`
 directory. You may need to edit these files to point to the right Nuts node(s).
 If you followed the [Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network)
-instructions, http://localhost:80 (Verpleeghuis de Nootjes) will connect to Nuts
+instructions, http://localhost:8000 (Verpleeghuis de Nootjes) will connect to Nuts
 node 'Bundy' and the other two will connect to node 'Dahmer'.
 
 You can also change port numbers, organisation details and default health
@@ -134,7 +134,7 @@ So for each application add this endpoint to `endpoints.json`:
   "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
   "status": "active",
   "version": "0.1.0",
-  "URL": "http://localhost:80/external/patient"
+  "URL": "http://localhost:8000/external/patient"
 }
 ```
 

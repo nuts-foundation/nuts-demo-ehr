@@ -36,7 +36,7 @@ You should now have three instances of this EHR running on:
 
 Also, as a bonus, you can display two or all three side by side by going to:
 
-* http://localhost:8000/duo.html ⸺ Shows the applications on ports 8001 and 8001
+* http://localhost:8000/duo.html ⸺ Shows the applications on ports 8000 and 8001
 * http://localhost:8000/triple.html ⸺ Shows all three applications
 
 ### Configuring the application(s)

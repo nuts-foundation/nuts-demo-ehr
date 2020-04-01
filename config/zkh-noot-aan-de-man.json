@@ -1,6 +1,6 @@
 {
   "server": {
-    "port":          82,
+    "port":          8002,
     "verbose":       true,
     "sessionSecret": "j46g4iy7567k65h7jkhg7k34jh34kj"
   },

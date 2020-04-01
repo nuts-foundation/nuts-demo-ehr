@@ -36,7 +36,7 @@ You should now have three instances of this EHR running on:
 
 Also, as a bonus, you can display two or all three side by side by going to:
 
-* http://localhost:8000/duo.html ⸺ Shows the applications on ports 80 and 81
+* http://localhost:8000/duo.html ⸺ Shows the applications on ports 8001 and 8001
 * http://localhost:8000/triple.html ⸺ Shows all three applications
 
 ### Configuring the application(s)
@@ -134,7 +134,7 @@ So for each application add this endpoint to `endpoints.json`:
   "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
   "status": "active",
   "version": "0.1.0",
-  "URL": "http://localhost:80/external/patient"
+  "URL": "http://localhost:8000/external/patient"
 }
 ```
 

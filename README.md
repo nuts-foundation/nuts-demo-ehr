@@ -8,7 +8,8 @@ use it to demo how healthcare professionals can work together by sharing
 information with colleagues through the Nuts nodes.
 
 Also, you can use it as "the other party" in implementing Nuts in your own EHR
-systems.
+systems. We gave a live demo of this application in one of our meetings, which
+[you can see here](https://www.youtube.com/watch?v=TONCu0AHPWs) (in Dutch).
 
 **NOTE THAT THIS APPLICATION IS NOT INTENDED FOR USE WITH REAL MEDICAL
 INFORMATION! IT IS IN NO WAY DEVELOPED TO BE SAFE, STABLE OR EVEN USABLE FOR

@@ -6,9 +6,9 @@
   "scripts": {
     "start": "cat NOTICE && concurrently \"npm run start_1\" \"npm run start_2\" \"npm run start_3\" \"webpack\"",
     "test": "standard && mocha --recursive --watch",
-    "start_1": "CONFIG=config/zkh-noot-aan-de-man.json nodemon index.js",
-    "start_2": "CONFIG=config/huisarts-nootenboom.json nodemon index.js",
-    "start_3": "CONFIG=config/verpleeghuis-de-nootjes.json nodemon index.js"
+    "start_1": "CONFIG=config/zkh-noot-aan-de-man.json nodemon --inspect=0.0.0.0:9229 index.js",
+    "start_2": "CONFIG=config/huisarts-nootenboom.json nodemon --inspect=0.0.0.0:9230 index.js",
+    "start_3": "CONFIG=config/verpleeghuis-de-nootjes.json nodemon --inspect=0.0.0.0:9231 index.js"
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {

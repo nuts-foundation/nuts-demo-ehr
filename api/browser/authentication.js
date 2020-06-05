@@ -47,4 +47,11 @@ router.get('/logout', (req, res) => {
   res.status(204).end()
 })
 
+router.get('/logged-in', (req, res) => {
+  if ( req.session.user )
+    res.status(200).end();
+  else
+    res.status(403).end();
+});
+
 module.exports = router

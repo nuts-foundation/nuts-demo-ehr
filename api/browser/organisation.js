@@ -7,9 +7,6 @@ router.get('/me', async (req, res) => {
     ...config.organisation,
     user: req.session.user
   }
-  if (!info.user) {
-    return res.status(403).send('no active session')
-  }
   res.status(200).send(info)
 })
 

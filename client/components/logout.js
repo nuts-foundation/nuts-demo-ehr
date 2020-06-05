@@ -5,7 +5,7 @@ export default {
         if (!response.ok || response.status !== 204)
           throw Error('Error logging you out' + response)
 
-        window.location.hash = 'login'
+        window.location.hash = 'public/login'
       })
   }
 }

@@ -1,33 +1,29 @@
 import irmaFlow from './irma-flow'
 import Thimbleful from 'thimbleful'
-let Router
+
+const router = new Thimbleful.Router();
+
+router.addRoute('irma', () => {
+  openTab('irma')
+  irmaFlow.render(
+    document.querySelector('#login .card .card-body'),
+    {
+      header: 'Log in using <i class="irma-web-logo">IRMA</i>',
+      cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t log you in.'
+    }
+  )
+})
+
+Thimbleful.Click.instance().register('#login form button', e => {
+  e.preventDefault()
+  logIn(document.getElementById('username').value)
+})
 
 export default {
-
-  load: () => {
-    Router = new Thimbleful.Router()
-
-    Router.addRoute('irma', () => {
-      openTab('irma')
-      irmaFlow.render(
-        document.querySelector('#login .card .card-body'),
-        {
-          header: 'Log in using <i class="irma-web-logo">IRMA</i>',
-          cancelled: 'We have not received the signed contract. We\'re sorry, but because of this we can\'t log you in.'
-        }
-      )
-    })
-
-    Thimbleful.Click.instance().register('#login form button', e => {
-      e.preventDefault()
-      logIn(document.getElementById('username').value)
-    })
-  },
-
   render: async (subroute, evnt) => {
     document.title = 'Please log in 🔑'
     document.getElementById('login').innerHTML = template()
-    Router.route(subroute, evnt)
+    router.route(subroute, evnt)
   }
 
 }
@@ -40,7 +36,7 @@ function logIn(username) {
     },
     body: JSON.stringify({username})
   })
-  .then(() => window.location.hash = 'dashboard')
+  .then(() => window.location.hash = 'private/dashboard')
 }
 
 function openTab(tab) {
@@ -53,10 +49,10 @@ const template = () => `
     <div class="card-header">
       <ul class="nav nav-tabs card-header-tabs">
         <li class="nav-item">
-          <a class="nav-link active" href="#login">Traditional</a>
+          <a class="nav-link active" href="#public/login">Traditional</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link irma" href="#login/irma">IRMA</a>
+          <a class="nav-link irma" href="#public/login/irma">IRMA</a>
         </li>
       </ul>
     </div>

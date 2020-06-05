@@ -24,7 +24,7 @@ const template = (patients) => `
     <tbody>
       ${patients.map(patient => `
         <tr>
-          <td><a href='#patient-details/${patient.id}'>${patient.name.given} ${patient.name.family}</a></td>
+          <td><a href='#private/patient/${patient.id}/details'>${patient.name.given} ${patient.name.family}</a></td>
           <td>${patient.birthDate}</td>
         </tr>
       `).join('')}

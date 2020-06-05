@@ -40,7 +40,7 @@ export default {
       window.setTimeout(() => {
         const callbackUrl = window.localStorage.getItem('afterLoginReturnUrl')
         window.localStorage.removeItem('afterLoginReturnUrl')
-        window.location.hash = callbackUrl || 'dashboard'
+        window.location.hash = callbackUrl || 'private/dashboard'
       }, 1200)
     } catch (e) {
       console.error('Trouble running IRMA flow: ', e)

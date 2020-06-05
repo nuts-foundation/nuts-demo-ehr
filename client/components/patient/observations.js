@@ -13,7 +13,7 @@ function renderObservations (patientId) {
   return fetch(`/api/observation/byPatientId/${patientId}`)
     .then(response => response.json())
     .then(observations => {
-      document.getElementById('patient-observations').innerHTML = template(observations)
+      document.getElementById('patient-pane').innerHTML = template(observations)
     })
 }
 

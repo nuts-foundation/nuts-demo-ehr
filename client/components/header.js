@@ -14,16 +14,10 @@ export default {
 
         document.title = json.name
       })
-      .catch(reason => {
-        if ('status' in reason && reason.status === 403) {
-          window.localStorage.setItem('afterLoginReturnUrl', 'dashboard')
-          window.location.hash = 'login'
-        }
-      })
   }
 }
 
 const template = (me) => `
   <a class="navbar-brand" href="#">${me.name}</a>
-  <span class="navbar-text"><a href="/#logout" title="Click to log out">Logged in as ${me.user} <i class="user-icon"></i></a></span>
+  ${me.user ? `<span class="navbar-text"><a href="/#public/logout" title="Click to log out">Logged in as ${me.user} <i class="user-icon"></i></a></span>` : ''}
 `

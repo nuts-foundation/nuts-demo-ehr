@@ -4,7 +4,6 @@ import inbox           from '../components/inbox';
 import transactions    from '../components/transactions';
 import patient         from '../components/patient/patient';
 import escalate        from '../components/escalate';
-import header          from '../components/header';
 
 const router = new Thimbleful.Router();
 
@@ -36,8 +35,15 @@ function openPage (page) {
 
 export default {
   route: (route, evnt) => {
-    // TODO: Redirect if not logged in here
-    header.render(); // Render organisation name, colour and user
-    router.route(route, evnt);
+    fetch('/api/authentication/logged-in')
+    .then(response => {
+      if ( !response.ok ) {
+        window.localStorage.setItem('afterLoginReturnUrl', 'dashboard')
+        window.location.hash = 'public/login'
+        return;
+      }
+
+      router.route(route, evnt);
+    });
   }
 }

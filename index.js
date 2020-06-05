@@ -12,6 +12,7 @@ const clientAPI = require('./api/browser')
 const externalAPI = require('./api/external')
 const ssoHandler = require('./api/sso')
 const eventAPI = require('./api/events')
+const stateAPI = require('./api/state')
 const { crypto } = require('./resources/nuts-node')
 
 // Run server
@@ -43,6 +44,7 @@ app.use(bodyParser.json())
 app.use('/api', clientAPI)
 app.use('/external', externalAPI)
 app.use('/sso', ssoHandler)
+app.use('/', stateAPI)
 
 eventAPI(io) // Mount events API using socket.io
 

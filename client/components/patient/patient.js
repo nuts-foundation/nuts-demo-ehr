@@ -1,27 +1,27 @@
 import Thimbleful from 'thimbleful';
-import Details from './details'
-import Observations from './observations'
-import Network from './network'
-import Logs from './access-logs'
+import details from './details'
+import observations from './observations'
+import network from './network'
+import logs from './access-logs'
 
 const router = new Thimbleful.Router();
 let currentPatient;
 
 router.addRoutes({
   details: () => {
-    Details.render(currentPatient);
+    details.render(currentPatient);
     openTab('patient-details');
   },
   observations: () => {
-    Observations.render(currentPatient);
+    observations.render(currentPatient);
     openTab('patient-observations');
   },
   network: () => {
-    Network.render(currentPatient);
+    network.render(currentPatient);
     openTab('patient-network');
   },
   logs: () => {
-    Logs.render(currentPatient);
+    logs.render(currentPatient);
     openTab('patient-logs');
   }
 });

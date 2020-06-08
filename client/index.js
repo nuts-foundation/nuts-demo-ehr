@@ -23,7 +23,16 @@ router.addRoute(/private\/([\da-z-\/]+)/, async (link, matches, evnt) => {
 });
 
 // Root leads to login page
-if (!window.location.hash) window.location.hash = '#public/login';
+if (!window.location.hash) {
+  fetch('/api/authentication/logged-in')
+  .then(response => {
+    if ( !response.ok ) {
+      window.location.hash = '#public/login';
+    } else {
+      window.location.hash = '#private/dashboard';
+    }
+  });
+}
 
 // Show this layout, hide others
 function openLayout(layout) {

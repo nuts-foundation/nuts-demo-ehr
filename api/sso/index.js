@@ -76,7 +76,7 @@ router.get('/land', async (req, res) => {
     res.status(401).send('patient not found')
   }
 
-  res.redirect(`/#patient-details/${patient.id}`)
+  res.redirect(`/#private/patient/${patient.id}/details`)
 })
 
 async function findPatient (req, res, next) {

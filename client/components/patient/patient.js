@@ -3,6 +3,7 @@ import details from './details'
 import observations from './observations'
 import network from './network'
 import logs from './access-logs'
+import organisation from './remote/organisation';
 
 const router = new Thimbleful.Router();
 let currentPatient;
@@ -24,6 +25,10 @@ router.addRoutes({
     logs.render(currentPatient);
     openTab('patient-logs');
   }
+});
+
+router.addRoute(/external\/([\da-z-\/:\.]+)/, async (link, matches) => {
+  organisation.render(currentPatient, matches[1]);
 });
 
 function openTab(tab) {

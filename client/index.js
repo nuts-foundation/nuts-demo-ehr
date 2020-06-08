@@ -16,7 +16,7 @@ router.addRoute(/public\/([\da-z-\/]+)/, async (link, matches, evnt) => {
   openLayout('public');
 });
 
-router.addRoute(/private\/([\da-z-\/]+)/, async (link, matches, evnt) => {
+router.addRoute(/private\/([\da-z-\/:\.]+)/, async (link, matches, evnt) => {
   header.render(); // Render organisation name, colour and user
   privateRoutes.route(matches[1], evnt);
   openLayout('private');

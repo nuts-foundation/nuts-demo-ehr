@@ -5,20 +5,13 @@ export default {
     return fetch(`/api/organisation/byURN/${organisation}`)
       .then(result => result.json())
       .then(organisation => {
-      // Add tab and pane if they aren't in the dom yet
+        // Add tab and pane if they aren't in the dom yet
         if (!document.getElementById(`org-${hash(organisation.identifier)}`)) {
-          addTab(organisation.name, `org-${hash(organisation.identifier)}`)
+          addTab(organisation.name, `patient-external-${hash(organisation.identifier)}`)
         }
 
-        // Find our organisation's tab and pane
-        const tab = document.querySelector(`a[data-open='#org-${hash(organisation.identifier)}']`)
-        const pane = document.getElementById(`org-${hash(organisation.identifier)}`)
-
         // Fill it with observations
-        observations.render(pane, patient, organisation)
-
-        // And open it
-        tab.click()
+        observations.render(patient, organisation);
       })
   }
 }
@@ -37,19 +30,10 @@ function hash (string) {
 }
 
 function addTab (label, id) {
-  const patient = document.getElementById('patient')
+  const patient = document.getElementById('patient');
 
-  const tab = document.createElement('li')
-  tab.classList.add('nav-item')
-  tab.innerHTML = `<a class="nav-link" data-open="#${id}">${label}</a>`
-  patient.querySelector('ul.nav').appendChild(tab)
-
-  const pane = document.createElement('section')
-  pane.classList.add('tab-pane')
-  pane.id = `${id}`
-  pane.setAttribute('data-group', 'patient-tab-panes')
-  pane.setAttribute('data-follower', `a[data-open='#${id}']`)
-  patient.appendChild(pane)
-
-  return { tab, pane }
+  const tab = document.createElement('li');
+  tab.classList.add('nav-item');
+  tab.innerHTML = `<a class="nav-link active" id="${id}">${label}</a>`;
+  patient.querySelector('ul.nav').appendChild(tab);
 }

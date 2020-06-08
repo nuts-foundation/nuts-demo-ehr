@@ -1,6 +1,6 @@
 export default {
-  render: (element, patient, organisation) => {
-    update(element, patient, organisation)
+  render: (patient, organisation) => {
+    update(document.getElementById('patient-pane'), patient.id, organisation);
     return Promise.resolve()
   }
 }
@@ -12,8 +12,8 @@ function update (element, patient, organisation) {
       element.classList.remove('loading')
       if (response.status == 401) {
         // We're not authenticated (anymore), go to IRMA flow
-        window.localStorage.setItem('afterLoginReturnUrl', `patient-network/${patient}/${organisation.identifier}`)
-        window.location.hash = 'escalate'
+        window.localStorage.setItem('afterLoginReturnUrl', `private/patient/${patient}/external/${organisation.identifier}`)
+        window.location.hash = 'private/escalate'
         return response.text().then(t => Promise.reject(t))
       } else {
         if (response.ok) {

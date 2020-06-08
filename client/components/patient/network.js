@@ -9,7 +9,7 @@ socket.on('receivedConsents', m => {
     m.sort((a, b) => a.name.localeCompare(b.name))
       .map(c => `<li>
       ${c.name} -
-      <a href="#patient-network/${patientId}/${c.identifier}">Dossier entries</a>
+      <a href="#private/patient/${patientId}/external/${c.identifier}">Dossier entries</a>
       |
       <a href="/sso/jump?patient=${patientId}&custodian=${c.identifier}">SSO</a>
       </li>

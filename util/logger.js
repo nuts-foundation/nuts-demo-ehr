@@ -7,7 +7,7 @@ module.exports = {
   },
 
   error: (message, sender = false) => {
-    if (config.server.verbose) { console.error(`[${new Date()}]${sender ? '[' + sender + ']' : ''} ${message}`) }
+    if (config.server.verbose) { console.error(`[${new Date()}][ERROR]${sender ? '[' + sender + ']' : ''} ${message}`) }
   }
 
 }

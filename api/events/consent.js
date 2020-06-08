@@ -1,9 +1,11 @@
-const config = require('../../util/config')
-const NATS = require('nats')
-const nc = NATS.connect(config.nuts.nats)
+const config = require('../../util/config');
+const Logger = require('../../util/logger');
+const NATS = require('nats');
+const nc = NATS.connect(config.nuts.nats);
+
 nc.on('error', (err) => {
-  console.log(err)
-})
+  Logger.error(`Demo EHR has a problem in its connection with NATS: ${err.message}`);
+});
 
 const {
   patient,
@@ -58,12 +60,17 @@ module.exports = async io => {
   })
 
   // Subscribe to NATS events
-  nc.subscribe('*.*.*.consentRequest', async (msg, reply, subject) => {
+  if ( !nc || !nc.connected ) return;
+  nc.subscribe('*.*.*.consentRequest', async (err, msg) => {
+    if ( err ) {
+      return Logger.error(`Demo EHR can't subscribe to NATS topic: ${err}`);
+    }
+
     // Only parse the bit that smells like JSON 😉
-    const json = JSON.parse(msg.match('\{.*\}').pop())
+    const json = JSON.parse(msg.data.match('\{.*\}').pop())
     json.payload = JSON.parse(Buffer.from(json.payload, 'base64').toString())
 
-    console.log(`Received consentRequest event on '${subject}':`, json)
+    console.log(`Received consentRequest event on '${msg.subject}':`, json)
 
     // For now just republish everything we've got 😅
 
@@ -105,7 +112,7 @@ async function getInbox () {
 
     return inbox
   } catch (e) {
-    console.error(`Error in Nuts node query for consent events: ${e}`)
+    Logger.error(`Error in Nuts node query for consent events: ${e}`)
   }
 }
 
@@ -146,7 +153,7 @@ async function getTransactions () {
 
     return transactions
   } catch (e) {
-    console.error(`Error in Nuts node query for consent events: ${e}`)
+    Logger.error(`Error in Nuts node query for consent events: ${e}`)
   }
 }
 
@@ -164,7 +171,7 @@ async function getReceivedConsents (patient) {
 
     return organisations
   } catch (e) {
-    console.error(`Error in Nuts node query for finding consents: ${e}`)
+    Logger.error(`Error in Nuts node query for finding consents: ${e}`)
   }
 }
 
@@ -199,7 +206,7 @@ async function getGivenConsents (patient) {
 
     return organisations
   } catch (e) {
-    console.error(`Error in Nuts node query for finding consents: ${e}`)
+    Logger.error(`Error in Nuts node query for finding consents: ${e}`)
   }
 }
 

@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 const RedisStore = require('connect-redis')(session)
 const redisServer = process.env.REDIS_SERVER_ADDRESS || 'localhost'
 const redisClient = redis.createClient({ host: redisServer })
-redisClient.on('error', console.error)
+redisClient.on('error', Logger.error)
 app.use(session({
   store: new RedisStore({ client: redisClient, prefix: `session-${config.organisation.agb}:` }),
   secret: config.server.sessionSecret,
@@ -58,7 +58,8 @@ Logger.log(`Registering our organisation ${config.organisation.name}`)
 crypto.getPublicKey(config.organisation.agb)
   .then(() => Logger.log('Organisation already registered'))
   .catch(e => {
-    if (!e.response || e.response.status !== 404) { return Logger.error('Error registering organisation, is your Nuts node up?', e) }
+    if (!e.response || e.response.status !== 404)
+      return Logger.error(`Error registering organisation, is your Nuts node up? ${e}`);
 
     crypto.generateKeyPair(config.organisation.agb)
       .then(pubKey => {

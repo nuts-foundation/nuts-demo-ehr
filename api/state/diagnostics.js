@@ -36,18 +36,21 @@ function natsStatus() {
     try {
       nc = NATS.connect(config.nuts.nats);
     } catch(e) {
-      resolve(e);
+      return resolve(e);
     }
+
+    nc.on('error', (err) => {
+      nc.close();
+      resolve(err);
+    });
+
+    nc.on('connect', () => {
+      nc.close();
+      resolve('OK');
+    });
 
     if ( !nc.connected )
       return resolve("Can't reach NATS");
-
-    nc.on('error', (err) => {
-      resolve(err);
-    });
-    nc.on('connect', () => {
-      resolve('OK');
-    });
   });
 }
 

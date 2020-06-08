@@ -83,7 +83,7 @@ function loginContract () {
   return {
     type: 'BehandelaarLogin',
     language: 'NL',
-    version: 'v1',
+    version: 'v2',
     legalEntity: config.nuts.version == "0.12" ? config.organisation.name : `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
   }
 }

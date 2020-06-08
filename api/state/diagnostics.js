@@ -19,14 +19,14 @@ router.get('/', async (req, res) => {
 
 async function nodeStatus() {
   try {
-    return await axios.get(`${config.nuts.node}/status`)
+    return await axios.get(`http://${config.nuts.node}/status`)
       .then(response => {
         if ( response.status !== 200 )
           return `ERROR: ${response.data}`;
         return response.data;
       });
   } catch(e) {
-    return "Can't reach Nuts node";
+    return `Can't reach Nuts node: ${e}`;
   }
 }
 
@@ -41,16 +41,13 @@ function natsStatus() {
 
     nc.on('error', (err) => {
       nc.close();
-      resolve(err);
+      resolve(err.message);
     });
 
     nc.on('connect', () => {
       nc.close();
       resolve('OK');
     });
-
-    if ( !nc.connected )
-      return resolve("Can't reach NATS");
   });
 }
 

@@ -38,11 +38,11 @@ export default {
     document.getElementById('patient-add-consent-org').addEventListener('keyup', (e) => {
       const input = e.target.value
       if (input.length >= 2) {
-        fetch(`/api/organisation/search/${input}`)
+        fetch(`/api/organisation/search/${input}?omitOwn=true`)
           .then(response => response.json())
           .then(result => renderAutoComplete(result))
       }
-      if (input.length == 0) {
+      if (input.length === 0) {
         renderAutoComplete([])
       }
     })
@@ -86,7 +86,7 @@ function storeConsent (consent) {
     body: JSON.stringify(consent)
   })
     .then(response => {
-      if (response.status != 201) throw Error('Error storing observation')
+      if (response.status !== 201) throw Error('Error storing observation')
     })
 }
 

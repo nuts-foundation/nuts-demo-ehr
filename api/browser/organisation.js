@@ -12,7 +12,10 @@ router.get('/me', async (req, res) => {
 
 router.get('/search/:query', async (req, res) => {
   try {
-    const results = await registry.searchOrganizations(req.params.query)
+    let results = await registry.searchOrganizations(req.params.query)
+    if (req.query.omitOwn === 'true') {
+      results = results.filter(result => !result.identifier.endsWith(`:${config.organisation.agb}`))
+    }
     res.status(200).send(results).end()
   } catch (error) {
     return res.status(500).send(`Error in search: ${error}`)

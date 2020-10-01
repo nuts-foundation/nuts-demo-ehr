@@ -111,50 +111,9 @@ You will need to restart your Nuts nodes to enable these changes.
 ### Adding to the Nuts register
 
 If you want to allow the applications to find each other and exchange data, you
-will have to add them to the Nuts registry. Again, if you followed
-[Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network),
-you can find your registry in `nuts-network-local/config/registry`.
-
-#### 1. Add the organisations
-
-To make this process easier the applications will output their registry
-information on startup. Add that information to your registry's
-`organisations.json`.
-
-#### 2. Add the endpoints
-
-You can add the locations of the APIs to the `endpoints.json` file as endpoints
-of the type `urn:oid:1.3.6.1.4.1.54851.2:demo-ehr`. Also, each Nuts node that
-can receive consent needs an endpoint of the type `urn:nuts:endpoint:consent`.
-
-So for each application add this endpoint to `endpoints.json`:
-
-```json
-{
-  "endpointType": "urn:oid:1.3.6.1.4.1.54851.2:demo-ehr",
-  "identifier": "0e906b06-db48-452c-bb61-559f239a06ca",
-  "status": "active",
-  "version": "0.1.0",
-  "URL": "http://localhost:8000/external/patient"
-}
-```
-
-Make sure you give each one a unique identifier and have it point to the right
-URL. Also, make sure both Nuts nodes have a consent endpoint (should be okay if
-you're using `nuts-network-local`).
-
-#### 3. Connect the endpoints to organisations
-
-Connect your endpoints to organizations in the `endpoint_organizations.json`
-file like this:
-
-```json
-{
-  "status": "active",
-  "organization": "urn:oid:2.16.840.1.113883.2.4.6.1:12345678",
-  "endpoint": "0e906b06-db48-452c-bb61-559f239a06ca"
-}
-```
+will have to add them to the Nuts registry.
+Refer to the [Registry Administration documentation](https://nuts-documentation.readthedocs.io/en/latest/pages/administration/registry.html)
+for how to achieve this.
 
 Make sure you add two entries for each organisation, one for the API and one for
 the Nuts node consent endpoint.

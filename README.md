@@ -44,9 +44,8 @@ Also, as a bonus, you can display two or all three side by side by going to:
 
 You can find the configuration files for all three applications in the `config`
 directory. You may need to edit these files to point to the right Nuts node(s).
-If you followed the [Setup a local Nuts network](https://nuts-documentation.readthedocs.io/en/latest/pages/getting_started/local_network.html#setup-a-local-nuts-network)
-instructions, http://localhost:8000 (Verpleeghuis de Nootjes) will connect to Nuts
-node 'Bundy' and the other two will connect to node 'Dahmer'.
+If you start the local development network using `make` in https://github.com/nuts-foundation/nuts-node/tree/master/development,
+http://localhost:8000 (Verpleeghuis de Nootjes) will connect to `node1` and the other two will connect to `node2`.
 
 You can also change port numbers, organisation details and default health
 records in the config files.
@@ -56,34 +55,24 @@ records in the config files.
 ### IRMA
 
 You'll need to change a few things in the Nuts node config if you want to use
-the IRMA flows. In the `nuts-network-local/config/bundy/nuts.yaml` and
-`nuts-network-local/config/dahmer/nuts.yaml` files you will find a line that
-reads:
+the IRMA flows. In the `nuts-node/development/nuts.yaml` you will need to specify the public URL that both your browser
+and your phone can connect to the Nuts node on. So this can be something like:
 
 ```yaml
 auth:
-  publicUrl: https://example.org
-```
-
-You will need to change this to a URL that both your browser and your phone can
-connect to the Nuts node on. So this can be something like:
-
-```yaml
-auth:
-  publicUrl: http://192.168.1.xx:11323
+  publicurl: http://192.168.1.xx:11323
 ```
 
 Or you can use a service like ngrok to proxy requests to your local machine.
 
-You may also want to set this value to allow you to test using
+You may also want to set the IRMA scheme manager to `irma-demo` to allow you to test using
 [demo attributes](https://privacybydesign.foundation/attribute-index/en/irma-demo.html):
 
 ```yaml
 auth:
-  irmaSchemeManager: irma-demo
+  irma:
+    schememanager: irma-demo
 ```
-
-You will need to restart your Nuts nodes to enable these changes.
 
 #### NATS events
 
@@ -107,19 +96,6 @@ dahmer-nuts-service-space:
 ```
 
 You will need to restart your Nuts nodes to enable these changes.
-
-### Adding to the Nuts register
-
-If you want to allow the applications to find each other and exchange data, you
-will have to add them to the Nuts registry.
-Refer to the [Registry Administration documentation](https://nuts-documentation.readthedocs.io/en/latest/pages/administration/registry.html)
-for how to achieve this.
-
-Make sure you add two entries for each organisation, one for the API and one for
-the Nuts node consent endpoint.
-
-Note that for hot reloading of the registry to be triggered, every one of these
-three file needs to be touched.
 
 ## Learning from this application
 

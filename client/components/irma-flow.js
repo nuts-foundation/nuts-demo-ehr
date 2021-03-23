@@ -1,6 +1,5 @@
-const IrmaCore = require('@nuts-foundation/irma-core')
-const Server = require('@nuts-foundation/irma-server')
-const Web = require('@nuts-foundation/irma-web')
+const IrmaCore = require('@privacybydesign/irma-core')
+const Web = require('@privacybydesign/irma-web')
 
 export default {
   render: async (element, translations) => {
@@ -32,7 +31,6 @@ export default {
       }
     })
 
-    irma.use(Server)
     irma.use(Web)
 
     try {

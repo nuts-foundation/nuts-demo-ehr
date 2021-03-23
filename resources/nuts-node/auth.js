@@ -1,18 +1,32 @@
 const config = require('../../util/config')
 var FormData = require('form-data')
 const apiHelper = require('./open-api-helper')
-const definitionLocation = 'https://raw.githubusercontent.com/nuts-foundation/nuts-auth/0cdd505d38ac3387062437ffe25863ca2cc4a11a/docs/_static/nuts-auth.yaml'
-const call = apiHelper.call({
+const specExperimental = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/experimental.yaml'
+const specV0 = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/v0.yaml'
+
+const callExperimental = apiHelper.call({
   baseURL: `http://${config.nuts.node}`,
-  definition: definitionLocation
+  definition: specExperimental
+})
+const callV0 = apiHelper.call({
+  baseURL: `http://${config.nuts.node}`,
+  definition: specV0
 })
 
 const auth = {
-  createLoginSession: async () => call('createSession', null, loginContract()),
-  createSession: async (contract) => call('createSession', null, contract),
-  sessionRequestStatus: async (id) => call('sessionRequestStatus', id),
-  validateContract: async (contract) => call('validateContract', null, contract),
-  createJwtBearerToken: async (context) => call('createJwtBearerToken', null, context),
+  drawUpContract: async (organisationDID) => callExperimental('drawUpContract', null, {
+    type: 'BehandelaarLogin',
+    language: 'NL',
+    version: 'v3',
+    legalEntity: organisationDID,
+  }),
+  createLoginSession: async (contract) => callExperimental('createSignSession', null, {means: 'irma', payload: contract.message, params: {}}),
+  createSession: async (contract) => callV0('createSession', null, contract),
+  sessionRequestStatus: async (id) => callExperimental('getSignSessionStatus', id),
+  verifySignature: async (vp) => callExperimental('verifySignature', null, {VerifiablePresentation: vp}),
+
+  validateContract: async (contract) => callV0('validateContract', null, contract),
+  createJwtBearerToken: async (context) => callV0('createJwtBearerToken', null, context),
   createAccessToken: async (baseUrl, jwtBearerToken) => {
     // createAccessToken is a bit weird since it follows the OAuth spec and needs a FormData object instead of a plain json document
     // The baseUrl is added since the createAccessToken is usually performed on an other Nuts node than your own
@@ -25,7 +39,7 @@ const auth = {
     }
     const otherAuth = apiHelper.call({
       baseURL: baseUrl,
-      definition: definitionLocation
+      definition: specV0
     })
     return otherAuth('createAccessToken', null, formData, headers)
   },
@@ -36,7 +50,7 @@ const auth = {
     const headers = {
       ...formData.getHeaders()
     }
-    return call('introspectAccessToken', null, formData, headers)
+    return callV0('introspectAccessToken', null, formData, headers)
   },
 
   obtainAccessToken: async (context, endpoint) => {
@@ -62,7 +76,6 @@ const auth = {
     let accessTokenResponse
     try {
       accessTokenResponse = await auth.createAccessToken(accessTokenEndpoint, jwtBearerTokenResponse.bearer_token)
-      console.log(accessTokenResponse)
     } catch (e) {
       let error
       if (e.response) {
@@ -78,12 +91,3 @@ const auth = {
 }
 
 module.exports = auth
-
-function loginContract () {
-  return {
-    type: 'BehandelaarLogin',
-    language: 'NL',
-    version: 'v2',
-    legalEntity: config.nuts.version == "0.12" ? config.organisation.name : `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
-  }
-}

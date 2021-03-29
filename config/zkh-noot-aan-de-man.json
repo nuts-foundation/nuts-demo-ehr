@@ -5,7 +5,7 @@
     "sessionSecret": "j46g4iy7567k65h7jkhg7k34jh34kj"
   },
   "nuts": {
-    "node": "localhost:8082",
+    "node": "localhost:8081",
     "nats": "nats://localhost:21324"
   },
   "organisation": {

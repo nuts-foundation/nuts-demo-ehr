@@ -1,32 +1,27 @@
 const config = require('../../util/config')
 var FormData = require('form-data')
 const apiHelper = require('./open-api-helper')
-const specExperimental = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/experimental.yaml'
-const specV0 = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/v0.yaml'
 
-const callExperimental = apiHelper.call({
+const definition = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/v1.yaml';
+const call = apiHelper.call({
   baseURL: `http://${config.nuts.node}`,
-  definition: specExperimental
-})
-const callV0 = apiHelper.call({
-  baseURL: `http://${config.nuts.node}`,
-  definition: specV0
+  definition: definition
 })
 
 const auth = {
-  drawUpContract: async (organisationDID) => callExperimental('drawUpContract', null, {
+  drawUpContract: async (organisationDID) => call('drawUpContract', null, {
     type: 'BehandelaarLogin',
     language: 'NL',
     version: 'v3',
     legalEntity: organisationDID,
   }),
-  createLoginSession: async (contract) => callExperimental('createSignSession', null, {means: 'irma', payload: contract.message, params: {}}),
-  createSession: async (contract) => callV0('createSession', null, contract),
-  sessionRequestStatus: async (id) => callExperimental('getSignSessionStatus', id),
-  verifySignature: async (vp) => callExperimental('verifySignature', null, {VerifiablePresentation: vp}),
+  createLoginSession: async (contract) => call('createSignSession', null, {means: 'irma', payload: contract.message, params: {}}),
+  createSession: async (contract) => call('createSession', null, contract),
+  sessionRequestStatus: async (id) => call('getSignSessionStatus', id),
+  verifySignature: async (vp) => call('verifySignature', null, {VerifiablePresentation: vp}),
 
-  validateContract: async (contract) => callV0('validateContract', null, contract),
-  createJwtBearerToken: async (context) => callV0('createJwtBearerToken', null, context),
+  validateContract: async (contract) => call('validateContract', null, contract),
+  createJwtBearerToken: async (context) => call('createJwtBearerToken', null, context),
   createAccessToken: async (baseUrl, jwtBearerToken) => {
     // createAccessToken is a bit weird since it follows the OAuth spec and needs a FormData object instead of a plain json document
     // The baseUrl is added since the createAccessToken is usually performed on an other Nuts node than your own
@@ -39,7 +34,7 @@ const auth = {
     }
     const otherAuth = apiHelper.call({
       baseURL: baseUrl,
-      definition: specV0
+      definition: definition
     })
     return otherAuth('createAccessToken', null, formData, headers)
   },
@@ -50,7 +45,7 @@ const auth = {
     const headers = {
       ...formData.getHeaders()
     }
-    return callV0('introspectAccessToken', null, formData, headers)
+    return call('introspectAccessToken', null, formData, headers)
   },
 
   obtainAccessToken: async (context, endpoint) => {

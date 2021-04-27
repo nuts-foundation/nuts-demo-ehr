@@ -19,7 +19,7 @@
     "form-data": "^3.0.0",
     "nats": "^2.0.0-27",
     "openapi-client-axios": "^3.2.4",
-    "redis": "^3.0.2",
+    "redis": "^3.1.1",
     "socket.io": "^2.3.0",
     "uuid": "^3.3.3"
   },

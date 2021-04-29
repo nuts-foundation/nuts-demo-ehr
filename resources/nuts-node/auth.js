@@ -1,16 +1,25 @@
 const config = require('../../util/config')
 var FormData = require('form-data')
 const apiHelper = require('./open-api-helper')
-const definitionLocation = 'https://raw.githubusercontent.com/nuts-foundation/nuts-auth/0cdd505d38ac3387062437ffe25863ca2cc4a11a/docs/_static/nuts-auth.yaml'
+
+const definition = 'https://raw.githubusercontent.com/nuts-foundation/nuts-node/master/docs/_static/auth/v1.yaml';
 const call = apiHelper.call({
   baseURL: `http://${config.nuts.node}`,
-  definition: definitionLocation
+  definition: definition
 })
 
 const auth = {
-  createLoginSession: async () => call('createSession', null, loginContract()),
+  drawUpContract: async (organisationDID) => call('drawUpContract', null, {
+    type: 'BehandelaarLogin',
+    language: 'NL',
+    version: 'v3',
+    legalEntity: organisationDID,
+  }),
+  createLoginSession: async (contract) => call('createSignSession', null, {means: 'irma', payload: contract.message, params: {}}),
   createSession: async (contract) => call('createSession', null, contract),
-  sessionRequestStatus: async (id) => call('sessionRequestStatus', id),
+  sessionRequestStatus: async (id) => call('getSignSessionStatus', id),
+  verifySignature: async (vp) => call('verifySignature', null, {VerifiablePresentation: vp}),
+
   validateContract: async (contract) => call('validateContract', null, contract),
   createJwtBearerToken: async (context) => call('createJwtBearerToken', null, context),
   createAccessToken: async (baseUrl, jwtBearerToken) => {
@@ -25,7 +34,7 @@ const auth = {
     }
     const otherAuth = apiHelper.call({
       baseURL: baseUrl,
-      definition: definitionLocation
+      definition: definition
     })
     return otherAuth('createAccessToken', null, formData, headers)
   },
@@ -62,7 +71,6 @@ const auth = {
     let accessTokenResponse
     try {
       accessTokenResponse = await auth.createAccessToken(accessTokenEndpoint, jwtBearerTokenResponse.bearer_token)
-      console.log(accessTokenResponse)
     } catch (e) {
       let error
       if (e.response) {
@@ -78,12 +86,3 @@ const auth = {
 }
 
 module.exports = auth
-
-function loginContract () {
-  return {
-    type: 'BehandelaarLogin',
-    language: 'NL',
-    version: 'v2',
-    legalEntity: config.nuts.version == "0.12" ? config.organisation.name : `urn:oid:2.16.840.1.113883.2.4.6.1:${config.organisation.agb}`
-  }
-}

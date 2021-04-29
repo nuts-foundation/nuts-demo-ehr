@@ -24,9 +24,9 @@
     "uuid": "^3.3.3"
   },
   "devDependencies": {
-    "@nuts-foundation/irma-core": "1.0.0",
-    "@nuts-foundation/irma-server": "1.0.0",
-    "@nuts-foundation/irma-web": "1.0.0",
+    "@privacybydesign/irma-client": "0.3.3",
+    "@privacybydesign/irma-core": "0.3.3",
+    "@privacybydesign/irma-web": "0.3.3",
     "concurrently": "^5.0.0",
     "faker": "^4.1.0",
     "nodemon": "^1.19.3",

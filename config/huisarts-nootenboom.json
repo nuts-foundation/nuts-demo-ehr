@@ -5,14 +5,13 @@
     "sessionSecret": "987gdf876ghdh76d8hg6hg8jg6j87"
   },
   "nuts": {
-    "node": "localhost:21323",
-    "nats": "nats://localhost:21324",
-    "version": "0.12"
+    "node": "localhost:8081",
+    "nats": "nats://localhost:21324"
   },
   "organisation": {
     "name":   "Huisartsenpraktijk Nootenboom",
+    "city":   "51.8986664,5.9182616",
     "colour": "#145f14",
-    "agb":    "87654321",
     "user":   "Tim"
   },
   "patients": [

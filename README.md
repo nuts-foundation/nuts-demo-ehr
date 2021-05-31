@@ -15,13 +15,3 @@ Go to the [master](https://github.com/nuts-foundation/nuts-registry-admin-demo/t
 INFORMATION! IT IS IN NO WAY DEVELOPED TO BE SAFE, STABLE OR EVEN USABLE FOR
 SUCH PURPOSE.**
 
-## Learning from this application
-
-If you're curious as to how this application interfaces with the Nuts node,
-please take a look at [`resources/nuts-node`](resources/nuts-node), where we
-define the different services and API calls that the Nuts node exposes. For
-examples on how we then use those services, you can check out the [client APIs](client-api)
-that the browser talks to to get things done. Mainly [`consent.js`](client-api/consent.js)
-and [`organisation.js`](client-api/organisation.js). Also, we register our
-applications on the Nuts node in the root [`index.js`](index.js).
-

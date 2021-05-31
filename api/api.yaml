@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+  title: Nuts Demo EHR API
+  version: 1.0.0
+
+paths:
+  /web/auth:
+    post:
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        '200':
+          description: A session was succesfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSessionResponse"
+        '403':
+          description: Invalid credentials
+
+  /web/private:
+    get:
+      description: Checks whether the current session is valid. If not, the client should authenticate before calling other API operations.
+      operationId: checkSession
+      responses:
+        '204':
+          description: The session is valid.
+        '400':
+          description: The session is invalid.
+
+
+components:
+  schemas:
+    CreateSessionRequest:
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: demo@nuts.nl
+        password:
+          type: string
+    CreateSessionResponse:
+      required:
+        - token
+      properties:
+        token:
+          type: string

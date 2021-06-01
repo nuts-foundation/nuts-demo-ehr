@@ -38,6 +38,6 @@ RUN mkdir /app && cd /app
 WORKDIR /app
 COPY --from=backend-builder /app/nuts-demo-ehr .
 HEALTHCHECK --start-period=5s --timeout=5s --interval=5s \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:1303/ || exit 1
-EXPOSE 1303
+    CMD wget --no-verbose --tries=1 --spider http://localhost:1304/ || exit 1
+EXPOSE 1304
 ENTRYPOINT ["/app/nuts-demo-ehr"]

@@ -16,7 +16,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/nuts-foundation/nuts-registry-admin-demo/api"
+	"github.com/nuts-foundation/nuts-demo-ehr/api"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -85,7 +86,10 @@ func main() {
 	auth := api.NewAuth(config.sessionKey, []api.UserAccount{account})
 
 	// Initialize wrapper
-	apiWrapper := api.Wrapper{Auth: auth}
+	apiWrapper := api.Wrapper{
+		Auth:       auth,
+		Repository: customers.NewJsonFileRepository(config.CustomersFile),
+	}
 
 	api.RegisterHandlers(e, apiWrapper)
 

@@ -32,7 +32,18 @@ paths:
           description: The session is valid.
         '400':
           description: The session is invalid.
-
+  /web/customers:
+    get:
+      operationId: listCustomers
+      responses:
+        200:
+          description: returns a list of customers as configured in the customers.json file
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
 
 components:
   schemas:
@@ -52,3 +63,32 @@ components:
       properties:
         token:
           type: string
+    Customer:
+      type: object
+      description: A customer object
+      required:
+        - id
+        - name
+        - active
+      properties:
+        id:
+          type: string
+          description: The internal customer ID.
+          example: "C12"
+        did:
+          type: string
+          description: The customer DID.
+          example:
+            "did:nuts:123"
+        name:
+          type: string
+          description: Internal name for this customer.
+        city:
+          type: string
+          description: Locality for this customer.
+        domain:
+          type: string
+          description: The email domain of the care providers employees, required for logging in.
+        active:
+          type: boolean
+          description: If a VC has been issued for this customer.

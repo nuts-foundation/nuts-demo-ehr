@@ -16,30 +16,36 @@ type Repository interface {
 	All() ([]domain.Customer, error)
 }
 
-type flatFileRepo struct {
+type jsonFileRepo struct {
 	filepath string
 	mutex    sync.Mutex
 	// records is a cache
 	records map[string]domain.Customer
 }
 
-func NewFlatFileRepository(filepath string) *flatFileRepo {
+func NewJsonFileRepository(filepath string) *jsonFileRepo {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
 	defer f.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	return &flatFileRepo{
+	repo := jsonFileRepo{
 		filepath: filepath,
 		mutex:    sync.Mutex{},
 		records:  make(map[string]domain.Customer, 0),
 	}
+
+	if err := repo.readAll(); err != nil {
+		panic(err)
+	}
+
+	return &repo
 }
 
-func (db *flatFileRepo) FindByID(id string) (*domain.Customer, error) {
+func (db *jsonFileRepo) FindByID(id string) (*domain.Customer, error) {
 	if len(db.records) == 0 {
-		if err := db.ReadAll(); err != nil {
+		if err := db.readAll(); err != nil {
 			return nil, err
 		}
 	}
@@ -54,7 +60,7 @@ func (db *flatFileRepo) FindByID(id string) (*domain.Customer, error) {
 	return nil, errors.New("not found")
 }
 
-func (db *flatFileRepo) ReadAll() error {
+func (db *jsonFileRepo) readAll() error {
 	//log.Debug("Reading full customer list from file")
 	bytes, err := os.ReadFile(db.filepath)
 	if err != nil {
@@ -65,17 +71,21 @@ func (db *flatFileRepo) ReadAll() error {
 		return nil
 	}
 
-	if err = json.Unmarshal(bytes, &db.records); err != nil {
+	v := map[string]domain.Customer{}
+	if err = json.Unmarshal(bytes, &v); err != nil {
 		return fmt.Errorf("unable to unmarshall db from file: %w", err)
 	}
+
+	db.records = v
+
 	return nil
 }
 
-func (db *flatFileRepo) All() ([]domain.Customer, error) {
+func (db *jsonFileRepo) All() ([]domain.Customer, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	if err := db.ReadAll(); err != nil {
+	if err := db.readAll(); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +97,7 @@ func (db *flatFileRepo) All() ([]domain.Customer, error) {
 		idx = idx + 1
 	}
 	sort.SliceStable(v, func(i, j int) bool {
-		return v[i].Id < v[j].Id
+		return v[i].Name < v[j].Name
 	})
 	return v, nil
 }

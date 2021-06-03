@@ -88,7 +88,7 @@ func main() {
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:       auth,
-		Repository: customers.NewFlatFileRepository(config.CustomersFile),
+		Repository: customers.NewJsonFileRepository(config.CustomersFile),
 	}
 
 	api.RegisterHandlers(e, apiWrapper)

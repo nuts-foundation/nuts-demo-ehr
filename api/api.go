@@ -4,11 +4,13 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-registry-admin-demo/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 )
 
 type Wrapper struct {
-	Auth              auth
+	Auth       auth
+	Repository customers.Repository
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -32,4 +34,12 @@ func (w Wrapper) CreateSession(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(200, domain.CreateSessionResponse{Token: string(token)})
+}
+
+func (w Wrapper) ListCustomers(ctx echo.Context) error {
+	customers, err := w.Repository.All()
+	if err != nil {
+		return echo.NewHTTPError(500, err.Error())
+	}
+	return ctx.JSON(http.StatusOK, customers)
 }

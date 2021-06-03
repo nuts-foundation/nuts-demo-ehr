@@ -13,6 +13,9 @@ type ServerInterface interface {
 	// (POST /web/auth)
 	CreateSession(ctx echo.Context) error
 
+	// (GET /web/customers)
+	ListCustomers(ctx echo.Context) error
+
 	// (GET /web/private)
 	CheckSession(ctx echo.Context) error
 }
@@ -28,6 +31,15 @@ func (w *ServerInterfaceWrapper) CreateSession(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CreateSession(ctx)
+	return err
+}
+
+// ListCustomers converts echo context to params.
+func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListCustomers(ctx)
 	return err
 }
 
@@ -69,6 +81,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.POST(baseURL+"/web/auth", wrapper.CreateSession)
+	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 
 }

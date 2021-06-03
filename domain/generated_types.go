@@ -14,6 +14,28 @@ type CreateSessionResponse struct {
 	Token string `json:"token"`
 }
 
+// A customer object
+type Customer struct {
+
+	// If a VC has been issued for this customer.
+	Active bool `json:"active"`
+
+	// Locality for this customer.
+	City *string `json:"city,omitempty"`
+
+	// The customer DID.
+	Did *string `json:"did,omitempty"`
+
+	// The email domain of the care providers employees, required for logging in.
+	Domain *string `json:"domain,omitempty"`
+
+	// The internal customer ID.
+	Id string `json:"id"`
+
+	// Internal name for this customer.
+	Name string `json:"name"`
+}
+
 // CreateSessionJSONBody defines parameters for CreateSession.
 type CreateSessionJSONBody CreateSessionRequest
 

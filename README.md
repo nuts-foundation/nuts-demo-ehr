@@ -55,7 +55,7 @@ When running in Docker without a config file mounted at `/app/server.config.yaml
 ### Nuts-node
 
 The Demo-EHR needs a connection to a running Nuts node. The `customers.json` file also needs to be in sync with the DIDs known to the Nuts node.
-You can use the [nuts-registry-admin-demo](https://github.com/nuts-foundation/nuts-registry-admin-demo) for setting up customers.
+You can use the [nuts-registry-admin-demo](https://github.com/nuts-foundation/nuts-registry-admin-demo) for setting up `customers.json`.
 
 It's important to configure the Nuts node address in the `server.config.yaml`. The `nutsnodeaddr` must be used for this:
 

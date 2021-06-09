@@ -40,6 +40,7 @@ The API and domain types are generated from the `api/api.yaml`.
 ```shell
 $ oapi-codegen -generate server -package api api/api.yaml > api/generated.go
 $ oapi-codegen -generate types -package domain -o domain/generated_types.go api/api.yaml
+$ oapi-codegen -generate client,types -package client -o client/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
 
 ```
 
@@ -48,8 +49,29 @@ $ oapi-codegen -generate types -package domain -o domain/generated_types.go api/
 $ docker run -p 1304:1304 nutsfoundation/nuts-demo-ehr:main
 ```
 
-## Configuration
+#### Configuration
 When running in Docker without a config file mounted at `/app/server.config.yaml` it will use the default configuration.
+
+### Nuts-node
+
+The Demo-EHR needs a connection to a running Nuts node. The `customers.json` file also needs to be in sync with the DIDs known to the Nuts node.
+You can use the [nuts-registry-admin-demo](https://github.com/nuts-foundation/nuts-registry-admin-demo) for setting up customers.
+
+It's important to configure the Nuts node address in the `server.config.yaml`. The `nutsnodeaddr` must be used for this:
+
+```yaml
+nutsnodeaddr: "http://localhost:1323"
+```
+
+When using IRMA for authentication, the Nuts node will generate a QR code with an URL in it. This URL must be publicly accessible.
+It can be configured IN THE NUTS NODE configuration file:
+
+```yaml
+auth:
+  publicurl: http://5d6670ee3d46.eu.ngrok.io
+```
+
+The above example uses [ngrok](https://ngrok.io) to proxy a ngrok URL to localhost:1323.
 
 ## Technology Stack
 

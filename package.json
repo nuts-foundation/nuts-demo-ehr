@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com/nuts-foundation/nuts-registry-admin-demo"
+    "url": "github.com/nuts-foundation/nuts-demo-ehr"
   },
   "author": "Steven van der Vegt",
   "license": "ISC",
@@ -34,10 +34,18 @@
     "tailwindcss": "^2.1.1",
     "vue-loader": "^16.2.0",
     "vue-style-loader": "^4.1.3",
-    "webpack": "^5.31.0",
+    "webpack": "^5.38.1",
     "webpack-cli": "^4.6.0"
   },
   "dependencies": {
+    "@privacybydesign/irma-client": "^0.3.3",
+    "@privacybydesign/irma-core": "^0.3.3",
+    "@privacybydesign/irma-web": "^0.3.3",
+    "@privacybydesign/irma-frontend": "^0.3.3",
+    "http": "^0.0.1-security",
+    "https": "^1.0.0",
+    "url": "^0.11.0",
+    "util": "^0.12.4",
     "vue": "^3.0.11",
     "vue-router": "^4.0.6"
   }

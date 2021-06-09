@@ -4,14 +4,21 @@
 package api
 
 import (
+	"fmt"
+	"net/http"
+
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/labstack/echo/v4"
 )
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /web/auth)
+	// (POST /web/auth/session)
 	CreateSession(ctx echo.Context) error
+
+	// (GET /web/auth/session/{sessionToken}/result)
+	SessionResult(ctx echo.Context, sessionToken string) error
 
 	// (GET /web/customers)
 	ListCustomers(ctx echo.Context) error
@@ -31,6 +38,22 @@ func (w *ServerInterfaceWrapper) CreateSession(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CreateSession(ctx)
+	return err
+}
+
+// SessionResult converts echo context to params.
+func (w *ServerInterfaceWrapper) SessionResult(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sessionToken" -------------
+	var sessionToken string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "sessionToken", runtime.ParamLocationPath, ctx.Param("sessionToken"), &sessionToken)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SessionResult(ctx, sessionToken)
 	return err
 }
 
@@ -80,7 +103,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/web/auth", wrapper.CreateSession)
+	router.POST(baseURL+"/web/auth/session", wrapper.CreateSession)
+	router.GET(baseURL+"/web/auth/session/:sessionToken/result", wrapper.SessionResult)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 

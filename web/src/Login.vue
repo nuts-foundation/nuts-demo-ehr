@@ -17,7 +17,7 @@
 
           <div>
             <span class="block text-sm font-medium text-gray-700">
-              Selected: {{ customer.name }}
+              Selected: {{ customer? customer.name : 'none' }}
             </span>
           </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
@@ -32,13 +32,14 @@
 </template>
 
 <script>
+import irma from "@privacybydesign/irma-frontend";
 
 export default {
   data() {
     return {
       loginError: "",
       customers: [],
-      customer: {}
+      customer: null
     }
   },
   created() {
@@ -60,6 +61,55 @@ export default {
             this.loginError = response
           })
           .finally(() => this.loading = false)
+    },
+    login() {
+      if (!this.customer) {
+        return
+      }
+      let options = {
+        // Developer options
+        debugging: true,
+
+        // Front-end options
+        language: 'en',
+        translations: {
+          header: this.customer.name
+        },
+
+        // Back-end options
+        session: {
+          // Point to demo-ehr backend which forwards requests
+          url: '/web/auth',
+
+          // Define your disclosure request:
+          start: {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(this.customer)
+          },
+          mapping: {
+            sessionPtr:      r => r.sessionPtr.clientPtr,
+            sessionToken:    r => r.sessionID
+          }
+        }
+      };
+      let irmaPopup = irma.newPopup(options);
+      irmaPopup.start()
+          .then(result => {
+            console.log("success!")
+            localStorage.setItem("session", result.token)
+            this.redirectAfterLogin()
+          })
+          .catch(error => {
+            if (error === 'Aborted') {
+              console.log('Aborted');
+              return;
+            }
+            console.error("error", error);
+          })
+          .finally(() => irmaPopup = irma.newPopup(options));
     }
   },
   mounted() {

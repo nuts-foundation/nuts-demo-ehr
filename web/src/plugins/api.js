@@ -2,14 +2,6 @@ export default {
   install: (app, apiOptions = {}) => {
 
     let {defaultOptions} = apiOptions
-
-    const authHeader = () => {
-      const sessionToken = localStorage.getItem("session")
-      if (sessionToken) {
-        return {'Authorization': `Bearer ${sessionToken}`}
-      }
-      return {}
-    }
     let api = {}
 
     let httpMethods = ['get', 'post', 'put', 'delete']
@@ -19,8 +11,7 @@ export default {
           ...defaultOptions,
           method: method.toUpperCase(),
           headers: {
-            'Content-Type': 'application/json',
-            ...authHeader()
+            'Content-Type': 'application/json'
           },
           ...requestOptions,
         }

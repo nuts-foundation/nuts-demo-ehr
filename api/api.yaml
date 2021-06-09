@@ -4,7 +4,7 @@ info:
   version: 1.0.0
 
 paths:
-  /web/auth:
+  /web/auth/session:
     post:
       operationId: createSession
       requestBody:
@@ -12,17 +12,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateSessionRequest"
+              $ref: "#/components/schemas/Customer"
       responses:
         '200':
           description: A session was succesfully created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateSessionResponse"
-        '403':
-          description: Invalid credentials
-
+                type: object
+  /web/auth/session/{sessionToken}/result:
+    parameters:
+      - name: sessionToken
+        in: path
+        description: IRMA session ID
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: sessionResult
+      responses:
+        '200':
+          description: Session result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
   /web/private:
     get:
       description: Checks whether the current session is valid. If not, the client should authenticate before calling other API operations.
@@ -47,22 +61,6 @@ paths:
 
 components:
   schemas:
-    CreateSessionRequest:
-      required:
-        - username
-        - password
-      properties:
-        username:
-          type: string
-          example: demo@nuts.nl
-        password:
-          type: string
-    CreateSessionResponse:
-      required:
-        - token
-      properties:
-        token:
-          type: string
     Customer:
       type: object
       description: A customer object
@@ -92,3 +90,12 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
+    SessionToken:
+      type: object
+      description: Result of a signing session.
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: the result from a signing session. It's a base64 encoded Verifiable Presentation

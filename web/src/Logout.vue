@@ -5,8 +5,8 @@
 import {useRouter} from 'vue-router'
 
 export default {
-  setup() {
-    localStorage.removeItem("session")
+  mounted() {
+    this.$cookies.remove("session")
     useRouter().push("/login")
   }
 }

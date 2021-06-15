@@ -23,14 +23,32 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
+func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
+	req := domain.PasswordAuthenticateRequest{}
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+	token, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
+	if err != nil {
+		return ctx.String(http.StatusUnauthorized, err.Error())
+	}
+	writeSession(ctx, token)
+	return ctx.NoContent(http.StatusNoContent)
+}
+
 func (w Wrapper) CreateSession(ctx echo.Context) error {
-	customer := domain.Customer{}
-	if err := ctx.Bind(&customer); err != nil {
+	req := domain.IRMAAuthenticationRequest{}
+	if err := ctx.Bind(&req); err != nil {
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
+	customer, err := w.Repository.FindByID(req.CustomerID)
+	if err != nil {
+		return ctx.String(http.StatusInternalServerError, err.Error())
+	}
+
 	// forward to node
-	bytes, err := w.Client.CreateIrmaSession(customer)
+	bytes, err := w.Client.CreateIrmaSession(*customer)
 	if err != nil {
 		return err
 	}
@@ -64,12 +82,23 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, customers)
 }
 
-// writeSession expect the VP as base64encoded json
-func writeSession(ctx echo.Context, vp string) {
+func (w Wrapper) GetCustomer(ctx echo.Context, id string) error {
+	customer, err := w.Repository.FindByID(id)
+	if err != nil {
+		return echo.NewHTTPError(500, err.Error())
+	}
+	if customer == nil {
+		return echo.NewHTTPError(404, "customer not found")
+	}
+	return ctx.JSON(http.StatusOK, customer)
+}
+
+// writeSession writes the authenticated session token to the client as a cookie.
+func writeSession(ctx echo.Context, token string) {
 	cookie := new(http.Cookie)
 	cookie.Name = "session"
-	cookie.Value = vp
+	cookie.Value = token
 	cookie.Path = "/"
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.Expires = time.Now().Add(MaxSessionAge)
 	ctx.SetCookie(cookie)
 }

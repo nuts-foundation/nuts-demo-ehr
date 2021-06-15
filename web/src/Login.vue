@@ -3,27 +3,24 @@
 
     <div class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">
       <h1 class="text-3xl py-2">Nuts Demo EHR</h1>
-      <form class="my-4 flex justify-center" @submit.stop.prevent="login">
+      <form class="my-4 flex justify-center" @submit.stop.prevent="">
         <div class="space-y-4">
 
           <div>
             <label for="customer_select" class="block text-sm font-medium text-gray-700">Organization</label>
             <select id="customer_select" v-model="customer">
-              <option v-for="c in customers" v-bind:value="c">
+              <option v-for="c in customers" v-bind:value="c.id">
                 {{ c.name }}
               </option>
             </select>
           </div>
-
-          <div>
-            <span class="block text-sm font-medium text-gray-700">
-              Selected: {{ customer? customer.name : 'none' }}
-            </span>
-          </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button
-              class="w-full btn-submit"
-          >Login
+          <button class="w-full btn-submit btn-login" @click="loginWithIRMA" v-bind:disabled="customer === null">
+            <div>Login with IRMA</div>
+            <img v-bind:src="irmaLogo">
+          </button>
+          <button class="w-full btn-submit btn-login" @click="loginWithPassword" v-bind:disabled="customer === null">
+            Login with password
           </button>
         </div>
       </form>
@@ -31,15 +28,30 @@
   </div>
 </template>
 
+<style>
+  .btn-login {
+    text-align: center;
+  }
+  .btn-login:disabled {
+    filter: grayscale(1);
+  }
+  .btn-login img {
+    display: block;
+    margin: 8px auto;
+  }
+</style>
+
 <script>
 import irma from "@privacybydesign/irma-frontend";
+import irmaLogo from './img/irma-logo.png';
 
 export default {
   data() {
     return {
       loginError: "",
       customers: [],
-      customer: null
+      customer: null,
+      irmaLogo: irmaLogo,
     }
   },
   created() {
@@ -62,7 +74,14 @@ export default {
           })
           .finally(() => this.loading = false)
     },
-    login() {
+    loginWithPassword() {
+      if (!this.customer) {
+        return
+      }
+      this.$router.push({name: 'auth.passwd', params: {id: this.customer}})
+    },
+    // TODO: Move this to IRMAAuthentication after IRMA PR has been merged
+    loginWithIRMA() {
       if (!this.customer) {
         return
       }
@@ -87,7 +106,7 @@ export default {
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(this.customer)
+            body: JSON.stringify({customerID: this.customer})
           },
           mapping: {
             sessionPtr:      r => r.sessionPtr.clientPtr,
@@ -98,8 +117,7 @@ export default {
       let irmaPopup = irma.newPopup(options);
       irmaPopup.start()
           .then(result => {
-            console.log("success!")
-            localStorage.setItem("session", result.token)
+            console.log("IRMA authentication successful")
             this.redirectAfterLogin()
           })
           .catch(error => {

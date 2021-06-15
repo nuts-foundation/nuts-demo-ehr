@@ -4,6 +4,23 @@ info:
   version: 1.0.0
 
 paths:
+  # Password authentication
+  /web/auth-passwd:
+    post:
+      description: Authenticate using password credential. If successful an authenticated session is created and returned.
+      operationId: authenticateWithPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordAuthenticateRequest"
+      responses:
+        '204':
+          description: Authentication successful.
+        '403':
+          description: Invalid credentials
+  # IRMA authentication
   /web/auth/session:
     post:
       operationId: createSession
@@ -12,7 +29,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Customer"
+              $ref: "#/components/schemas/IRMAAuthenticationRequest"
       responses:
         '200':
           description: A session was succesfully created
@@ -37,6 +54,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SessionToken"
+
+  # General authentication endpoints
   /web/private:
     get:
       description: Checks whether the current session is valid. If not, the client should authenticate before calling other API operations.
@@ -46,6 +65,7 @@ paths:
           description: The session is valid.
         '400':
           description: The session is invalid.
+
   /web/customers:
     get:
       operationId: listCustomers
@@ -58,6 +78,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
+  /web/customers/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: internal customer ID
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getCustomer
+      responses:
+        200:
+          description: returns the specified customer as configured in the customers.json file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        404:
+          description: customer not found
 
 components:
   schemas:
@@ -99,3 +138,22 @@ components:
         token:
           type: string
           description: the result from a signing session. It's a base64 encoded Verifiable Presentation
+    IRMAAuthenticationRequest:
+      required:
+        - customerID
+      properties:
+        customerID:
+          description: Internal ID of the customer for which is being logged in
+          type: string
+          example: 1
+    PasswordAuthenticateRequest:
+      required:
+        - customerID
+        - password
+      properties:
+        customerID:
+          description: Internal ID of the customer for which is being logged in
+          type: string
+          example: 1
+        password:
+          type: string

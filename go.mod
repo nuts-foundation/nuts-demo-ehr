@@ -9,6 +9,7 @@ require (
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.0
 	github.com/nuts-foundation/nuts-node v0.0.0-20210602105835-138ddfc836af // indirect
+	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	go.etcd.io/bbolt v1.3.5
 )

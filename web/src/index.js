@@ -1,9 +1,11 @@
 import {createApp} from 'vue'
 import {createRouter, createWebHashHistory} from 'vue-router'
 import './style.css'
+import VueCookies from 'vue3-cookies'
 import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
+import PasswordAuthentication from './PasswordAuthentication.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
@@ -20,6 +22,11 @@ const routes = [
     name: 'logout',
     path: '/logout',
     component: Logout
+  },
+  {
+    name: 'auth.passwd',
+    path: '/auth-passwd/:id',
+    component: PasswordAuthentication,
   },
   {
     path: '/ehr',
@@ -49,17 +56,19 @@ const router = createRouter({
   routes // short for `routes: routes`
 })
 
+const app = createApp(App)
+
 router.beforeEach((to, from) => {
-  if (to.meta.requiresAuth) {
-    if (localStorage.getItem("session")) {
+  // Check before rendering the target route that we're authenticated, if it's required by the particular route.
+  if (to.meta.requiresAuth === true) {
+    if (app.config.globalProperties.$cookies.get("session")) {
       return true
     }
     return '/login'
   }
 })
 
-const app = createApp(App)
-
 app.use(router)
+app.use(VueCookies)
 app.use(Api, {forbiddenRoute: {name: 'logout'}})
 app.mount('#app')

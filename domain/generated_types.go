@@ -25,6 +25,21 @@ type Customer struct {
 	Name string `json:"name"`
 }
 
+// IRMAAuthenticationRequest defines model for IRMAAuthenticationRequest.
+type IRMAAuthenticationRequest struct {
+
+	// Internal ID of the customer for which is being logged in
+	CustomerID string `json:"customerID"`
+}
+
+// PasswordAuthenticateRequest defines model for PasswordAuthenticateRequest.
+type PasswordAuthenticateRequest struct {
+
+	// Internal ID of the customer for which is being logged in
+	CustomerID string `json:"customerID"`
+	Password   string `json:"password"`
+}
+
 // Result of a signing session.
 type SessionToken struct {
 
@@ -32,8 +47,14 @@ type SessionToken struct {
 	Token string `json:"token"`
 }
 
+// AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
+type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
+
 // CreateSessionJSONBody defines parameters for CreateSession.
-type CreateSessionJSONBody map[string]interface{}
+type CreateSessionJSONBody IRMAAuthenticationRequest
+
+// AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
+type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
 
 // CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
 type CreateSessionJSONRequestBody CreateSessionJSONBody

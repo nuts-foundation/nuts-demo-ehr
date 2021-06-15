@@ -14,6 +14,9 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /web/auth-passwd)
+	AuthenticateWithPassword(ctx echo.Context) error
+
 	// (POST /web/auth/session)
 	CreateSession(ctx echo.Context) error
 
@@ -23,6 +26,9 @@ type ServerInterface interface {
 	// (GET /web/customers)
 	ListCustomers(ctx echo.Context) error
 
+	// (GET /web/customers/{id})
+	GetCustomer(ctx echo.Context, id string) error
+
 	// (GET /web/private)
 	CheckSession(ctx echo.Context) error
 }
@@ -30,6 +36,15 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// AuthenticateWithPassword converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AuthenticateWithPassword(ctx)
+	return err
 }
 
 // CreateSession converts echo context to params.
@@ -63,6 +78,22 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.ListCustomers(ctx)
+	return err
+}
+
+// GetCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetCustomer(ctx, id)
 	return err
 }
 
@@ -103,9 +134,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/web/auth-passwd", wrapper.AuthenticateWithPassword)
 	router.POST(baseURL+"/web/auth/session", wrapper.CreateSession)
 	router.GET(baseURL+"/web/auth/session/:sessionToken/result", wrapper.SessionResult)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
+	router.GET(baseURL+"/web/customers/:id", wrapper.GetCustomer)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 
 }

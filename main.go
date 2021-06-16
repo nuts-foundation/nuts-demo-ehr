@@ -1,22 +1,19 @@
 package main
 
 import (
-	"crypto/elliptic"
-	"crypto/sha1"
 	"embed"
-	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/lestrrat-go/jwx/jwa"
+	log2 "github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
+	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	bolt "go.etcd.io/bbolt"
 )
@@ -44,6 +41,7 @@ func getFileSystem(useFS bool) http.FileSystem {
 }
 
 func main() {
+	// config stuff
 	config := loadConfig()
 	config.Print(log.Writer())
 	// load bbolt db
@@ -53,43 +51,32 @@ func main() {
 	}
 	defer db.Close()
 
-	e := echo.New()
-	e.HideBanner = true
-	e.Use(middleware.Logger())
-	//e.Debug = true
-	//e.Use(middleware.Recover())
-	e.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-		Skipper: func(c echo.Context) bool {
-			protectedPaths := []string{
-				"/web/private",
-			}
-			for _, path := range protectedPaths {
-				if strings.HasPrefix(c.Request().RequestURI, path) {
-					return false
-				}
-			}
-			return true
-		},
-		SigningKey:    &config.sessionKey.PublicKey,
-		SigningMethod: jwa.ES256.String(),
-	}))
-	e.HTTPErrorHandler = httpErrorHandler
+	// init node API client
+	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
-	// Initialize Auth
-	var account api.UserAccount
-	if config.Credentials.Empty() {
-		account = generateDefaultAccount(config)
-		log.Printf("Authentication credentials not configured, so they were generated (user=%s, password=%s)", account.Username, account.Password)
-	} else {
-		account = api.UserAccount{Username: config.Credentials.Username, Password: config.Credentials.Password}
-	}
-	auth := api.NewAuth(config.sessionKey, []api.UserAccount{account})
+	// auth stuff
+	auth := api.NewAuth(nodeClient)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:       auth,
+		Client:     nodeClient,
 		Repository: customers.NewJsonFileRepository(config.CustomersFile),
 	}
+	e := echo.New()
+	e.HideBanner = true
+	e.Use(middleware.Logger())
+	e.Logger.SetLevel(log2.DEBUG)
+	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
+		if !ctx.Response().Committed {
+			ctx.Response().Write([]byte(err.Error()))
+			ctx.Echo().Logger.Error(err)
+		}
+	}
+	e.Use(auth.VPHandler)
+	e.HTTPErrorHandler = httpErrorHandler
+
+
 
 	api.RegisterHandlers(e, apiWrapper)
 
@@ -101,11 +88,6 @@ func main() {
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
-}
-
-func generateDefaultAccount(config Config) api.UserAccount {
-	pkHashBytes := sha1.Sum(elliptic.Marshal(config.sessionKey.Curve, config.sessionKey.X, config.sessionKey.Y))
-	return api.UserAccount{Username: "demo@nuts.nl", Password: hex.EncodeToString(pkHashBytes[:])}
 }
 
 // httpErrorHandler includes the err.Err() string in a { "error": "msg" } json hash

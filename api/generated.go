@@ -14,14 +14,14 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /web/auth-passwd)
+	// (POST /web/auth/irma/session)
+	AuthenticateWithIRMA(ctx echo.Context) error
+
+	// (GET /web/auth/irma/session/{sessionToken}/result)
+	GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error
+
+	// (POST /web/auth/passwd)
 	AuthenticateWithPassword(ctx echo.Context) error
-
-	// (POST /web/auth/session)
-	CreateSession(ctx echo.Context) error
-
-	// (GET /web/auth/session/{sessionToken}/result)
-	SessionResult(ctx echo.Context, sessionToken string) error
 
 	// (GET /web/customers)
 	ListCustomers(ctx echo.Context) error
@@ -38,26 +38,17 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
-// AuthenticateWithPassword converts echo context to params.
-func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) error {
+// AuthenticateWithIRMA converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AuthenticateWithPassword(ctx)
+	err = w.Handler.AuthenticateWithIRMA(ctx)
 	return err
 }
 
-// CreateSession converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateSession(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.CreateSession(ctx)
-	return err
-}
-
-// SessionResult converts echo context to params.
-func (w *ServerInterfaceWrapper) SessionResult(ctx echo.Context) error {
+// GetIRMAAuthenticationResult converts echo context to params.
+func (w *ServerInterfaceWrapper) GetIRMAAuthenticationResult(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "sessionToken" -------------
 	var sessionToken string
@@ -68,7 +59,16 @@ func (w *ServerInterfaceWrapper) SessionResult(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.SessionResult(ctx, sessionToken)
+	err = w.Handler.GetIRMAAuthenticationResult(ctx, sessionToken)
+	return err
+}
+
+// AuthenticateWithPassword converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AuthenticateWithPassword(ctx)
 	return err
 }
 
@@ -134,9 +134,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/web/auth-passwd", wrapper.AuthenticateWithPassword)
-	router.POST(baseURL+"/web/auth/session", wrapper.CreateSession)
-	router.GET(baseURL+"/web/auth/session/:sessionToken/result", wrapper.SessionResult)
+	router.POST(baseURL+"/web/auth/irma/session", wrapper.AuthenticateWithIRMA)
+	router.GET(baseURL+"/web/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
+	router.POST(baseURL+"/web/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/customers/:id", wrapper.GetCustomer)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)

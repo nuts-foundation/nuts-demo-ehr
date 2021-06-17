@@ -35,7 +35,7 @@ func defaultConfig() Config {
 		DBFile:          defaultDBFile,
 		NutsNodeAddress: defaultNutsNodeAddress,
 		CustomersFile:   defaultCustomerFile,
-		Credentials: Credentials{Password: "demo"},
+		Credentials:     Credentials{Password: "demo"},
 	}
 }
 

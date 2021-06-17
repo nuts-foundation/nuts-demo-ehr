@@ -8,18 +8,18 @@
 
           <div>
             <label for="customer_select" class="block text-sm font-medium text-gray-700">Organization</label>
-            <select id="customer_select" v-model="customer">
-              <option v-for="c in customers" v-bind:value="c.id">
+            <select id="customer_select" v-model="selectedCustomer">
+              <option v-for="c in customers" v-bind:value="c">
                 {{ c.name }}
               </option>
             </select>
           </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn-submit btn-login" @click="loginWithIRMA" v-bind:disabled="customer === null">
+          <button class="w-full btn-submit btn-login" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
             <div>Login with IRMA</div>
             <img v-bind:src="irmaLogo">
           </button>
-          <button class="w-full btn-submit btn-login" @click="loginWithPassword" v-bind:disabled="customer === null">
+          <button class="w-full btn-submit btn-login" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
             Login with password
           </button>
         </div>
@@ -50,7 +50,7 @@ export default {
     return {
       loginError: "",
       customers: [],
-      customer: null,
+      selectedCustomer: null,
       irmaLogo: irmaLogo,
     }
   },
@@ -75,59 +75,14 @@ export default {
           .finally(() => this.loading = false)
     },
     loginWithPassword() {
-      if (!this.customer) {
-        return
+      if (this.selectedCustomer) {
+        this.$router.push({name: 'auth.passwd', params: {customer: JSON.stringify(this.selectedCustomer)}})
       }
-      this.$router.push({name: 'auth.passwd', params: {id: this.customer}})
     },
-    // TODO: Move this to IRMAAuthentication after IRMA PR has been merged
     loginWithIRMA() {
-      if (!this.customer) {
-        return
+      if (this.selectedCustomer) {
+        this.$router.push({name: 'auth.irma', params: {customer: JSON.stringify(this.selectedCustomer)}})
       }
-      let options = {
-        // Developer options
-        debugging: true,
-
-        // Front-end options
-        language: 'en',
-        translations: {
-          header: this.customer.name
-        },
-
-        // Back-end options
-        session: {
-          // Point to demo-ehr backend which forwards requests
-          url: '/web/auth',
-
-          // Define your disclosure request:
-          start: {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({customerID: this.customer})
-          },
-          mapping: {
-            sessionPtr:      r => r.sessionPtr.clientPtr,
-            sessionToken:    r => r.sessionID
-          }
-        }
-      };
-      let irmaPopup = irma.newPopup(options);
-      irmaPopup.start()
-          .then(result => {
-            console.log("IRMA authentication successful")
-            this.redirectAfterLogin()
-          })
-          .catch(error => {
-            if (error === 'Aborted') {
-              console.log('Aborted');
-              return;
-            }
-            console.error("error", error);
-          })
-          .finally(() => irmaPopup = irma.newPopup(options));
     }
   },
   mounted() {

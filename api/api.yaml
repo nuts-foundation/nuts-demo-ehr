@@ -5,7 +5,7 @@ info:
 
 paths:
   # Password authentication
-  /web/auth-passwd:
+  /web/auth/passwd:
     post:
       description: Authenticate using password credential. If successful an authenticated session is created and returned.
       operationId: authenticateWithPassword
@@ -21,9 +21,9 @@ paths:
         '403':
           description: Invalid credentials
   # IRMA authentication
-  /web/auth/session:
+  /web/auth/irma/session:
     post:
-      operationId: createSession
+      operationId: authenticateWithIRMA
       requestBody:
         required: true
         content:
@@ -37,7 +37,7 @@ paths:
             application/json:
               schema:
                 type: object
-  /web/auth/session/{sessionToken}/result:
+  /web/auth/irma/session/{sessionToken}/result:
     parameters:
       - name: sessionToken
         in: path
@@ -46,7 +46,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: sessionResult
+      operationId: getIRMAAuthenticationResult
       responses:
         '200':
           description: Session result

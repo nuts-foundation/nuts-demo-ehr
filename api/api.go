@@ -36,7 +36,7 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (w Wrapper) CreateSession(ctx echo.Context) error {
+func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	req := domain.IRMAAuthenticationRequest{}
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -59,7 +59,7 @@ func (w Wrapper) CreateSession(ctx echo.Context) error {
 	return ctx.JSON(200, j)
 }
 
-func (w Wrapper) SessionResult(ctx echo.Context, sessionToken string) error {
+func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
 	// forward to node
 	bytes, err := w.Client.GetIrmaSessionResult(sessionToken)
 	if err != nil {

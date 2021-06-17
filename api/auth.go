@@ -107,7 +107,6 @@ func (auth *Auth) getSessions() map[string]Session {
 	return sessions
 }
 
-// StoreVP stores the given VP under a new identifier or existing identifier
 func (auth *Auth) createSession(customerID string, credential interface{}) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()

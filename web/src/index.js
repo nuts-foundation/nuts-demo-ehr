@@ -5,7 +5,8 @@ import VueCookies from 'vue3-cookies'
 import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
-import PasswordAuthentication from './PasswordAuthentication.vue'
+import PasswordAuthentication from './components/auth/PasswordAuthentication.vue'
+import IRMAAuthentication from './components/auth/IRMAAuthentication.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
@@ -25,8 +26,13 @@ const routes = [
   },
   {
     name: 'auth.passwd',
-    path: '/auth-passwd/:id',
+    path: '/auth/passwd/',
     component: PasswordAuthentication,
+  },
+  {
+    name: 'auth.irma',
+    path: '/auth/irma/',
+    component: IRMAAuthentication,
   },
   {
     path: '/ehr',

@@ -47,8 +47,11 @@ export default {
     // Fetch customer from route params
     "$route.params": {
       handler(toParams, previousParams) {
-        if (toParams && 'id' in toParams) {
-          this.fetchCustomer(toParams.id)
+        if (toParams && 'customer' in toParams) {
+          this.customer = JSON.parse(toParams.customer)
+        } else {
+          // Missing required params, redirect to landing page
+          this.$router.push("/")
         }
       },
       immediate: true
@@ -60,24 +63,13 @@ export default {
       this.$router.push("/ehr/")
     },
     login() {
-      this.$api.post('web/auth-passwd', this.credentials)
+      this.$api.post('web/auth/passwd', this.credentials)
           .then(responseData => {
             console.log("Password authentication successful")
             this.redirectAfterLogin()
           })
           .catch(response => {
             this.loginError = response.statusText
-          })
-    },
-    fetchCustomer(id) {
-      this.$api.get(`web/customers/${id}`)
-          .then((customer) => {
-            this.customer = customer
-            this.loading = false
-          })
-          .catch((reason) => {
-            console.log("Could not retrieve customer, redirecting to landing page: ", reason)
-            this.$router.push("/")
           })
     },
   },

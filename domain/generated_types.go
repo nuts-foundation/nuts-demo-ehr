@@ -47,14 +47,14 @@ type SessionToken struct {
 	Token string `json:"token"`
 }
 
+// AuthenticateWithIRMAJSONBody defines parameters for AuthenticateWithIRMA.
+type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
+
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
-// CreateSessionJSONBody defines parameters for CreateSession.
-type CreateSessionJSONBody IRMAAuthenticationRequest
+// AuthenticateWithIRMAJSONRequestBody defines body for AuthenticateWithIRMA for application/json ContentType.
+type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
-
-// CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
-type CreateSessionJSONRequestBody CreateSessionJSONBody

@@ -82,17 +82,6 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, customers)
 }
 
-func (w Wrapper) GetCustomer(ctx echo.Context, id string) error {
-	customer, err := w.Repository.FindByID(id)
-	if err != nil {
-		return echo.NewHTTPError(500, err.Error())
-	}
-	if customer == nil {
-		return echo.NewHTTPError(404, "customer not found")
-	}
-	return ctx.JSON(http.StatusOK, customer)
-}
-
 // writeSession writes the authenticated session token to the client as a cookie.
 func writeSession(ctx echo.Context, token string) {
 	cookie := new(http.Cookie)

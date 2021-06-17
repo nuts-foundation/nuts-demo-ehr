@@ -78,25 +78,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
-  /web/customers/{id}:
-    parameters:
-      - name: id
-        in: path
-        description: internal customer ID
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: getCustomer
-      responses:
-        200:
-          description: returns the specified customer as configured in the customers.json file
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Customer"
-        404:
-          description: customer not found
 
 components:
   schemas:

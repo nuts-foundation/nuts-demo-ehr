@@ -26,9 +26,6 @@ type ServerInterface interface {
 	// (GET /web/customers)
 	ListCustomers(ctx echo.Context) error
 
-	// (GET /web/customers/{id})
-	GetCustomer(ctx echo.Context, id string) error
-
 	// (GET /web/private)
 	CheckSession(ctx echo.Context) error
 }
@@ -81,22 +78,6 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 	return err
 }
 
-// GetCustomer converts echo context to params.
-func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetCustomer(ctx, id)
-	return err
-}
-
 // CheckSession converts echo context to params.
 func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 	var err error
@@ -138,7 +119,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/web/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/web/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
-	router.GET(baseURL+"/web/customers/:id", wrapper.GetCustomer)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 
 }

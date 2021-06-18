@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/elliptic"
+	"crypto/sha1"
 	"embed"
+	"encoding/hex"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/fs"
 	"log"
 	"net/http"
@@ -27,11 +31,11 @@ const apiTimeout = 10 * time.Second
 
 func getFileSystem(useFS bool) http.FileSystem {
 	if useFS {
-		log.Print("using live mode")
+		logrus.Info("using live mode")
 		return http.FS(os.DirFS(assetPath))
 	}
 
-	log.Print("using embed mode")
+	logrus.Info("using embed mode")
 	fsys, err := fs.Sub(embeddedFiles, assetPath)
 	if err != nil {
 		panic(err)
@@ -54,14 +58,23 @@ func main() {
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
-	// auth stuff
-	auth := api.NewAuth(nodeClient)
+	var passwd string
+	if config.Credentials.Empty() {
+		passwd = generateAuthenticationPassword(config)
+		logrus.Infof("Authentication credentials not configured, so they were generated (password=%s)", passwd)
+	} else {
+		passwd = config.Credentials.Password
+	}
+
+	// Initialize services
+	repository := customers.NewJsonFileRepository(config.CustomersFile)
+	auth := api.NewAuth(nodeClient, repository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:       auth,
 		Client:     nodeClient,
-		Repository: customers.NewJsonFileRepository(config.CustomersFile),
+		Repository: repository,
 	}
 	e := echo.New()
 	e.HideBanner = true
@@ -88,6 +101,11 @@ func main() {
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
+}
+
+func generateAuthenticationPassword(config Config) string {
+	pkHashBytes := sha1.Sum(elliptic.Marshal(config.sessionKey.Curve, config.sessionKey.X, config.sessionKey.Y))
+	return hex.EncodeToString(pkHashBytes[:])
 }
 
 // httpErrorHandler includes the err.Err() string in a { "error": "msg" } json hash

@@ -23,14 +23,32 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (w Wrapper) CreateSession(ctx echo.Context) error {
-	customer := domain.Customer{}
-	if err := ctx.Bind(&customer); err != nil {
+func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
+	req := domain.PasswordAuthenticateRequest{}
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+	token, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
+	if err != nil {
+		return ctx.String(http.StatusUnauthorized, err.Error())
+	}
+	writeSession(ctx, token)
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
+	req := domain.IRMAAuthenticationRequest{}
+	if err := ctx.Bind(&req); err != nil {
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
+	customer, err := w.Repository.FindByID(req.CustomerID)
+	if err != nil {
+		return ctx.String(http.StatusInternalServerError, err.Error())
+	}
+
 	// forward to node
-	bytes, err := w.Client.CreateIrmaSession(customer)
+	bytes, err := w.Client.CreateIrmaSession(*customer)
 	if err != nil {
 		return err
 	}
@@ -41,7 +59,7 @@ func (w Wrapper) CreateSession(ctx echo.Context) error {
 	return ctx.JSON(200, j)
 }
 
-func (w Wrapper) SessionResult(ctx echo.Context, sessionToken string) error {
+func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
 	// forward to node
 	bytes, err := w.Client.GetIrmaSessionResult(sessionToken)
 	if err != nil {
@@ -64,12 +82,12 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, customers)
 }
 
-// writeSession expect the VP as base64encoded json
-func writeSession(ctx echo.Context, vp string) {
+// writeSession writes the authenticated session token to the client as a cookie.
+func writeSession(ctx echo.Context, token string) {
 	cookie := new(http.Cookie)
 	cookie.Name = "session"
-	cookie.Value = vp
+	cookie.Value = token
 	cookie.Path = "/"
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.Expires = time.Now().Add(MaxSessionAge)
 	ctx.SetCookie(cookie)
 }

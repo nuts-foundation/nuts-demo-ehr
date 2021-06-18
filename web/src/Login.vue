@@ -3,27 +3,24 @@
 
     <div class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">
       <h1 class="text-3xl py-2">Nuts Demo EHR</h1>
-      <form class="my-4 flex justify-center" @submit.stop.prevent="login">
+      <form class="my-4 flex justify-center" @submit.stop.prevent="">
         <div class="space-y-4">
 
           <div>
             <label for="customer_select" class="block text-sm font-medium text-gray-700">Organization</label>
-            <select id="customer_select" v-model="customer">
+            <select id="customer_select" v-model="selectedCustomer">
               <option v-for="c in customers" v-bind:value="c">
                 {{ c.name }}
               </option>
             </select>
           </div>
-
-          <div>
-            <span class="block text-sm font-medium text-gray-700">
-              Selected: {{ customer? customer.name : 'none' }}
-            </span>
-          </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button
-              class="w-full btn-submit"
-          >Login
+          <button class="w-full btn-submit grid justify-items-center" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
+            <div>Login with IRMA</div>
+            <img class="block my-3" v-bind:src="irmaLogo">
+          </button>
+          <button class="w-full btn-submit grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
+            Login with password
           </button>
         </div>
       </form>
@@ -31,15 +28,23 @@
   </div>
 </template>
 
+<style>
+  .btn-login:disabled {
+    filter: grayscale(1);
+  }
+</style>
+
 <script>
 import irma from "@privacybydesign/irma-frontend";
+import irmaLogo from './img/irma-logo.png';
 
 export default {
   data() {
     return {
       loginError: "",
       customers: [],
-      customer: null
+      selectedCustomer: null,
+      irmaLogo: irmaLogo,
     }
   },
   created() {
@@ -62,54 +67,15 @@ export default {
           })
           .finally(() => this.loading = false)
     },
-    login() {
-      if (!this.customer) {
-        return
+    loginWithPassword() {
+      if (this.selectedCustomer) {
+        this.$router.push({name: 'auth.passwd', params: {customer: JSON.stringify(this.selectedCustomer)}})
       }
-      let options = {
-        // Developer options
-        debugging: true,
-
-        // Front-end options
-        language: 'en',
-        translations: {
-          header: this.customer.name
-        },
-
-        // Back-end options
-        session: {
-          // Point to demo-ehr backend which forwards requests
-          url: '/web/auth',
-
-          // Define your disclosure request:
-          start: {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(this.customer)
-          },
-          mapping: {
-            sessionPtr:      r => r.sessionPtr.clientPtr,
-            sessionToken:    r => r.sessionID
-          }
-        }
-      };
-      let irmaPopup = irma.newPopup(options);
-      irmaPopup.start()
-          .then(result => {
-            console.log("success!")
-            localStorage.setItem("session", result.token)
-            this.redirectAfterLogin()
-          })
-          .catch(error => {
-            if (error === 'Aborted') {
-              console.log('Aborted');
-              return;
-            }
-            console.error("error", error);
-          })
-          .finally(() => irmaPopup = irma.newPopup(options));
+    },
+    loginWithIRMA() {
+      if (this.selectedCustomer) {
+        this.$router.push({name: 'auth.irma', params: {customer: JSON.stringify(this.selectedCustomer)}})
+      }
     }
   },
   mounted() {

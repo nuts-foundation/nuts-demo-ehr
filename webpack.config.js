@@ -85,7 +85,11 @@ module.exports = {
           'css-loader',
           'postcss-loader'
         ]
-      }
+      },
+      {
+        test: /\.(png|jpg|gif)$/i,
+        type: 'asset/resource'
+      },
     ]
   }
 };

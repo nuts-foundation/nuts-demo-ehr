@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"log"
 	"os"
@@ -34,6 +35,7 @@ func defaultConfig() Config {
 		DBFile:          defaultDBFile,
 		NutsNodeAddress: defaultNutsNodeAddress,
 		CustomersFile:   defaultCustomerFile,
+		Credentials:     Credentials{Password: "demo"},
 	}
 }
 
@@ -48,7 +50,6 @@ type Config struct {
 }
 
 type Credentials struct {
-	Username string `koanf:"username"`
 	Password string `koanf:"password" json:"-"` // json omit tag to avoid having it printed in server log
 }
 
@@ -58,13 +59,13 @@ type Branding struct {
 }
 
 func (c Credentials) Empty() bool {
-	return len(c.Username) == 0 && len(c.Password) == 0
+	return len(c.Password) == 0
 }
 
 func generateSessionKey() (*ecdsa.PrivateKey, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		log.Printf("failed to generate private key: %s", err)
+		logrus.Printf("failed to generate private key: %s", err)
 		return nil, err
 	}
 	return key, nil
@@ -94,12 +95,12 @@ func loadConfig() Config {
 	configFilePath := resolveConfigFile(flagset)
 	// Check if the file exists
 	if _, err := os.Stat(configFilePath); err == nil {
-		log.Printf("Loading config from file: %s", configFilePath)
+		logrus.Infof("Loading config from file: %s", configFilePath)
 		if err := k.Load(file.Provider(configFilePath), yaml.Parser()); err != nil {
-			log.Fatalf("error while loading config from file: %v", err)
+			logrus.Fatalf("error while loading config from file: %v", err)
 		}
 	} else {
-		log.Printf("Using default config because no file was found at: %s", configFilePath)
+		logrus.Infof("Using default config because no file was found at: %s", configFilePath)
 	}
 
 	config := defaultConfig()

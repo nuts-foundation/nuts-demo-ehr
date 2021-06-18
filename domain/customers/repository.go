@@ -2,7 +2,6 @@ package customers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -57,7 +56,8 @@ func (db *jsonFileRepo) FindByID(id string) (*domain.Customer, error) {
 		}
 	}
 
-	return nil, errors.New("not found")
+	// Not found
+	return nil, nil
 }
 
 func (db *jsonFileRepo) readAll() error {

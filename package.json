@@ -40,13 +40,14 @@
   "dependencies": {
     "@privacybydesign/irma-client": "^0.3.3",
     "@privacybydesign/irma-core": "^0.3.3",
-    "@privacybydesign/irma-web": "^0.3.3",
     "@privacybydesign/irma-frontend": "^0.3.3",
+    "@privacybydesign/irma-web": "^0.3.3",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
     "url": "^0.11.0",
     "util": "^0.12.4",
     "vue": "^3.0.11",
-    "vue-router": "^4.0.6"
+    "vue-router": "^4.0.6",
+    "vue3-cookies": "^1.0.1"
   }
 }

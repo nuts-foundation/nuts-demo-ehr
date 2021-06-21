@@ -64,12 +64,13 @@ export default {
     },
     login() {
       this.$api.post('web/auth/passwd', this.credentials)
-          .then(responseData => {
+          .then(() => {
             console.log("Password authentication successful")
             this.redirectAfterLogin()
           })
           .catch(response => {
-            this.loginError = response.statusText
+            console.log("Password authentication failed: " + response)
+            this.loginError = response
           })
     },
   },

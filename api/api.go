@@ -12,6 +12,16 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 )
 
+type errorResponse struct {
+	Error error
+}
+
+func (e errorResponse) MarshalJSON() ([]byte, error) {
+	asMap := make(map[string]string, 1)
+	asMap["error"] = e.Error.Error()
+	return json.Marshal(asMap)
+}
+
 type Wrapper struct {
 	Auth       *Auth
 	Client     client.HTTPClient
@@ -26,11 +36,11 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	req := domain.PasswordAuthenticateRequest{}
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.String(http.StatusBadRequest, err.Error())
+		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
 	token, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
 	if err != nil {
-		return ctx.String(http.StatusUnauthorized, err.Error())
+		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
 	writeSession(ctx, token)
 	return ctx.NoContent(http.StatusNoContent)

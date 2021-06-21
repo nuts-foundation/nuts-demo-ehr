@@ -49,12 +49,12 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	req := domain.IRMAAuthenticationRequest{}
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.String(http.StatusBadRequest, err.Error())
+		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
 
 	customer, err := w.Repository.FindByID(req.CustomerID)
 	if err != nil {
-		return ctx.String(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 
 	// forward to node
@@ -66,7 +66,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	// convert to map so echo rendering doesn't escape double quotes
 	j := map[string]interface{}{}
 	json.Unmarshal(bytes, &j)
-	return ctx.JSON(200, j)
+	return ctx.JSON(http.StatusOK, j)
 }
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
@@ -79,7 +79,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	base64String := base64.StdEncoding.EncodeToString(bytes)
 	token := w.Auth.StoreVP(base64String)
 	writeSession(ctx, token)
-	return ctx.JSON(200, domain.SessionToken{
+	return ctx.JSON(http.StatusOK, domain.SessionToken{
 		Token: token,
 	})
 }
@@ -87,7 +87,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	customers, err := w.Repository.All()
 	if err != nil {
-		return echo.NewHTTPError(500, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 	return ctx.JSON(http.StatusOK, customers)
 }

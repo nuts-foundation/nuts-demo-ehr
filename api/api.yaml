@@ -78,12 +78,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
+  /web/patients:
+    get:
+      operationId: getPatients
+      responses:
+        200:
+          description: A list of patients for the current customer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Patient"
 
 components:
   schemas:
     Customer:
       type: object
-      description: A customer object
+      description: A customer object.
       required:
         - id
         - name
@@ -110,6 +122,50 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
+    PatientID:
+      description: The ID of the patient. E.g. UUID or database increment.
+      type: string
+      example:
+        - 15
+        - 665d6390-4823-4829-a3bf-4257e0b67992
+    Patient:
+      allOf:
+        - $ref: "#/components/schemas/PatientID"
+        - $ref: "#/components/schemas/PatientProperties"
+    PatientProperties:
+      type: object
+      description: |
+        A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
+      properties:
+        internalID:
+          description: The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
+          type: string
+          example: P001
+        firstName:
+          description: Given name
+          type: string
+          example: Jan
+        surname:
+          description: Family name. Must include prefixes like "van der".
+          type: string
+          example: van der Moolen
+        gender:
+          description: Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
+          type: string
+          enum: [male, female, other, unknown]
+        dob:
+          description: Date of birth. Can include time if known.
+          type: string
+          format: date
+          example: "1986-01-30"
+        zipcode:
+          description: The zipcode formatted in dutch form. Can be used to find local care providers.
+          type: string
+          example: 7511AB
+        email:
+          description: Primary email address.
+          type: string
+          format: email
     SessionToken:
       type: object
       description: Result of a signing session.

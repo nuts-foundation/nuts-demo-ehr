@@ -39,6 +39,7 @@ type sqlPatient struct {
 // sqlContextGetter is an interface provided both by transaction and standard db connection
 type sqlContextGetter interface {
 	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 type SQLitePatientRepository struct {
@@ -83,11 +84,31 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 }
 
 func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
-	panic("implement me")
+	query := "SELECT * FROM `patient` WHERE customer_id = ? ORDER BY internal_id ASC"
+	dbPatients := []sqlPatient{}
+	err := r.db.SelectContext(ctx, &dbPatients, query, customerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return []domain.Patient{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.Patient, len(dbPatients))
+
+	for idx, dbPatient := range dbPatients {
+		firstName := dbPatient.FirstName
+		result[idx] = domain.Patient{
+			PatientID: domain.PatientID(dbPatient.ID),
+			PatientProperties: domain.PatientProperties{
+				FirstName: &firstName,
+			},
+		}
+	}
+	return result, nil
 }
 
 func (r SQLitePatientRepository) getPatient(ctx context.Context, db sqlContextGetter, customerID, patientID string) (*domain.Patient, error) {
-	query := "SELECT * FROM `patient` WHERE customer_id = ? AND id = ?"
+	query := "SELECT * FROM `patient` WHERE customer_id = ? AND id = ? LIMIT 1"
 	dbPatient := &sqlPatient{}
 	err := db.GetContext(ctx, dbPatient, query, customerID, patientID)
 	if errors.Is(err, sql.ErrNoRows) {

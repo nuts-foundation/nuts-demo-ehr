@@ -20,9 +20,9 @@ SUCH PURPOSE.**
 To build for production:
 
 ```shell
-$ npm install
-$ npm run build
-$ go run .
+npm install
+npm run build
+go run .
 ```
 
 This will serve the front end from the embedded filesystem.
@@ -31,22 +31,22 @@ This will serve the front end from the embedded filesystem.
 During front-end development, you probably want to use the real filesystem and webpack in watch mode:
 
 ```shell
-$ npm install
-$ npm run watch
-$ go run . live
+npm install
+npm run watch
+go run . live
 ```
 
 The API and domain types are generated from the `api/api.yaml`.
 ```shell
-$ oapi-codegen -generate server -package api api/api.yaml > api/generated.go
-$ oapi-codegen -generate types -package domain -o domain/generated_types.go api/api.yaml
-$ oapi-codegen -generate client,types -package client -o client/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
+oapi-codegen -generate server -package api api/api.yaml > api/generated.go
+oapi-codegen -generate types -package domain -o domain/generated_types.go api/api.yaml
+oapi-codegen -generate client,types -package client -o client/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
 
 ```
 
 ### Docker
 ```shell
-$ docker run -p 1304:1304 nutsfoundation/nuts-demo-ehr:main
+docker run -p 1304:1304 nutsfoundation/nuts-demo-ehr:main
 ```
 
 #### Configuration

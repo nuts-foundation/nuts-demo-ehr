@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"crypto/elliptic"
 	"crypto/sha1"
 	"embed"
 	"encoding/hex"
 	"fmt"
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"io/fs"
 	"log"
 	"net/http"
@@ -74,6 +77,10 @@ func main() {
 	//sqlDB := sqlx.MustConnect("sqlite3", ":memory:")
 	//patientRepository := patients.NewSQLitePatientRepository(sqlDB)
 	patientRepository := patients.NewMemoryPatientRepository()
+	customers, _ := repository.All()
+	for _, customer := range customers {
+		registerPatients(patientRepository, customer.Id)
+	}
 	auth := api.NewAuth(nodeClient, repository, passwd)
 
 	// Initialize wrapper
@@ -106,6 +113,41 @@ func main() {
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
+}
+
+func registerPatients(repository *patients.MemoryPatientRepository, customerID string) {
+	pstr := func(value string) *string {
+		val := value
+		return &val
+	}
+	pdate := func(value time.Time) *openapi_types.Date {
+		val := openapi_types.Date{value}
+		return &val
+	}
+	male := domain.PatientPropertiesGender("𓃰")
+	female := domain.PatientPropertiesGender("𓃥")
+
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:        pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
+		FirstName:  pstr("Henk"),
+		Surname:    pstr("de Vries"),
+		Gender:     &male,
+		Zipcode:    pstr("6825AX"),
+	})
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:        pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
+		FirstName:  pstr("Grepelsteeltje"),
+		Surname:    pstr("Grouw"),
+		Gender:     &female,
+		Zipcode:    pstr("9999AA"),
+	})
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:        pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
+		FirstName:  pstr("Dibbes"),
+		Surname:    pstr("Bouwman"),
+		Gender:     &male,
+		Zipcode:    pstr("1234ZZ"),
+	})
 }
 
 func generateAuthenticationPassword(config Config) string {

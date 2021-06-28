@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
@@ -35,17 +34,35 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
+func (w Wrapper) SetCustomer(ctx echo.Context) error {
+	customer := domain.Customer{}
+	if err := ctx.Bind(&customer); err != nil {
+		return err
+	}
+
+	token, err := w.Auth.CreateCustomerJWT(customer.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
+}
+
 func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	req := domain.PasswordAuthenticateRequest{}
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
-	token, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
+	sessionId, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
 	if err != nil {
 		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
-	writeSession(ctx, token)
-	return ctx.NoContent(http.StatusNoContent)
+	token, err := w.Auth.CreateSessionJWT(req.CustomerID, sessionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
 }
 
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
@@ -72,6 +89,19 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
+	// current customerID
+	bearerToken := ctx.Request().Header.Get(echo.HeaderAuthorization)
+	token, err := w.Auth.ValidateJWT([]byte(bearerToken[7:]))
+	if err != nil {
+		ctx.Echo().Logger.Error(err)
+		return ctx.NoContent(http.StatusUnauthorized)
+	}
+
+	customerID, ok := token.Get(CustomerID)
+	if !ok {
+		return ctx.NoContent(http.StatusUnauthorized)
+	}
+
 	// forward to node
 	bytes, err := w.Client.GetIrmaSessionResult(sessionToken)
 	if err != nil {
@@ -79,11 +109,24 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	token := w.Auth.StoreVP(base64String)
-	writeSession(ctx, token)
-	return ctx.JSON(http.StatusOK, domain.SessionToken{
-		Token: token,
-	})
+	sessionID := w.Auth.StoreVP(customerID.(string), base64String)
+
+	newToken, err := w.Auth.CreateSessionJWT(customerID.(string), sessionID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, domain.SessionToken{Token: string(newToken)})
+}
+
+func (w Wrapper) GetCustomer(ctx echo.Context) error {
+	customerID := ctx.Get(CustomerID)
+
+	customer, err := w.Repository.FindByID(customerID.(string))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
+	}
+	return ctx.JSON(http.StatusOK, customer)
 }
 
 func (w Wrapper) ListCustomers(ctx echo.Context) error {
@@ -92,14 +135,4 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 	return ctx.JSON(http.StatusOK, customers)
-}
-
-// writeSession writes the authenticated session token to the client as a cookie.
-func writeSession(ctx echo.Context, token string) {
-	cookie := new(http.Cookie)
-	cookie.Name = "session"
-	cookie.Value = token
-	cookie.Path = "/"
-	cookie.Expires = time.Now().Add(MaxSessionAge)
-	ctx.SetCookie(cookie)
 }

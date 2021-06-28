@@ -97,9 +97,12 @@ type PatientPropertiesGender string
 // Result of a signing session.
 type SessionToken struct {
 
-	// the result from a signing session. It's a base64 encoded Verifiable Presentation
+	// the result from a signing session. It's an updated JWT.
 	Token string `json:"token"`
 }
+
+// SetCustomerJSONBody defines parameters for SetCustomer.
+type SetCustomerJSONBody Customer
 
 // AuthenticateWithIRMAJSONBody defines parameters for AuthenticateWithIRMA.
 type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
@@ -112,6 +115,9 @@ type UpdatePatientJSONBody PatientProperties
 
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
+
+// SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.
+type SetCustomerJSONRequestBody SetCustomerJSONBody
 
 // AuthenticateWithIRMAJSONRequestBody defines body for AuthenticateWithIRMA for application/json ContentType.
 type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody

@@ -10,6 +10,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 )
 
 type errorResponse struct {
@@ -23,9 +24,10 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 }
 
 type Wrapper struct {
-	Auth       *Auth
-	Client     client.HTTPClient
-	Repository customers.Repository
+	Auth               *Auth
+	Client             client.HTTPClient
+	CustomerRepository customers.Repository
+	PatientRepository  patients.Repository
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -52,7 +54,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
 
-	customer, err := w.Repository.FindByID(req.CustomerID)
+	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
@@ -85,7 +87,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 }
 
 func (w Wrapper) ListCustomers(ctx echo.Context) error {
-	customers, err := w.Repository.All()
+	customers, err := w.CustomerRepository.All()
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}

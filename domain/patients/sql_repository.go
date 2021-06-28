@@ -79,7 +79,7 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 	panic("implement me")
 }
 
-func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patient domain.Patient) (*domain.Patient, error) {
+func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patient domain.PatientProperties) (*domain.Patient, error) {
 	panic("implement me")
 }
 

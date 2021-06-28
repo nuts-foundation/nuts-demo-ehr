@@ -2,6 +2,7 @@ package patients
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -10,14 +11,14 @@ import (
 type Repository interface {
 	FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error)
 	Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error)
-	NewPatient(ctx context.Context, customerID string, patient domain.Patient) (*domain.Patient, error)
+	NewPatient(ctx context.Context, customerID string, patient domain.PatientProperties) (*domain.Patient, error)
 	All(ctx context.Context, customerID string) ([]domain.Patient, error)
 }
 
-type MemoryPatientRepository struct{
+type MemoryPatientRepository struct {
 	// indices on customerID and patientID
 	patients map[string]map[domain.PatientID]domain.Patient
-	lock *sync.RWMutex
+	lock     *sync.RWMutex
 }
 
 func NewMemoryPatientRepository() *MemoryPatientRepository {
@@ -29,7 +30,7 @@ func NewMemoryPatientRepository() *MemoryPatientRepository {
 
 func (r MemoryPatientRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error) {
 	r.lock.RLock()
-	defer r.lock.Unlock()
+	defer r.lock.RUnlock()
 	return r.getPatient(ctx, customerID, id)
 }
 
@@ -48,7 +49,7 @@ func (r MemoryPatientRepository) Update(ctx context.Context, customerID, id stri
 	return patient, nil
 }
 
-func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID string, patient domain.Patient) (*domain.Patient, error) {
+func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (*domain.Patient, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	customerPatients, ok := r.patients[customerID]
@@ -56,17 +57,24 @@ func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID stri
 		customerPatients = map[domain.PatientID]domain.Patient{}
 		r.patients[customerID] = customerPatients
 	}
-	customerPatients[patient.PatientID] = patient
+	patientID := domain.PatientID(fmt.Sprintf("%d",len(customerPatients) + 1))
+	patient := domain.Patient{
+		PatientID:         patientID,
+		PatientProperties: patientProperties,
+	}
+
+	customerPatients[patientID] = patient
 	return &patient, nil
 }
 
 func (r MemoryPatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
 	r.lock.RLock()
-	defer r.lock.Unlock()
+	defer r.lock.RUnlock()
 	result := make([]domain.Patient, len(r.patients[customerID]))
 	idx := 0
 	for _, p := range r.patients[customerID] {
 		result[idx] = p
+		idx++
 	}
 	return result, nil
 }
@@ -83,6 +91,3 @@ func (r MemoryPatientRepository) getPatient(ctx context.Context, customerID, pat
 	}
 	return &patient, nil
 }
-
-
-

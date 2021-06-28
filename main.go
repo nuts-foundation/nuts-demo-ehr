@@ -6,12 +6,15 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
+	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -68,13 +71,17 @@ func main() {
 
 	// Initialize services
 	repository := customers.NewJsonFileRepository(config.CustomersFile)
+	//sqlDB := sqlx.MustConnect("sqlite3", ":memory:")
+	//patientRepository := patients.NewSQLitePatientRepository(sqlDB)
+	patientRepository := patients.NewMemoryPatientRepository()
 	auth := api.NewAuth(nodeClient, repository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		Auth:       auth,
-		Client:     nodeClient,
-		Repository: repository,
+		Auth:               auth,
+		Client:             nodeClient,
+		CustomerRepository: repository,
+		PatientRepository:  patientRepository,
 	}
 	e := echo.New()
 	e.HideBanner = true
@@ -88,8 +95,6 @@ func main() {
 	}
 	e.Use(auth.VPHandler)
 	e.HTTPErrorHandler = httpErrorHandler
-
-
 
 	api.RegisterHandlers(e, apiWrapper)
 

@@ -90,6 +90,21 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Patient"
+    post:
+      operationId: newPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProperties"
+      responses:
+        200:
+          description: Succesful creation of a new Patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
 
 components:
   schemas:

@@ -65,7 +65,7 @@ export default {
       irmaPopup.start()
           .then(responseData => {
             localStorage.setItem("session", responseData.token)
-            console.log("Password authentication successful")
+            console.log("IRMA authentication successful")
             this.redirectAfterLogin()
           })
           .catch(error => {

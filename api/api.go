@@ -90,15 +90,13 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
 	// current customerID
-	bearerToken := ctx.Request().Header.Get(echo.HeaderAuthorization)
-	token, err := w.Auth.ValidateJWT([]byte(bearerToken[7:]))
+	token, err := w.Auth.extractJWTFromHeader(ctx)
 	if err != nil {
 		ctx.Echo().Logger.Error(err)
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
-
 	customerID, ok := token.Get(CustomerID)
-	if !ok {
+	if ok {
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 

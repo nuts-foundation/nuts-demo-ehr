@@ -32,7 +32,8 @@ export default {
     return {
       loginError: "",
       credentials: {
-        password: ''
+        password: '',
+        customerID: null
       },
       customer: {
         name: "",

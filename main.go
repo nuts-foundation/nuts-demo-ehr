@@ -106,7 +106,6 @@ func main() {
 			ctx.Echo().Logger.Error(err)
 		}
 	}
-	e.Use(auth.JWTHandler)
 	e.HTTPErrorHandler = httpErrorHandler
 
 	api.RegisterHandlers(e, apiWrapper)

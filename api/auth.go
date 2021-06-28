@@ -64,27 +64,18 @@ func (auth *Auth) CreateCustomerJWT(customerId string) ([]byte, error) {
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
 
-	signed, err := jwt.Sign(t, jwa.ES256, auth.sessionKey)
-	if err != nil {
-		return nil, err
-	}
-	return signed, nil
+	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
 func (auth *Auth) CreateSessionJWT(customerId string, session string) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.IssuedAtKey, time.Now())
-	// session is valid for 20 minutes
-	t.Set(jwt.ExpirationKey, time.Now().Add(20*time.Minute))
+	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
 	t.Set(SessionID, session)
 
-	signed, err := jwt.Sign(t, jwa.ES256, auth.sessionKey)
-	if err != nil {
-		return nil, err
-	}
-	return signed, nil
+	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
 // StoreVP stores the given VP under a new identifier or existing identifier
@@ -100,11 +91,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {
-				bearerToken := ctx.Request().Header.Get(echo.HeaderAuthorization)
-				if bearerToken == "" {
-					return ctx.NoContent(http.StatusUnauthorized)
-				}
-				token, err := auth.ValidateJWT([]byte(bearerToken[7:]))
+				token, err := auth.extractJWTFromHeader(ctx)
 				if err != nil {
 					ctx.Echo().Logger.Error(err)
 					return ctx.NoContent(http.StatusUnauthorized)
@@ -164,4 +151,12 @@ func (auth *Auth) ValidateJWT(token []byte) (jwt.Token, error) {
 		return nil, err
 	}
 	return t, nil
+}
+
+func (auth *Auth) extractJWTFromHeader(ctx echo.Context) (jwt.Token, error) {
+	bearerToken := ctx.Request().Header.Get(echo.HeaderAuthorization)
+	if bearerToken == "" {
+		return nil, errors.New("no bearer token")
+	}
+	return auth.ValidateJWT([]byte(bearerToken[7:]))
 }

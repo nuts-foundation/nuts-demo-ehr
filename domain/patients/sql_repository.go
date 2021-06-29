@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -13,6 +14,8 @@ import (
 
 type sqlPatient struct {
 	ID string `db:"id"`
+
+	SSN sql.NullString `db:"ssn"`
 
 	CustomerID string `db:"customer_id"`
 
@@ -68,11 +71,18 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 		dob = dbPatient.Dob.Time
 	}
 
+	var ssn *string
+	if dbPatient.SSN.Valid {
+		tmp := dbPatient.SSN.String
+		ssn = &tmp
+	}
+
 	return &domain.Patient{
-		PatientID:         domain.PatientID(dbPatient.ID),
+		PatientID: domain.PatientID(dbPatient.ID),
 		PatientProperties: domain.PatientProperties{
-			FirstName: dbPatient.FirstName,
-			Surname: dbPatient.Surname,
+			Ssn:        ssn,
+			FirstName:  dbPatient.FirstName,
+			Surname:    dbPatient.Surname,
 			Dob:        &openapi_types.Date{Time: dob},
 			Email:      email,
 			Gender:     gender,
@@ -80,6 +90,33 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 			Zipcode:    dbPatient.Zipcode,
 		},
 	}, nil
+}
+
+func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patient domain.Patient) error {
+	var (
+		email string
+		ssn   string
+	)
+	if patient.Email != nil {
+		tmp := *patient.Email
+		email = string(tmp)
+	}
+	if patient.Ssn != nil {
+		ssn = *patient.Ssn
+	}
+	*dbPatient = sqlPatient{
+		ID:         string(patient.PatientID),
+		SSN:        sql.NullString{String: ssn, Valid: ssn != ""},
+		CustomerID: customerID,
+		Dob:        sql.NullTime{Time: patient.Dob.Time.UTC(), Valid: !patient.Dob.Time.IsZero()},
+		Email:      sql.NullString{String: email, Valid: email != ""},
+		FirstName:  patient.FirstName,
+		Surname:    patient.Surname,
+		Gender:     string(patient.Gender),
+		InternalID: patient.InternalID,
+		Zipcode:    patient.Zipcode,
+	}
+	return nil
 }
 
 // sqlContextGetter is an interface provided both by transaction and standard db connection
@@ -90,14 +127,15 @@ type sqlContextGetter interface {
 
 type SQLitePatientRepository struct {
 	factory Factory
-	db *sqlx.DB
+	db      *sqlx.DB
 }
 
 const schema = `
 	CREATE TABLE IF NOT EXISTS patient (
 		id TEXT NOT NULL,
+		ssn varchar(20),
 		customer_id varchar(100) NOT NULL,
-		date_of_birth DATE DEFAULT NULL,
+		date_of_birth DATETIME DEFAULT NULL,
 		email  varchar(100),
 		first_name varchar(100) NOT NULL DEFAULT '',
 		surname varchar(100) NOT NULL DEFAULT '',
@@ -126,8 +164,39 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 	panic("implement me")
 }
 
-func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patient domain.PatientProperties) (*domain.Patient, error) {
-	panic("implement me")
+func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (patient *domain.Patient, err error) {
+	patient, err = r.factory.NewUUIDPatient(patientProperties)
+	if err != nil {
+		return nil, err
+	}
+	dbPatient := sqlPatient{}
+	err = dbPatient.UnmarshalFromDomainPatient(customerID, *patient)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("%w, unable to start transaction", err)
+	}
+
+	defer func() {
+		if err == nil {
+			err = tx.Commit()
+		} else {
+			tx.Rollback()
+			patient = nil
+		}
+		if err != nil {
+			patient = nil
+		}
+	}()
+	const query = `INSERT INTO patient 
+		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, internal_id, zipcode)
+		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :internal_id, :zipcode)
+`
+
+	_, err = tx.NamedExec(query, dbPatient)
+	return
 }
 
 func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
@@ -161,10 +230,9 @@ func (r SQLitePatientRepository) getPatient(ctx context.Context, db sqlContextGe
 	} else if err != nil {
 		return nil, err
 	}
-	return &domain.Patient{
-		PatientID: domain.PatientID(dbPatient.ID),
-		PatientProperties: domain.PatientProperties{
-			FirstName: dbPatient.FirstName,
-		},
-	}, nil
+	patient, err := dbPatient.MarshalToDomainPatient()
+	if err != nil {
+		return nil, err
+	}
+	return patient, nil
 }

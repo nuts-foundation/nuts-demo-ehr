@@ -19,13 +19,13 @@ func (w Wrapper) GetPatients(ctx echo.Context) error {
 	sort.Slice(patients, func(i, j int) bool {
 		s1 := patients[i].Surname
 		s2 := patients[j].Surname
-		if s1 == nil {
+		if s1 == "" {
 			return true
 		}
-		if s2 == nil {
+		if s2 == "" {
 			return false
 		}
-		return strings.Compare(*s1, *s2) < 0
+		return strings.Compare(s1, s2) < 0
 	})
 	return ctx.JSON(http.StatusOK, patients)
 }

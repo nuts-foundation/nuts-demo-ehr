@@ -3,9 +3,12 @@ package patients
 import (
 	"context"
 	"testing"
+	"time"
 
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +30,7 @@ func TestSQLitePatientRepository_FindByID(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		assert.Equal(t,"Henk", result.FirstName)
+		assert.Equal(t, "Henk", result.FirstName)
 	})
 }
 
@@ -42,8 +45,36 @@ func TestSQLitePatientRepository_All(t *testing.T) {
 			return
 		}
 		assert.Len(t, result, 2)
-		assert.Equal(t,"Henk", result[0].FirstName)
-		assert.Equal(t,"Peter", result[1].FirstName)
+		assert.Equal(t, "Henk", result[0].FirstName)
+		assert.Equal(t, "Peter", result[1].FirstName)
+	})
+}
 
+func TestSQLitePatientRepository_NewPatient(t *testing.T) {
+	t.Run("new patient", func(t *testing.T) {
+		db := sqlx.MustConnect("sqlite3", ":memory:")
+		repo := NewSQLitePatientRepository(Factory{}, db)
+		email := openapi_types.Email("foo@bar.com")
+		ssn := "99999909"
+		newPatient, err := repo.NewPatient(context.Background(), "c15", domain.PatientProperties{
+			Dob:        &openapi_types.Date{Time: time.Now().UTC().Round(time.Minute)},
+			Email:      &email,
+			FirstName:  "Henk",
+			Surname:    "de Vries",
+			Gender:     domain.PatientPropertiesGenderMale,
+			InternalID: "p-12",
+			Ssn:        &ssn,
+			Zipcode:    "7551AB",
+		})
+		if !assert.NoError(t, err) || !assert.NotNil(t, newPatient) {
+			return
+		}
+		assert.NotEmpty(t, newPatient.PatientID)
+
+		foundPatient, err := repo.FindByID(context.Background(), "c15", string(newPatient.PatientID))
+		if !assert.NoError(t, err) || !assert.NotNil(t, newPatient) {
+			return
+		}
+		assert.Equal(t, newPatient, foundPatient)
 	})
 }

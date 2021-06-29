@@ -11,6 +11,7 @@ import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
 import Patients from './ehr/Patients.vue'
+import Patient from './ehr/Patient.vue'
 
 const routes = [
   {path: '/', component: Login},
@@ -49,6 +50,11 @@ const routes = [
         path: 'patients',
         name: 'ehr.patients',
         component: Patients
+      },
+      {
+        path: 'patient/:id',
+        name: 'ehr.patient',
+        component: Patient
       }
     ],
     meta: {requiresAuth: true}

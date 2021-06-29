@@ -84,6 +84,9 @@ type PatientProperties struct {
 	// The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
 	InternalID string `json:"internalID"`
 
+	// Social security number
+	Ssn *string `json:"ssn,omitempty"`
+
 	// Family name. Must include prefixes like "van der".
 	Surname string `json:"surname"`
 

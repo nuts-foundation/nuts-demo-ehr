@@ -162,6 +162,10 @@ components:
           description: The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
           type: string
           example: P001
+        ssn:
+          description: Social security number
+          type: string
+          example: 99999880
         firstName:
           description: Given name
           type: string

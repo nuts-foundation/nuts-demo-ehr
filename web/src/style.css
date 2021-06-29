@@ -6,6 +6,11 @@ body {
     @apply text-gray-600;
 }
 
+th {
+    text-align: left;
+    font-size: 110%;
+    font-weight: bolder;
+}
 
 .vertical-form {
     @apply my-4 flex;

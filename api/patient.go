@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -13,7 +15,18 @@ func (w Wrapper) GetPatients(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
-
+	// Sort patients by surname
+	sort.Slice(patients, func(i, j int) bool {
+		s1 := patients[i].Surname
+		s2 := patients[j].Surname
+		if s1 == nil {
+			return true
+		}
+		if s2 == nil {
+			return false
+		}
+		return strings.Compare(*s1, *s2) < 0
+	})
 	return ctx.JSON(http.StatusOK, patients)
 }
 
@@ -30,7 +43,6 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, patient)
 }
 
-
 func (w Wrapper) getCustomerID() string {
 	var customerID string
 	// TODO: Determine customer ID from auth token
@@ -40,4 +52,3 @@ func (w Wrapper) getCustomerID() string {
 	}
 	return customerID
 }
-

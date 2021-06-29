@@ -14,6 +14,7 @@ import (
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/jmoiron/sqlx"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -75,9 +76,9 @@ func main() {
 
 	// Initialize services
 	repository := customers.NewJsonFileRepository(config.CustomersFile)
-	//sqlDB := sqlx.MustConnect("sqlite3", ":memory:")
-	//patientRepository := patients.NewSQLitePatientRepository(Factory{}, sqlDB)
-	patientRepository := patients.NewMemoryPatientRepository(patients.Factory{})
+	sqlDB := sqlx.MustConnect("sqlite3", ":memory:")
+	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	//patientRepository := patients.NewMemoryPatientRepository(patients.Factory{})
 	customers, _ := repository.All()
 	for _, customer := range customers {
 		registerPatients(patientRepository, customer.Id)
@@ -116,7 +117,7 @@ func main() {
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
 }
 
-func registerPatients(repository *patients.MemoryPatientRepository, customerID string) {
+func registerPatients(repository patients.Repository, customerID string) {
 	pdate := func(value time.Time) *openapi_types.Date {
 		val := openapi_types.Date{value}
 		return &val

@@ -12,6 +12,7 @@ import NotFound from './NotFound.vue'
 import Api from './plugins/api'
 import Patients from './ehr/Patients.vue'
 import Patient from './ehr/Patient.vue'
+import NewPatient from './ehr/NewPatient.vue'
 
 const routes = [
   {path: '/', component: Login},
@@ -50,6 +51,11 @@ const routes = [
         path: 'patients',
         name: 'ehr.patients',
         component: Patients
+      },
+      {
+        path: 'patients/new',
+        name: 'ehr.patients.new',
+        component: NewPatient
       },
       {
         path: 'patient/:id',

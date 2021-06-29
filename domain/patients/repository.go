@@ -15,20 +15,15 @@ type Repository interface {
 	All(ctx context.Context, customerID string) ([]domain.Patient, error)
 }
 
-type Factory struct {
-}
+type Factory struct{}
 
 // NewUUIDPatient creates a new patient from a list of properties. It generates a new UUID for the patientID.
 func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*domain.Patient, error) {
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
 	if patientProperties.Gender == "" {
 		patientProperties.Gender = domain.PatientPropertiesGenderUnknown
 	}
 	return &domain.Patient{
-		PatientID:         domain.PatientID(id.String()),
+		PatientID:         domain.PatientID(uuid.NewString()),
 		PatientProperties: patientProperties,
 	}, nil
 }
@@ -44,7 +39,7 @@ func NewMemoryPatientRepository(factory Factory) *MemoryPatientRepository {
 	return &MemoryPatientRepository{
 		patients: map[string]map[domain.PatientID]domain.Patient{},
 		lock:     &sync.RWMutex{},
-		factory: factory,
+		factory:  factory,
 	}
 }
 

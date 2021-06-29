@@ -139,7 +139,7 @@ const schema = `
 		email  varchar(100),
 		first_name varchar(100) NOT NULL DEFAULT '',
 		surname varchar(100) NOT NULL DEFAULT '',
-		gender varchar(10) NOT NULL DEFAULT 'unkown',
+		gender varchar(10) NOT NULL DEFAULT 'unknown',
 		internal_id varchar(100) NOT NULL,
 		zipcode varchar(10) NOT NULL DEFAULT "",
 		PRIMARY KEY (customer_id, id)

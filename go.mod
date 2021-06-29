@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/deepmap/oapi-codegen v1.6.1
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/knadh/koanf v0.16.0
 	github.com/labstack/echo/v4 v4.2.2

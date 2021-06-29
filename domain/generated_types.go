@@ -76,19 +76,19 @@ type PatientProperties struct {
 	Email *openapi_types.Email `json:"email,omitempty"`
 
 	// Given name
-	FirstName *string `json:"firstName,omitempty"`
+	FirstName string `json:"firstName"`
 
 	// Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
-	Gender *PatientPropertiesGender `json:"gender,omitempty"`
+	Gender PatientPropertiesGender `json:"gender"`
 
 	// The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
-	InternalID *string `json:"internalID,omitempty"`
+	InternalID string `json:"internalID"`
 
 	// Family name. Must include prefixes like "van der".
-	Surname *string `json:"surname,omitempty"`
+	Surname string `json:"surname"`
 
 	// The zipcode formatted in dutch form. Can be used to find local care providers.
-	Zipcode *string `json:"zipcode,omitempty"`
+	Zipcode string `json:"zipcode"`
 }
 
 // Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
@@ -107,8 +107,14 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
+// NewPatientJSONBody defines parameters for NewPatient.
+type NewPatientJSONBody PatientProperties
+
 // AuthenticateWithIRMAJSONRequestBody defines body for AuthenticateWithIRMA for application/json ContentType.
 type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
+
+// NewPatientJSONRequestBody defines body for NewPatient for application/json ContentType.
+type NewPatientJSONRequestBody NewPatientJSONBody

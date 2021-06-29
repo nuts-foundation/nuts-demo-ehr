@@ -151,6 +151,12 @@ components:
       type: object
       description: |
         A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
+      required:
+        - internalID
+        - firstName
+        - surname
+        - gender
+        - zipcode
       properties:
         internalID:
           description: The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
@@ -168,6 +174,7 @@ components:
           description: Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
           type: string
           enum: [male, female, other, unknown]
+          default: unknown
         dob:
           description: Date of birth. Can include time if known.
           type: string

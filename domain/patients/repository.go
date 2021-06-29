@@ -2,9 +2,9 @@ package patients
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
@@ -15,16 +15,36 @@ type Repository interface {
 	All(ctx context.Context, customerID string) ([]domain.Patient, error)
 }
 
+type Factory struct {
+}
+
+// NewUUIDPatient creates a new patient from a list of properties. It generates a new UUID for the patientID.
+func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*domain.Patient, error) {
+	id, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+	if patientProperties.Gender == "" {
+		patientProperties.Gender = domain.PatientPropertiesGenderUnknown
+	}
+	return &domain.Patient{
+		PatientID:         domain.PatientID(id.String()),
+		PatientProperties: patientProperties,
+	}, nil
+}
+
 type MemoryPatientRepository struct {
 	// indices on customerID and patientID
 	patients map[string]map[domain.PatientID]domain.Patient
 	lock     *sync.RWMutex
+	factory  Factory
 }
 
-func NewMemoryPatientRepository() *MemoryPatientRepository {
+func NewMemoryPatientRepository(factory Factory) *MemoryPatientRepository {
 	return &MemoryPatientRepository{
 		patients: map[string]map[domain.PatientID]domain.Patient{},
 		lock:     &sync.RWMutex{},
+		factory: factory,
 	}
 }
 
@@ -57,14 +77,12 @@ func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID stri
 		customerPatients = map[domain.PatientID]domain.Patient{}
 		r.patients[customerID] = customerPatients
 	}
-	patientID := domain.PatientID(fmt.Sprintf("%d",len(customerPatients) + 1))
-	patient := domain.Patient{
-		PatientID:         patientID,
-		PatientProperties: patientProperties,
+	patient, err := r.factory.NewUUIDPatient(patientProperties)
+	if err != nil {
+		return nil, err
 	}
-
-	customerPatients[patientID] = patient
-	return &patient, nil
+	customerPatients[patient.PatientID] = *patient
+	return patient, nil
 }
 
 func (r MemoryPatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {

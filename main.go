@@ -7,13 +7,14 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
@@ -75,8 +76,8 @@ func main() {
 	// Initialize services
 	repository := customers.NewJsonFileRepository(config.CustomersFile)
 	//sqlDB := sqlx.MustConnect("sqlite3", ":memory:")
-	//patientRepository := patients.NewSQLitePatientRepository(sqlDB)
-	patientRepository := patients.NewMemoryPatientRepository()
+	//patientRepository := patients.NewSQLitePatientRepository(Factory{}, sqlDB)
+	patientRepository := patients.NewMemoryPatientRepository(patients.Factory{})
 	customers, _ := repository.All()
 	for _, customer := range customers {
 		registerPatients(patientRepository, customer.Id)
@@ -116,37 +117,31 @@ func main() {
 }
 
 func registerPatients(repository *patients.MemoryPatientRepository, customerID string) {
-	pstr := func(value string) *string {
-		val := value
-		return &val
-	}
 	pdate := func(value time.Time) *openapi_types.Date {
 		val := openapi_types.Date{value}
 		return &val
 	}
-	male := domain.PatientPropertiesGender("𓃰")
-	female := domain.PatientPropertiesGender("𓃥")
 
 	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
 		Dob:        pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
-		FirstName:  pstr("Henk"),
-		Surname:    pstr("de Vries"),
-		Gender:     &male,
-		Zipcode:    pstr("6825AX"),
+		FirstName:  "Henk",
+		Surname:    "de Vries",
+		Gender:     domain.PatientPropertiesGenderMale,
+		Zipcode:    "6825AX",
 	})
 	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
 		Dob:        pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
-		FirstName:  pstr("Grepelsteeltje"),
-		Surname:    pstr("Grouw"),
-		Gender:     &female,
-		Zipcode:    pstr("9999AA"),
+		FirstName:  "Grepelsteeltje",
+		Surname:    "Grouw",
+		Gender:     domain.PatientPropertiesGenderFemale,
+		Zipcode:    "9999AA",
 	})
 	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
 		Dob:        pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
-		FirstName:  pstr("Dibbes"),
-		Surname:    pstr("Bouwman"),
-		Gender:     &male,
-		Zipcode:    pstr("1234ZZ"),
+		FirstName:  "Dibbes",
+		Surname:    "Bouwman",
+		Gender:     domain.PatientPropertiesGenderMale,
+		Zipcode:    "1234ZZ",
 	})
 }
 

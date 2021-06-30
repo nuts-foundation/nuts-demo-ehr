@@ -4,12 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
@@ -64,13 +65,13 @@ func (auth *Auth) VPHandler(next echo.HandlerFunc) echo.HandlerFunc {
 						token = c.Value
 						_, ok := sessions[token]
 						if !ok {
-							return ctx.NoContent(http.StatusForbidden)
+							return echo.NewHTTPError(http.StatusUnauthorized, "missing or expired session")
 						}
 						authorized = true
 					}
 				}
 				if !authorized {
-					return ctx.NoContent(http.StatusForbidden)
+					return echo.NewHTTPError(http.StatusUnauthorized, "missing or expired session")
 				}
 			}
 		}

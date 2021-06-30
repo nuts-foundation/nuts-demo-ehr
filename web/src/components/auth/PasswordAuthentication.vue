@@ -44,23 +44,11 @@ export default {
     'credentials.password'() {
       this.loginError = ""
     },
-    // Fetch customer from route params
-    "$route.params": {
-      handler(toParams, previousParams) {
-        if (toParams && 'customer' in toParams) {
-          this.customer = JSON.parse(toParams.customer)
-        } else {
-          // Missing required params, redirect to landing page
-          this.$router.push("/")
-        }
-      },
-      immediate: true
-    }
   },
   methods: {
     redirectAfterLogin() {
       console.log('logged in, redirecting!')
-      this.$router.push("/ehr/")
+      this.$router.push({name: "ehr.home"})
     },
     login() {
       this.$api.post('web/auth/passwd', this.credentials)
@@ -75,12 +63,20 @@ export default {
     },
   },
   mounted() {
-    // Check if session still valid, if so just redirect to application
-    this.$api.get('web/private')
-        .then(() => this.redirectAfterLogin())
-        .catch(() => {
-          // session is invalid, need to authenticate
-        })
+    // // Check if session still valid, if so just redirect to application
+    // Currently disabled, make conditional on existence of cookie / JWT
+    // this.$api.get('web/private')
+    //     .then(() => this.redirectAfterLogin())
+    //     .catch(() => {
+    //       // session is invalid, need to authenticate
+    //     }))
+    if ('customer' in this.$route.params) {
+      this.customer = JSON.parse(this.$route.params.customer)
+    } else {
+      // Missing required params, redirect to landing page
+      console.log("missing customer in params. Back to login page.")
+      this.$router.push("/")
+    }
   }
 }
 </script>

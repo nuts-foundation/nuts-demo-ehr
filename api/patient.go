@@ -43,6 +43,18 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, patient)
 }
 
+func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), w.getCustomerID(), patientID)
+	if err != nil {
+		return err
+	}
+	if patient == nil {
+		return ctx.NoContent(http.StatusNotFound)
+	}
+	return ctx.JSON(http.StatusOK, patient)
+
+}
+
 func (w Wrapper) getCustomerID() string {
 	var customerID string
 	// TODO: Determine customer ID from auth token

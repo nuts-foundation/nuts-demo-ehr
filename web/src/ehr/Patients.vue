@@ -39,7 +39,7 @@ export default {
   },
   methods: {
     list() {
-      this.$api.get("web/patients")
+      this.$api.get("web/private/patients")
           .then((response) => this.patients = response)
           .catch((reason) => this.error = reason)
     },

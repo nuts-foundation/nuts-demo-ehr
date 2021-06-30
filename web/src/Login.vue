@@ -79,12 +79,14 @@ export default {
     }
   },
   mounted() {
+    // Disabled since it causes infinite loops since the $api service is redirecting to this page when a 401 is returned.
+    // Can be enabled when switching back to a JWT. Only perform when it is present.
     // Check if session still valid, if so just redirect to application
-    this.$api.get('web/private')
-        .then(() => this.redirectAfterLogin())
-        .catch(() => {
-          // session is invalid, need to authenticate
-        })
+    // this.$api.get('web/private')
+    //     .then(() => this.redirectAfterLogin())
+    //     .catch(() => {
+    //       // session is invalid, need to authenticate
+    //     })
   }
 }
 </script>

@@ -78,7 +78,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
-  /web/patients:
+  /web/private/patient/{patientID}:
+    parameters:
+      - name: patientID
+        in: path
+        description: The patient id
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getPatient
+      description: Get the patient by ID
+      responses:
+        200:
+          description: The requested patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+  /web/private/patients:
     get:
       operationId: getPatients
       responses:

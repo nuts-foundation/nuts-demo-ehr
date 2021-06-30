@@ -26,14 +26,17 @@ type ServerInterface interface {
 	// (GET /web/customers)
 	ListCustomers(ctx echo.Context) error
 
-	// (GET /web/patients)
-	GetPatients(ctx echo.Context) error
-
-	// (POST /web/patients)
-	NewPatient(ctx echo.Context) error
-
 	// (GET /web/private)
 	CheckSession(ctx echo.Context) error
+
+	// (GET /web/private/patient/{patientID})
+	GetPatient(ctx echo.Context, patientID string) error
+
+	// (GET /web/private/patients)
+	GetPatients(ctx echo.Context) error
+
+	// (POST /web/private/patients)
+	NewPatient(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -84,6 +87,31 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 	return err
 }
 
+// CheckSession converts echo context to params.
+func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CheckSession(ctx)
+	return err
+}
+
+// GetPatient converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPatient(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetPatient(ctx, patientID)
+	return err
+}
+
 // GetPatients converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPatients(ctx echo.Context) error {
 	var err error
@@ -99,15 +127,6 @@ func (w *ServerInterfaceWrapper) NewPatient(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.NewPatient(ctx)
-	return err
-}
-
-// CheckSession converts echo context to params.
-func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.CheckSession(ctx)
 	return err
 }
 
@@ -143,9 +162,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/web/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/web/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
-	router.GET(baseURL+"/web/patients", wrapper.GetPatients)
-	router.POST(baseURL+"/web/patients", wrapper.NewPatient)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
+	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
+	router.GET(baseURL+"/web/private/patients", wrapper.GetPatients)
+	router.POST(baseURL+"/web/private/patients", wrapper.NewPatient)
 
 }
 

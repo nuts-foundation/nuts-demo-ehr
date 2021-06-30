@@ -133,17 +133,17 @@ export default {
   methods: {
     truncate(str, n) {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
+    },
+    fetchPatient() {
+      let patientID = this.$route.params.id
+      this.$api.get(`/web/private/patient/${patientID}`)
+          .then(patient => this.patient = { ...this.patient, ... patient})
+          .catch(reason => console.log(reason))
     }
+
   },
-  // mounted() {
-  //   this.list()
-  // },
-  // methods: {
-  //   list() {
-  //     this.$api.get("web/patients")
-  //         .then((response) => this.patients = response)
-  //         .catch((reason) => this.error = reason)
-  //   },
-  // },
+  mounted() {
+    this.fetchPatient()
+  },
 }
 </script>

@@ -16,11 +16,13 @@
             </svg>
             Edit</button>
         </div>
-        <div class="grid grid-cols-2">
-          <div>SSN: {{ patient.ssn }}</div>
-          <div>Birth date: {{ patient.dob }}</div>
-          <div>ID: {{ patient.id }}</div>
-          <div>E-mail: {{ patient.email }}</div>
+        <div class="grid grid-cols-2 gap-x-6">
+          <div><span class="text-sm font-bold">SSN</span>: {{ patient.ssn }}</div>
+          <div><span class="text-sm font-bold">Gender</span>: {{patient.gender}}</div>
+          <div><span class="text-sm font-bold">Birth date</span>: {{ patient.dob }}</div>
+          <div><span class="text-sm font-bold">Patient number</span>: {{ patient.id }}</div>
+          <div><span class="text-sm font-bold">E-mail</span>: {{ patient.email }}</div>
+          <div><span class="text-sm font-bold">Zipcode</span>: {{ patient.zipcode }}</div>
         </div>
       </div>
     </div>
@@ -145,7 +147,7 @@ export default {
     fetchPatient() {
       let patientID = this.$route.params.id
       this.$api.get(`/web/private/patient/${patientID}`)
-          .then(patient => this.patient = {...this.patient, ...patient})
+          .then(patient => this.patient = patient)
           .catch(reason => console.log(reason))
     }
 

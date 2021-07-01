@@ -6,11 +6,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -31,11 +32,13 @@ const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {
 	return Config{
-		HTTPPort:        defaultHTTPPort,
-		DBFile:          defaultDBFile,
-		NutsNodeAddress: defaultNutsNodeAddress,
-		CustomersFile:   defaultCustomerFile,
-		Credentials:     Credentials{Password: "demo"},
+		HTTPPort:           defaultHTTPPort,
+		DBFile:             defaultDBFile,
+		NutsNodeAddress:    defaultNutsNodeAddress,
+		CustomersFile:      defaultCustomerFile,
+		Credentials:        Credentials{Password: "demo"},
+		DBConnectionString: ":memory:",
+		loadTestPatients:   false,
 	}
 }
 
@@ -46,7 +49,12 @@ type Config struct {
 	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
 	CustomersFile   string      `koanf:"customersfile"`
 	Branding        Branding    `koanf:"branding"`
-	sessionKey      *ecdsa.PrivateKey
+	// Database connection string, accepts all options for the sqlite3 driver
+	// https://github.com/mattn/go-sqlite3#connection-string
+	DBConnectionString string `koanf:"dbConnectionString"`
+	// Load a set of test patients on startup. Should be disabled for permanent data stores.
+	loadTestPatients bool `koanf:"loadTestPatients"`
+	sessionKey       *ecdsa.PrivateKey
 }
 
 type Credentials struct {

@@ -172,7 +172,7 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 			err = tx.Commit()
 		} else {
 			log.Debug(err)
-			//tx.Rollback()
+			tx.Rollback()
 			patient = nil
 		}
 		if err != nil {

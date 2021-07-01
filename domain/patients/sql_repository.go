@@ -9,6 +9,7 @@ import (
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
@@ -160,8 +161,56 @@ func (r SQLitePatientRepository) FindByID(ctx context.Context, customerID, id st
 	return r.getPatient(ctx, r.db, customerID, id)
 }
 
-func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
-	panic("implement me")
+func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (patient *domain.Patient, err error) {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("%w, unable to start transaction", err)
+	}
+
+	defer func() {
+		if err == nil {
+			err = tx.Commit()
+		} else {
+			log.Debug(err)
+			//tx.Rollback()
+			patient = nil
+		}
+		if err != nil {
+			patient = nil
+		}
+	}()
+
+	patient, err = r.getPatient(ctx, tx, customerID, id)
+	if err != nil {
+		return
+	}
+	updatedPatient, err := updateFn(*patient)
+	if err != nil {
+		return
+	}
+
+	dbPatient := sqlPatient{}
+	err = dbPatient.UnmarshalFromDomainPatient(customerID, *updatedPatient)
+	if err != nil {
+		return
+	}
+
+	const query = `
+	UPDATE patient SET
+		ssn = :ssn,
+		customer_id = :customer_id,
+		date_of_birth = :date_of_birth,
+		email = :email,
+		first_name = :first_name,
+		surname = :surname,
+		gender = :gender, 
+		internal_id = :internal_id,
+		zipcode = :zipcode
+	WHERE id = :id
+`
+	_, err = tx.NamedExec(query, dbPatient)
+
+	return
 }
 
 func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (patient *domain.Patient, err error) {

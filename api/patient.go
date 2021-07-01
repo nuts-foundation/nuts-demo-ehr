@@ -43,6 +43,21 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, patient)
 }
 
+func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
+	patientProps := domain.PatientProperties{}
+	if err := ctx.Bind(&patientProps); err != nil {
+		return err
+	}
+	patient, err := w.PatientRepository.Update(ctx.Request().Context(), w.getCustomerID(), patientID, func(c domain.Patient) (*domain.Patient, error) {
+		c.PatientProperties = patientProps
+		return &c, nil
+	})
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, patient)
+}
+
 func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), w.getCustomerID(), patientID)
 	if err != nil {

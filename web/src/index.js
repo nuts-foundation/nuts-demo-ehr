@@ -10,9 +10,10 @@ import IRMAAuthentication from './components/auth/IRMAAuthentication.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
-import Patients from './ehr/Patients.vue'
-import Patient from './ehr/Patient.vue'
-import NewPatient from './ehr/NewPatient.vue'
+import Patients from './ehr/patient/Patients.vue'
+import Patient from './ehr/patient/Patient.vue'
+import NewPatient from './ehr/patient/NewPatient.vue'
+import EditPatient from "./ehr/patient/EditPatient.vue";
 
 const routes = [
   {path: '/', component: Login},
@@ -61,6 +62,11 @@ const routes = [
         path: 'patient/:id',
         name: 'ehr.patient',
         component: Patient
+      },
+      {
+        path: 'patient/:id/edit',
+        name: 'ehr.patient.edit',
+        component: EditPatient
       }
     ],
     meta: {requiresAuth: true}
@@ -77,11 +83,13 @@ const router = createRouter({
 const app = createApp(App)
 
 router.beforeEach((to, from) => {
+  console.log("from: ", from.path, from.name, "to: ", to.path, to.name)
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
     if (app.config.globalProperties.$cookies.get("session")) {
       return true
     }
+    console.log("no cookie found, redirect to login")
     return '/login'
   }
 })

@@ -88,10 +88,26 @@ paths:
           type: string
     get:
       operationId: getPatient
-      description: Get the patient by ID
+      description: Get the patient by indicated by the patientID
       responses:
         200:
           description: The requested patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+    put:
+      operationId: updatePatient
+      description: Update the patient indicated by the patientID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProperties"
+      responses:
+        200:
+          description: Update successfull
           content:
             application/json:
               schema:

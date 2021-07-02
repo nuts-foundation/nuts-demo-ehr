@@ -80,7 +80,7 @@ func main() {
 	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	//patientRepository := patients.NewMemoryPatientRepository(patients.Factory{})
 	customers, _ := repository.All()
-	if config.loadTestPatients {
+	if config.LoadTestPatients {
 		for _, customer := range customers {
 			registerPatients(patientRepository, customer.Id)
 		}

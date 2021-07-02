@@ -28,8 +28,8 @@ export default {
         ssn: '',
         dob: null,
         gender: 'unknown',
-        firstName: 'Henk',
-        surname: 'de Vries',
+        firstName: '',
+        surname: '',
         zipcode: '',
         email: null,
       }

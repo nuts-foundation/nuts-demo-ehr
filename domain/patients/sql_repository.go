@@ -60,16 +60,16 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 	}
 
 	// Convert email
-	var email *openapi_types.Email = nil
+	var email *openapi_types.Email
 	if dbPatient.Email.Valid {
 		otypeEmail := openapi_types.Email(dbPatient.Email.String)
 		email = &otypeEmail
 	}
 
 	// Convert date of birth
-	dob := time.Time{}
+	var dob *openapi_types.Date
 	if dbPatient.Dob.Valid {
-		dob = dbPatient.Dob.Time
+		dob = &openapi_types.Date{Time: dbPatient.Dob.Time }
 	}
 
 	var ssn *string
@@ -84,7 +84,7 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 			Ssn:        ssn,
 			FirstName:  dbPatient.FirstName,
 			Surname:    dbPatient.Surname,
-			Dob:        &openapi_types.Date{Time: dob},
+			Dob:        dob,
 			Email:      email,
 			Gender:     gender,
 			InternalID: dbPatient.InternalID,
@@ -97,6 +97,7 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 	var (
 		email string
 		ssn   string
+		dob   time.Time
 	)
 	if patient.Email != nil {
 		tmp := *patient.Email
@@ -105,11 +106,14 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 	if patient.Ssn != nil {
 		ssn = *patient.Ssn
 	}
+	if patient.Dob != nil {
+		dob = patient.Dob.Time
+	}
 	*dbPatient = sqlPatient{
 		ID:         string(patient.PatientID),
 		SSN:        sql.NullString{String: ssn, Valid: ssn != ""},
 		CustomerID: customerID,
-		Dob:        sql.NullTime{Time: patient.Dob.Time.UTC(), Valid: !patient.Dob.Time.IsZero()},
+		Dob:        sql.NullTime{Time: dob.UTC(), Valid: !dob.IsZero()},
 		Email:      sql.NullString{String: email, Valid: email != ""},
 		FirstName:  patient.FirstName,
 		Surname:    patient.Surname,

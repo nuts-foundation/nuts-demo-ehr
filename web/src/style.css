@@ -6,12 +6,17 @@ body {
     @apply text-gray-600;
 }
 
+th {
+    text-align: left;
+    font-size: 110%;
+    font-weight: bolder;
+}
 
 .vertical-form {
     @apply my-4 flex;
 }
 
-input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], select {
+input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
     @apply leading-5 flex-1 py-2 px-4 block border border-gray-300 rounded-md w-full;
 }
 

@@ -6,11 +6,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -31,11 +32,13 @@ const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {
 	return Config{
-		HTTPPort:        defaultHTTPPort,
-		DBFile:          defaultDBFile,
-		NutsNodeAddress: defaultNutsNodeAddress,
-		CustomersFile:   defaultCustomerFile,
-		Credentials:     Credentials{Password: "demo"},
+		HTTPPort:           defaultHTTPPort,
+		DBFile:             defaultDBFile,
+		NutsNodeAddress:    defaultNutsNodeAddress,
+		CustomersFile:      defaultCustomerFile,
+		Credentials:        Credentials{Password: "demo"},
+		DBConnectionString: ":memory:",
+		LoadTestPatients:   false,
 	}
 }
 
@@ -46,7 +49,12 @@ type Config struct {
 	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
 	CustomersFile   string      `koanf:"customersfile"`
 	Branding        Branding    `koanf:"branding"`
-	sessionKey      *ecdsa.PrivateKey
+	// Database connection string, accepts all options for the sqlite3 driver
+	// https://github.com/mattn/go-sqlite3#connection-string
+	DBConnectionString string `koanf:"dbConnectionString"`
+	// Load a set of test patients on startup. Should be disabled for permanent data stores.
+	LoadTestPatients bool `koanf:"loadTestPatients"`
+	sessionKey       *ecdsa.PrivateKey
 }
 
 type Credentials struct {
@@ -102,6 +110,8 @@ func loadConfig() Config {
 	} else {
 		logrus.Infof("Using default config because no file was found at: %s", configFilePath)
 	}
+	// load env flags, can't return error
+	_ = k.Load(envProvider(), nil)
 
 	config := defaultConfig()
 	var err error
@@ -138,17 +148,19 @@ func resolveConfigFile(flagset *pflag.FlagSet) string {
 
 	k := koanf.New(defaultDelimiter)
 
-	// load env flags
-	e := env.Provider(defaultPrefix, defaultDelimiter, func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, defaultPrefix)), "_", defaultDelimiter, -1)
-	})
-	// can't return error
-	_ = k.Load(e, nil)
+	// load env flags, can't return error
+	_ = k.Load(envProvider(), nil)
 
 	// load cmd flags, without a parser, no error can be returned
 	_ = k.Load(posflag.Provider(flagset, defaultDelimiter, k), nil)
 
 	configFile := k.String(configFileFlag)
 	return configFile
+}
+
+func envProvider() *env.Env {
+	return env.Provider(defaultPrefix, defaultDelimiter, func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, defaultPrefix)), "_", defaultDelimiter, -1)
+	})
 }

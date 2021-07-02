@@ -78,12 +78,73 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
+  /web/private/patient/{patientID}:
+    parameters:
+      - name: patientID
+        in: path
+        description: The patient id
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getPatient
+      description: Get the patient by indicated by the patientID
+      responses:
+        200:
+          description: The requested patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+    put:
+      operationId: updatePatient
+      description: Update the patient indicated by the patientID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProperties"
+      responses:
+        200:
+          description: Update successfull
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+  /web/private/patients:
+    get:
+      operationId: getPatients
+      responses:
+        200:
+          description: A list of patients for the current customer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Patient"
+    post:
+      operationId: newPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProperties"
+      responses:
+        200:
+          description: Succesful creation of a new Patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
 
 components:
   schemas:
     Customer:
       type: object
-      description: A customer object
+      description: A customer object.
       required:
         - id
         - name
@@ -110,6 +171,56 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
+    ObjectID:
+      description: An internal object UUID which can be used as unique identifier for entities.
+      type: string
+      example:
+        - 665d6390-4823-4829-a3bf-4257e0b6799
+      pattern: "/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i"
+    Patient:
+      allOf:
+        - $ref: "#/components/schemas/ObjectID"
+        - $ref: "#/components/schemas/PatientProperties"
+    PatientProperties:
+      type: object
+      description: |
+        A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
+      required:
+        - firstName
+        - surname
+        - gender
+        - zipcode
+      properties:
+        ssn:
+          description: Social security number
+          type: string
+          example: 99999880
+        firstName:
+          description: Given name
+          type: string
+          example: Jan
+        surname:
+          description: Family name. Must include prefixes like "van der".
+          type: string
+          example: van der Moolen
+        gender:
+          description: Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
+          type: string
+          enum: [male, female, other, unknown]
+          default: unknown
+        dob:
+          description: Date of birth.
+          type: string
+          format: date
+          example: "1986-01-30"
+        zipcode:
+          description: The zipcode formatted in dutch form. Can be used to find local care providers.
+          type: string
+          example: 7511AB
+        email:
+          description: Primary email address.
+          type: string
+          format: email
     SessionToken:
       type: object
       description: Result of a signing session.

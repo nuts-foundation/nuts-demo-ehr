@@ -1,17 +1,25 @@
 package main
 
 import (
+	"context"
 	"crypto/elliptic"
 	"crypto/sha1"
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/jmoiron/sqlx"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
+	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -68,13 +76,23 @@ func main() {
 
 	// Initialize services
 	repository := customers.NewJsonFileRepository(config.CustomersFile)
+	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
+	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	//patientRepository := patients.NewMemoryPatientRepository(patients.Factory{})
+	customers, _ := repository.All()
+	if config.LoadTestPatients {
+		for _, customer := range customers {
+			registerPatients(patientRepository, customer.Id)
+		}
+	}
 	auth := api.NewAuth(nodeClient, repository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		Auth:       auth,
-		Client:     nodeClient,
-		Repository: repository,
+		Auth:               auth,
+		Client:             nodeClient,
+		CustomerRepository: repository,
+		PatientRepository:  patientRepository,
 	}
 	e := echo.New()
 	e.HideBanner = true
@@ -89,8 +107,6 @@ func main() {
 	e.Use(auth.VPHandler)
 	e.HTTPErrorHandler = httpErrorHandler
 
-
-
 	api.RegisterHandlers(e, apiWrapper)
 
 	// Setup asset serving:
@@ -101,6 +117,35 @@ func main() {
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
+}
+
+func registerPatients(repository patients.Repository, customerID string) {
+	pdate := func(value time.Time) *openapi_types.Date {
+		val := openapi_types.Date{value}
+		return &val
+	}
+
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:       pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
+		FirstName: "Henk",
+		Surname:   "de Vries",
+		Gender:    domain.PatientPropertiesGenderMale,
+		Zipcode:   "6825AX",
+	})
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:       pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
+		FirstName: "Grepelsteeltje",
+		Surname:   "Grouw",
+		Gender:    domain.PatientPropertiesGenderFemale,
+		Zipcode:   "9999AA",
+	})
+	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
+		Dob:       pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
+		FirstName: "Dibbes",
+		Surname:   "Bouwman",
+		Gender:    domain.PatientPropertiesGenderMale,
+		Zipcode:   "1234ZZ",
+	})
 }
 
 func generateAuthenticationPassword(config Config) string {

@@ -10,19 +10,13 @@ export default {
       customer: null,
     }
   },
-  watch: {
-    // Fetch customer from route params
-    "$route.params": {
-      handler(toParams, previousParams) {
-        if (toParams && 'customer' in toParams) {
-          this.customer = JSON.parse(toParams.customer)
-          this.perform()
-        } else {
-          // Missing required params, redirect to landing page
-          this.$router.push("/")
-        }
-      },
-      immediate: true
+  mounted() {
+    if ('customer' in this.$route.params) {
+      this.customer = JSON.parse(this.$route.params.customer)
+      this.perform()
+    } else {
+      // Missing required params, redirect to landing page
+      this.$router.push("/")
     }
   },
   methods: {

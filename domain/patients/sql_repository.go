@@ -132,8 +132,8 @@ type SQLitePatientRepository struct {
 
 const schema = `
 	CREATE TABLE IF NOT EXISTS patient (
-		id TEXT NOT NULL,
-		ssn varchar(20),
+		id char(36) NOT NULL,
+		ssn varchar(20) NOT NULL,
 		customer_id varchar(100) NOT NULL,
 		date_of_birth DATETIME DEFAULT NULL,
 		email  varchar(100),
@@ -141,7 +141,8 @@ const schema = `
 		surname varchar(100) NOT NULL,
 		gender varchar(10) NOT NULL DEFAULT 'unknown',
 		zipcode varchar(10) NOT NULL DEFAULT '',
-		PRIMARY KEY (customer_id, id)
+		PRIMARY KEY (customer_id, id),
+		UNIQUE(customer_id, ssn)
 	);
 `
 
@@ -195,15 +196,13 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 
 	const query = `
 	UPDATE patient SET
-		ssn = :ssn,
-		customer_id = :customer_id,
 		date_of_birth = :date_of_birth,
 		email = :email,
 		first_name = :first_name,
 		surname = :surname,
 		gender = :gender, 
 		zipcode = :zipcode
-	WHERE id = :id
+	WHERE customer_id = :customer_id AND id = :id
 `
 	_, err = tx.NamedExec(query, dbPatient)
 

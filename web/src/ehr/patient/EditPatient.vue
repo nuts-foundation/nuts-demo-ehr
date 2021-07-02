@@ -1,7 +1,13 @@
 <template>
   <h1 class="text-2xl">New Patient</h1>
   <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
-  <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+  <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+    <b>Please correct the following error(s):</b>
+    <ul>
+      <li v-for="error in formErrors">* {{ error }}</li>
+    </ul>
+  </div>
+  <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
   <button @click="checkForm"
           class="bg-blue-400 hover:bg-blue-500 text-white font-medium rounded-md px-3 py-2"
   >Update Patient

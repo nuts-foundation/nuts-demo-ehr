@@ -24,8 +24,8 @@ func TestSQLitePatientRepository_FindByID(t *testing.T) {
 	t.Run("1 result", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLitePatientRepository(Factory{}, db)
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p1', 'Henk', 'de Vries')")
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c2', 'p1', 'Floris-Jan', 'van Kleppensteyn')")
+		db.MustExec("INSERT INTO `patient` (`ssn`, `customer_id`, `id`, `first_name`, `surname`) VALUES('123','c1', 'p1', 'Henk', 'de Vries')")
+		db.MustExec("INSERT INTO `patient` (`ssn`, `customer_id`, `id`, `first_name`, `surname`) VALUES('456','c2', 'p1', 'Floris-Jan', 'van Kleppensteyn')")
 		result, err := repo.FindByID(context.Background(), "c1", "p1")
 		if !assert.NoError(t, err) {
 			return
@@ -38,8 +38,8 @@ func TestSQLitePatientRepository_All(t *testing.T) {
 	t.Run("all patient", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLitePatientRepository(Factory{}, db)
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p1', 'Fred', 'Klooydonk')")
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p2', 'Arie', 'de Eiker')")
+		db.MustExec("INSERT INTO `patient` (`ssn`,`customer_id`, `id`, `first_name`, `surname`) VALUES('123','c1', 'p1', 'Fred', 'Klooydonk')")
+		db.MustExec("INSERT INTO `patient` (`ssn`,`customer_id`, `id`, `first_name`, `surname`) VALUES('456','c1', 'p2', 'Arie', 'de Eiker')")
 		result, err := repo.All(context.Background(), "c1")
 		if !assert.NoError(t, err) {
 			return

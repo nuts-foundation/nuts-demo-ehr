@@ -1,7 +1,7 @@
 <template>
   <form class="space-y-3">
     <label>SSN:
-      <input type="text" v-model="value.ssn"></label>
+      <input :disabled="mode === 'edit'" type="text" v-model="value.ssn"></label>
     <label>First name:
       <input type="text" v-model="value.firstName"></label>
     <label>Surname:
@@ -27,6 +27,10 @@
 export default {
   props: {
     value: Object,
+    mode: {
+      type: String,
+      default: 'new'
+    }
   },
   emits: ['input'],
   watch: {

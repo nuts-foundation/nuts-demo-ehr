@@ -47,6 +47,9 @@ type IRMAAuthenticationRequest struct {
 	CustomerID string `json:"customerID"`
 }
 
+// An internal object UUID which can be used as unique identifier for entities.
+type ObjectID string
+
 // PasswordAuthenticateRequest defines model for PasswordAuthenticateRequest.
 type PasswordAuthenticateRequest struct {
 
@@ -57,19 +60,16 @@ type PasswordAuthenticateRequest struct {
 
 // Patient defines model for Patient.
 type Patient struct {
-	// Embedded struct due to allOf(#/components/schemas/PatientID)
-	PatientID `yaml:",inline"`
+	// Embedded struct due to allOf(#/components/schemas/ObjectID)
+	ObjectID `yaml:",inline"`
 	// Embedded struct due to allOf(#/components/schemas/PatientProperties)
 	PatientProperties `yaml:",inline"`
 }
 
-// The ID of the patient. E.g. UUID or database increment.
-type PatientID string
-
 // A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
 type PatientProperties struct {
 
-	// Date of birth. Can include time if known.
+	// Date of birth.
 	Dob *openapi_types.Date `json:"dob,omitempty"`
 
 	// Primary email address.
@@ -80,9 +80,6 @@ type PatientProperties struct {
 
 	// Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
 	Gender PatientPropertiesGender `json:"gender"`
-
-	// The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
-	InternalID string `json:"internalID"`
 
 	// Social security number
 	Ssn *string `json:"ssn,omitempty"`
@@ -110,6 +107,9 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
+// UpdatePatientJSONBody defines parameters for UpdatePatient.
+type UpdatePatientJSONBody PatientProperties
+
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
 
@@ -118,6 +118,9 @@ type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
+
+// UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
+type UpdatePatientJSONRequestBody UpdatePatientJSONBody
 
 // NewPatientJSONRequestBody defines body for NewPatient for application/json ContentType.
 type NewPatientJSONRequestBody NewPatientJSONBody

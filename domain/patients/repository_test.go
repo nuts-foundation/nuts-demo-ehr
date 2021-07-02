@@ -19,22 +19,22 @@ func TestMemoryPatientRepository_NewPatient(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, repo.patients, 1)
 		expectedPatient := domain.Patient{
-			PatientID:         newPatient.PatientID,
+			ObjectID:         newPatient.ObjectID,
 			PatientProperties: pProps,
 		}
-		assert.Equal(t, expectedPatient, repo.patients["c1"][newPatient.PatientID])
+		assert.Equal(t, expectedPatient, repo.patients["c1"][newPatient.ObjectID])
 	})
 }
 
 func TestMemoryPatientRepository_Update(t *testing.T) {
 	repo := NewMemoryPatientRepository(Factory{})
 	patient := domain.Patient{
-		PatientID: "p1",
+		ObjectID: "p1",
 		PatientProperties: domain.PatientProperties{
 			FirstName: "henk",
 		},
 	}
-	repo.patients["c1"] = map[domain.PatientID]domain.Patient{"p1": patient}
+	repo.patients["c1"] = map[domain.ObjectID]domain.Patient{"p1": patient}
 
 	_, err := repo.Update(context.Background(), "c1", "p1", func(c domain.Patient) (*domain.Patient, error) {
 		c.FirstName = "Peter"

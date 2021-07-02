@@ -23,21 +23,21 @@ func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*do
 		patientProperties.Gender = domain.PatientPropertiesGenderUnknown
 	}
 	return &domain.Patient{
-		PatientID:         domain.PatientID(uuid.NewString()),
+		ObjectID:         domain.ObjectID(uuid.NewString()),
 		PatientProperties: patientProperties,
 	}, nil
 }
 
 type MemoryPatientRepository struct {
 	// indices on customerID and patientID
-	patients map[string]map[domain.PatientID]domain.Patient
+	patients map[string]map[domain.ObjectID]domain.Patient
 	lock     *sync.RWMutex
 	factory  Factory
 }
 
 func NewMemoryPatientRepository(factory Factory) *MemoryPatientRepository {
 	return &MemoryPatientRepository{
-		patients: map[string]map[domain.PatientID]domain.Patient{},
+		patients: map[string]map[domain.ObjectID]domain.Patient{},
 		lock:     &sync.RWMutex{},
 		factory:  factory,
 	}
@@ -60,7 +60,7 @@ func (r MemoryPatientRepository) Update(ctx context.Context, customerID, id stri
 	if err != nil {
 		return nil, err
 	}
-	r.patients[customerID][domain.PatientID(id)] = *updatedPatient
+	r.patients[customerID][domain.ObjectID(id)] = *updatedPatient
 	return patient, nil
 }
 
@@ -69,14 +69,14 @@ func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID stri
 	defer r.lock.Unlock()
 	customerPatients, ok := r.patients[customerID]
 	if !ok {
-		customerPatients = map[domain.PatientID]domain.Patient{}
+		customerPatients = map[domain.ObjectID]domain.Patient{}
 		r.patients[customerID] = customerPatients
 	}
 	patient, err := r.factory.NewUUIDPatient(patientProperties)
 	if err != nil {
 		return nil, err
 	}
-	customerPatients[patient.PatientID] = *patient
+	customerPatients[patient.ObjectID] = *patient
 	return patient, nil
 }
 
@@ -98,7 +98,7 @@ func (r MemoryPatientRepository) getPatient(ctx context.Context, customerID, pat
 		return nil, nil
 	}
 
-	patient, ok := customerPatients[domain.PatientID(patientID)]
+	patient, ok := customerPatients[domain.ObjectID(patientID)]
 	if !ok {
 		return nil, nil
 	}

@@ -171,31 +171,26 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
-    PatientID:
-      description: The ID of the patient. E.g. UUID or database increment.
+    ObjectID:
+      description: An internal object UUID which can be used as unique identifier for entities.
       type: string
       example:
-        - 15
-        - 665d6390-4823-4829-a3bf-4257e0b67992
+        - 665d6390-4823-4829-a3bf-4257e0b6799
+      pattern: "/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i"
     Patient:
       allOf:
-        - $ref: "#/components/schemas/PatientID"
+        - $ref: "#/components/schemas/ObjectID"
         - $ref: "#/components/schemas/PatientProperties"
     PatientProperties:
       type: object
       description: |
         A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
       required:
-        - internalID
         - firstName
         - surname
         - gender
         - zipcode
       properties:
-        internalID:
-          description: The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
-          type: string
-          example: P001
         ssn:
           description: Social security number
           type: string
@@ -214,7 +209,7 @@ components:
           enum: [male, female, other, unknown]
           default: unknown
         dob:
-          description: Date of birth. Can include time if known.
+          description: Date of birth.
           type: string
           format: date
           example: "1986-01-30"

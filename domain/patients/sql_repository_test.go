@@ -24,8 +24,8 @@ func TestSQLitePatientRepository_FindByID(t *testing.T) {
 	t.Run("1 result", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLitePatientRepository(Factory{}, db)
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `internal_id`) VALUES('c1', 'p1', 'Henk', 'c1-patient-1')")
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `internal_id`) VALUES('c2', 'p1', 'Peter', 'c2-patient-1')")
+		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p1', 'Henk', 'de Vries')")
+		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c2', 'p1', 'Floris-Jan', 'van Kleppensteyn')")
 		result, err := repo.FindByID(context.Background(), "c1", "p1")
 		if !assert.NoError(t, err) {
 			return
@@ -38,15 +38,15 @@ func TestSQLitePatientRepository_All(t *testing.T) {
 	t.Run("all patient", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLitePatientRepository(Factory{}, db)
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `internal_id`) VALUES('c1', 'p1', 'Henk', 'c1-patient-1')")
-		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `internal_id`) VALUES('c1', 'p2', 'Peter', 'c1-patient-2')")
+		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p1', 'Fred', 'Klooydonk')")
+		db.MustExec("INSERT INTO `patient` (`customer_id`, `id`, `first_name`, `surname`) VALUES('c1', 'p2', 'Arie', 'de Eiker')")
 		result, err := repo.All(context.Background(), "c1")
 		if !assert.NoError(t, err) {
 			return
 		}
 		assert.Len(t, result, 2)
-		assert.Equal(t, "Henk", result[0].FirstName)
-		assert.Equal(t, "Peter", result[1].FirstName)
+		assert.Equal(t, "Fred", result[0].FirstName)
+		assert.Equal(t, "Arie", result[1].FirstName)
 	})
 }
 
@@ -57,21 +57,20 @@ func TestSQLitePatientRepository_NewPatient(t *testing.T) {
 		email := openapi_types.Email("foo@bar.com")
 		ssn := "99999909"
 		newPatient, err := repo.NewPatient(context.Background(), "c15", domain.PatientProperties{
-			Dob:        &openapi_types.Date{Time: time.Now().UTC().Round(time.Minute)},
-			Email:      &email,
-			FirstName:  "Henk",
-			Surname:    "de Vries",
-			Gender:     domain.PatientPropertiesGenderMale,
-			InternalID: "p-12",
-			Ssn:        &ssn,
-			Zipcode:    "7551AB",
+			Dob:       &openapi_types.Date{Time: time.Now().UTC().Round(time.Minute)},
+			Email:     &email,
+			FirstName: "Henk",
+			Surname:   "de Vries",
+			Gender:    domain.PatientPropertiesGenderMale,
+			Ssn:       &ssn,
+			Zipcode:   "7551AB",
 		})
 		if !assert.NoError(t, err) || !assert.NotNil(t, newPatient) {
 			return
 		}
-		assert.NotEmpty(t, newPatient.PatientID)
+		assert.NotEmpty(t, newPatient.ObjectID)
 
-		foundPatient, err := repo.FindByID(context.Background(), "c15", string(newPatient.PatientID))
+		foundPatient, err := repo.FindByID(context.Background(), "c15", string(newPatient.ObjectID))
 		if !assert.NoError(t, err) || !assert.NotNil(t, newPatient) {
 			return
 		}

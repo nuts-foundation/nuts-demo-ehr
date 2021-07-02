@@ -24,7 +24,7 @@
       <tbody>
       <tr class="hover:bg-gray-100 cursor-pointer"
           v-for="patient in patients"
-          @click="$router.push({name: 'ehr.patient', params: {id: patient.PatientID}})">
+          @click="$router.push({name: 'ehr.patient', params: {id: patient.ObjectID}})">
         <td>{{ patient.surname }}, {{ patient.firstName }}</td>
         <td>{{ patient.dob }}</td>
         <td>{{ patient.gender }}</td>

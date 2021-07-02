@@ -8,7 +8,7 @@
         <div class="flex">
           <h1 class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>
           <button
-              @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.PatientID}})"
+              @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
               class="float-right inline-flex items-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +98,7 @@ export default {
   data() {
     return {
       patient: {
-        id: "PM00567",
+        objectID: '',
         ssn: 99999880,
         dob: "1981-03-01",
         firstName: "Henk",

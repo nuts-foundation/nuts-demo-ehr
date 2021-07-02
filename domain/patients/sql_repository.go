@@ -35,9 +35,6 @@ type sqlPatient struct {
 	// Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
 	Gender string `db:"gender"`
 
-	// The internal ID of the Patient. Can be any internal system. Not to be confused by a database ID or a uuid.
-	InternalID string `db:"internal_id"`
-
 	// The zipcode formatted in dutch form. Can be used to find local care providers.
 	Zipcode string `db:"zipcode"`
 }
@@ -69,7 +66,7 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 	// Convert date of birth
 	var dob *openapi_types.Date
 	if dbPatient.Dob.Valid {
-		dob = &openapi_types.Date{Time: dbPatient.Dob.Time }
+		dob = &openapi_types.Date{Time: dbPatient.Dob.Time}
 	}
 
 	var ssn *string
@@ -79,16 +76,15 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 	}
 
 	return &domain.Patient{
-		PatientID: domain.PatientID(dbPatient.ID),
+		ObjectID: domain.ObjectID(dbPatient.ID),
 		PatientProperties: domain.PatientProperties{
-			Ssn:        ssn,
-			FirstName:  dbPatient.FirstName,
-			Surname:    dbPatient.Surname,
-			Dob:        dob,
-			Email:      email,
-			Gender:     gender,
-			InternalID: dbPatient.InternalID,
-			Zipcode:    dbPatient.Zipcode,
+			Ssn:       ssn,
+			FirstName: dbPatient.FirstName,
+			Surname:   dbPatient.Surname,
+			Dob:       dob,
+			Email:     email,
+			Gender:    gender,
+			Zipcode:   dbPatient.Zipcode,
 		},
 	}, nil
 }
@@ -110,7 +106,7 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 		dob = patient.Dob.Time
 	}
 	*dbPatient = sqlPatient{
-		ID:         string(patient.PatientID),
+		ID:         string(patient.ObjectID),
 		SSN:        sql.NullString{String: ssn, Valid: ssn != ""},
 		CustomerID: customerID,
 		Dob:        sql.NullTime{Time: dob.UTC(), Valid: !dob.IsZero()},
@@ -118,7 +114,6 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 		FirstName:  patient.FirstName,
 		Surname:    patient.Surname,
 		Gender:     string(patient.Gender),
-		InternalID: patient.InternalID,
 		Zipcode:    patient.Zipcode,
 	}
 	return nil
@@ -142,11 +137,10 @@ const schema = `
 		customer_id varchar(100) NOT NULL,
 		date_of_birth DATETIME DEFAULT NULL,
 		email  varchar(100),
-		first_name varchar(100) NOT NULL DEFAULT '',
-		surname varchar(100) NOT NULL DEFAULT '',
+		first_name varchar(100) NOT NULL,
+		surname varchar(100) NOT NULL,
 		gender varchar(10) NOT NULL DEFAULT 'unknown',
-		internal_id varchar(100) NOT NULL,
-		zipcode varchar(10) NOT NULL DEFAULT "",
+		zipcode varchar(10) NOT NULL DEFAULT '',
 		PRIMARY KEY (customer_id, id)
 	);
 `
@@ -208,7 +202,6 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 		first_name = :first_name,
 		surname = :surname,
 		gender = :gender, 
-		internal_id = :internal_id,
 		zipcode = :zipcode
 	WHERE id = :id
 `
@@ -244,8 +237,8 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 		}
 	}()
 	const query = `INSERT INTO patient 
-		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, internal_id, zipcode)
-		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :internal_id, :zipcode)
+		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode)
+		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode)
 `
 
 	_, err = tx.NamedExec(query, dbPatient)
@@ -253,7 +246,7 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 }
 
 func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
-	query := "SELECT * FROM `patient` WHERE customer_id = ? ORDER BY internal_id ASC"
+	query := "SELECT * FROM `patient` WHERE customer_id = ? ORDER BY id ASC"
 	dbPatients := []sqlPatient{}
 	err := r.db.SelectContext(ctx, &dbPatients, query, customerID)
 	if errors.Is(err, sql.ErrNoRows) {

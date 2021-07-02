@@ -24,7 +24,7 @@ export default {
       apiError: '',
       formErrors: [],
       patient: {
-        PatientID: '',
+        ObjectID: '',
         id: '',
         ssn: '',
         dob: null,
@@ -42,7 +42,7 @@ export default {
   },
   methods: {
     cancel() {
-      this.$router.push({name: 'ehr.patient', params: {id: this.patient.PatientID}})
+      this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
     },
     checkForm(e) {
       // reset the errors
@@ -58,7 +58,7 @@ export default {
       this.$api.put(`web/private/patient/${patientID}`, this.patient)
           .then(response => {
             this.$emit("statusUpdate", "Patient updated")
-            this.$router.push({name: 'ehr.patient', params: {id: this.patient.PatientID}})
+            this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
           })
           .catch(error => this.apiError = error)
     },

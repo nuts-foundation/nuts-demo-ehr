@@ -1,5 +1,6 @@
 <template>
-  <h1>New Patient</h1>
+  <h1 class="text-2xl">New Patient</h1>
+  <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
   <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
   <button @click="checkForm"
       class="bg-blue-400 hover:bg-blue-500 text-white font-medium rounded-md px-3 py-2"
@@ -54,7 +55,7 @@ export default {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
-          .catch(response => this.apiError = response.statusText)
+          .catch(error => this.apiError = error)
     }
   }
 }

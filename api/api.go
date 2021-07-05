@@ -120,7 +120,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 func (w Wrapper) GetCustomer(ctx echo.Context) error {
 	customerID := ctx.Get(CustomerID)
 
-	customer, err := w.Repository.FindByID(customerID.(string))
+	customer, err := w.CustomerRepository.FindByID(customerID.(string))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}

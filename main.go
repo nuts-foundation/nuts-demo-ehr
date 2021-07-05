@@ -85,7 +85,7 @@ func main() {
 			registerPatients(patientRepository, customer.Id)
 		}
 	}
-	auth := api.NewAuth(nodeClient, repository, passwd)
+	auth := api.NewAuth(config.sessionKey, nodeClient, repository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
@@ -97,6 +97,8 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Logger())
+	// JWT checking for correct claims
+	e.Use(auth.JWTHandler)
 	e.Logger.SetLevel(log2.DEBUG)
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		if !ctx.Response().Committed {
@@ -104,7 +106,6 @@ func main() {
 			ctx.Echo().Logger.Error(err)
 		}
 	}
-	e.Use(auth.VPHandler)
 	e.HTTPErrorHandler = httpErrorHandler
 
 	api.RegisterHandlers(e, apiWrapper)

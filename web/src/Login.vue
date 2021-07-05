@@ -50,6 +50,21 @@ export default {
   created() {
     this.fetchData()
   },
+  watch: {
+    // changes to selected customer
+    'selectedCustomer'() {
+      localStorage.removeItem("session")
+      this.$api.post("web/auth", this.selectedCustomer)
+          .then(responseData => {
+            localStorage.setItem("session", responseData.token)
+            this.loginError = ''
+          })
+          .catch(reason => {
+            console.error("failure", reason)
+            this.loginError = reason
+          })
+    }
+  },
   methods: {
     redirectAfterLogin() {
       this.$router.push("/ehr/")

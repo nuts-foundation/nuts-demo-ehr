@@ -32,7 +32,8 @@ export default {
     return {
       loginError: "",
       credentials: {
-        password: ''
+        password: '',
+        customerID: null
       },
       customer: {
         name: "",
@@ -44,6 +45,19 @@ export default {
     'credentials.password'() {
       this.loginError = ""
     },
+    // Fetch customer from route params
+    "$route.params": {
+      handler(toParams, previousParams) {
+        if (toParams && 'customer' in toParams) {
+          this.customer = JSON.parse(toParams.customer)
+          this.credentials.customerID = this.customer.id
+        } else {
+          // Missing required params, redirect to landing page
+          this.$router.push("/")
+        }
+      },
+      immediate: true
+    }
   },
   methods: {
     redirectAfterLogin() {
@@ -52,7 +66,8 @@ export default {
     },
     login() {
       this.$api.post('web/auth/passwd', this.credentials)
-          .then(() => {
+          .then(responseData => {
+            localStorage.setItem("session", responseData.token)
             console.log("Password authentication successful")
             this.redirectAfterLogin()
           })

@@ -4,6 +4,26 @@ info:
   version: 1.0.0
 
 paths:
+  /web/auth:
+    post:
+      operationId: setCustomer
+      description: sets the current customer ID in the JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Customer"
+      responses:
+        '200':
+          description: A session was succesfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+        '403':
+          description: Invalid credentials
+
   # Password authentication
   /web/auth/passwd:
     post:
@@ -55,7 +75,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/SessionToken"
 
-  # General authentication endpoints
   /web/private:
     get:
       description: Checks whether the current session is valid. If not, the client should authenticate before calling other API operations.
@@ -65,6 +84,18 @@ paths:
           description: The session is valid.
         '400':
           description: The session is invalid.
+
+  /web/private/customer:
+    get:
+      operationId: getCustomer
+      description: Get the information of the current customer based on the session
+      responses:
+        200:
+          description: All the information of the current customer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
 
   /web/customers:
     get:
@@ -229,7 +260,7 @@ components:
       properties:
         token:
           type: string
-          description: the result from a signing session. It's a base64 encoded Verifiable Presentation
+          description: the result from a signing session. It's an updated JWT.
     IRMAAuthenticationRequest:
       required:
         - customerID

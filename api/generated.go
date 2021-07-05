@@ -14,6 +14,9 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /web/auth)
+	SetCustomer(ctx echo.Context) error
+
 	// (POST /web/auth/irma/session)
 	AuthenticateWithIRMA(ctx echo.Context) error
 
@@ -28,6 +31,9 @@ type ServerInterface interface {
 
 	// (GET /web/private)
 	CheckSession(ctx echo.Context) error
+
+	// (GET /web/private/customer)
+	GetCustomer(ctx echo.Context) error
 
 	// (GET /web/private/patient/{patientID})
 	GetPatient(ctx echo.Context, patientID string) error
@@ -45,6 +51,15 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// SetCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SetCustomer(ctx)
+	return err
 }
 
 // AuthenticateWithIRMA converts echo context to params.
@@ -96,6 +111,15 @@ func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CheckSession(ctx)
+	return err
+}
+
+// GetCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetCustomer(ctx)
 	return err
 }
 
@@ -177,11 +201,13 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/web/auth", wrapper.SetCustomer)
 	router.POST(baseURL+"/web/auth/irma/session", wrapper.AuthenticateWithIRMA)
 	router.GET(baseURL+"/web/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/web/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
+	router.GET(baseURL+"/web/private/customer", wrapper.GetCustomer)
 	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/web/private/patient/:patientID", wrapper.UpdatePatient)
 	router.GET(baseURL+"/web/private/patients", wrapper.GetPatients)

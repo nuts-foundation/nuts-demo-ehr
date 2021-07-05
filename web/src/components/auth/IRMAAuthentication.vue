@@ -44,19 +44,27 @@ export default {
           start: {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({customerID: this.customer.id})
           },
           mapping: {
             sessionPtr: r => r.sessionPtr.clientPtr,
             sessionToken: r => r.sessionID
+          },
+          result: {
+            url:           (o, {sessionPtr, sessionToken}) => `${o.url}/session/${sessionToken}/result`,
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem("session")}`
+            },
+            parseResponse: r => r.json()
           }
         }
       };
       let irmaPopup = irma.newPopup(options);
       irmaPopup.start()
-          .then(result => {
+          .then(responseData => {
+            localStorage.setItem("session", responseData.token)
             console.log("IRMA authentication successful")
             this.redirectAfterLogin()
           })

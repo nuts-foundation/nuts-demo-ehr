@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -9,33 +10,46 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/sirupsen/logrus"
-
+	jwt2 "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/jwt/openid"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 )
 
 const MaxSessionAge = time.Hour
+const CustomerID = "cid"
+const SessionID = "sid"
 
 type Auth struct {
-	// sessions maps session cookies to base64 encoded VPs
-	sessions   map[string]Session
+	// sessions maps session identifiers to base64 encoded VPs
+	sessions     map[string]Session
 	// mux is used to secure access to internal state of this struct to prevent racy behaviour
-	mux        sync.Mutex
-	nodeClient client.HTTPClient
-	customers  customers.Repository
-	password   string
+	mux          sync.Mutex
+	nodeClient   client.HTTPClient
+	customers    customers.Repository
+	password     string
+	sessionKey   *ecdsa.PrivateKey
+
 }
 
 type Session struct {
 	credential interface{}
-	startTime  time.Time
 	customerID string
+	startTime  time.Time
 }
 
-func NewAuth(nodeClient client.HTTPClient, customers customers.Repository, passwd string) *Auth {
+type JWTCustomClaims struct {
+	CustomerID string `json:"cis"`
+	SessionID  string `json:"sid"`
+	jwt2.StandardClaims
+}
+
+func NewAuth(key *ecdsa.PrivateKey, nodeClient client.HTTPClient, customers customers.Repository, passwd string) *Auth {
 	return &Auth{
+		sessionKey:   key,
 		nodeClient: nodeClient,
 		customers:  customers,
 		sessions:   map[string]Session{},
@@ -43,35 +57,53 @@ func NewAuth(nodeClient client.HTTPClient, customers customers.Repository, passw
 	}
 }
 
-// StoreVP stores the given VP under a new identifier or existing identifier
-func (auth *Auth) StoreVP(VP string) string {
-	// TODO: Resolve customer ID from vp
-	return auth.createSession("", VP)
+// CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
+func (auth *Auth) CreateCustomerJWT(customerId string) ([]byte, error) {
+	t := openid.New()
+	t.Set(jwt.IssuedAtKey, time.Now())
+	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
+	t.Set(CustomerID, customerId)
+
+	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
-func (auth *Auth) VPHandler(next echo.HandlerFunc) echo.HandlerFunc {
+// CreateSessionJWT creates a JWT with customer ID and session ID
+func (auth *Auth) CreateSessionJWT(customerId string, session string) ([]byte, error) {
+	t := openid.New()
+	t.Set(jwt.IssuedAtKey, time.Now())
+	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
+	t.Set(CustomerID, customerId)
+	t.Set(SessionID, session)
+
+	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
+}
+
+// StoreVP stores the given VP under a new identifier or existing identifier
+func (auth *Auth) StoreVP(customerID string, VP string) string {
+	return auth.createSession(customerID, VP)
+}
+
+// JWTHandler is like the echo JWT middleware. It checks the JWT and required claims
+func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
 		}
-		sessions := auth.getSessions()
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {
-				// check cookie
-				authorized := false
-				token := ""
-				for _, c := range ctx.Cookies() {
-					if c.Name == "session" {
-						token = c.Value
-						_, ok := sessions[token]
-						if !ok {
-							return echo.NewHTTPError(http.StatusUnauthorized, "missing or expired session")
-						}
-						authorized = true
-					}
+				token, err := auth.extractJWTFromHeader(ctx)
+				if err != nil {
+					ctx.Echo().Logger.Error(err)
+					return ctx.NoContent(http.StatusUnauthorized)
 				}
-				if !authorized {
-					return echo.NewHTTPError(http.StatusUnauthorized, "missing or expired session")
+				if _, ok := token.Get(SessionID); !ok {
+					return ctx.NoContent(http.StatusUnauthorized)
+				}
+
+				if customerId, ok := token.Get(CustomerID); !ok {
+					return ctx.NoContent(http.StatusUnauthorized)
+				} else {
+					ctx.Set(CustomerID, customerId)
 				}
 			}
 		}
@@ -89,23 +121,6 @@ func (auth *Auth) AuthenticatePassword(customerID string, password string) (stri
 	}
 	token := auth.createSession(customerID, customerID+password)
 	return token, nil
-}
-
-// getSessions must be used to for read access to sessions, because it cleans up old, expired sessions.
-func (auth *Auth) getSessions() map[string]Session {
-	auth.mux.Lock()
-	defer auth.mux.Unlock()
-
-	sessions := make(map[string]Session, 0)
-	for key, session := range auth.sessions {
-		if session.startTime.Add(MaxSessionAge).Before(time.Now()) {
-			logrus.Infof("Session %s expired, cleaning up.", key)
-			delete(auth.sessions, key)
-			continue
-		}
-		sessions[key] = session
-	}
-	return sessions
 }
 
 func (auth *Auth) createSession(customerID string, credential interface{}) string {
@@ -127,4 +142,21 @@ func (auth *Auth) createSession(customerID string, credential interface{}) strin
 		customerID: customerID,
 	}
 	return token
+}
+
+func (auth *Auth) ValidateJWT(token []byte) (jwt.Token, error) {
+	pubKey := auth.sessionKey.PublicKey
+	t, err := jwt.Parse(token, jwt.WithVerify(jwa.ES256, pubKey), jwt.WithValidate(true))
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (auth *Auth) extractJWTFromHeader(ctx echo.Context) (jwt.Token, error) {
+	bearerToken := ctx.Request().Header.Get(echo.HeaderAuthorization)
+	if bearerToken == "" {
+		return nil, errors.New("no bearer token")
+	}
+	return auth.ValidateJWT([]byte(bearerToken[7:]))
 }

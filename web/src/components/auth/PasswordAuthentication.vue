@@ -45,19 +45,6 @@ export default {
     'credentials.password'() {
       this.loginError = ""
     },
-    // Fetch customer from route params
-    "$route.params": {
-      handler(toParams, previousParams) {
-        if (toParams && 'customer' in toParams) {
-          this.customer = JSON.parse(toParams.customer)
-          this.credentials.customerID = this.customer.id
-        } else {
-          // Missing required params, redirect to landing page
-          this.$router.push("/")
-        }
-      },
-      immediate: true
-    }
   },
   methods: {
     redirectAfterLogin() {
@@ -87,6 +74,7 @@ export default {
     //     }))
     if ('customer' in this.$route.params) {
       this.customer = JSON.parse(this.$route.params.customer)
+      this.credentials.customerID = this.customer.id
     } else {
       // Missing required params, redirect to landing page
       console.log("missing customer in params. Back to login page.")

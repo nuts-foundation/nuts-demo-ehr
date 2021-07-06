@@ -13,6 +13,7 @@ import Patients from './ehr/patient/Patients.vue'
 import Patient from './ehr/patient/Patient.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue";
+import Settings from "./ehr/Settings.vue";
 
 const routes = [
     {path: '/', component: Login},

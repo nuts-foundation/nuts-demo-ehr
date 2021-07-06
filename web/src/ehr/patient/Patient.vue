@@ -76,7 +76,7 @@ export default {
   components: {PatientDetails, ModalWindow},
   data() {
     return {
-      patient: null,
+      patient: {},
       dossiers: [
         {
           name: "Thuiszorg",

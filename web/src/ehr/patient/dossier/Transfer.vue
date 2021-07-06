@@ -39,7 +39,7 @@
           ></Autocomplete>
         </td>
         <td colspan="2" v-if="!!requestedOrganization">
-          {{requestedOrganization.name}}
+          {{ requestedOrganization.name }}
         </td>
         <td v-if="!!requestedOrganization">
           <button class="btn btn-primary">Request</button>
@@ -72,7 +72,7 @@ export default {
   data() {
     return {
       apiError: null,
-      patient: null,
+      patient: {},
       description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
       transfers: [
         {date: "2021-06-22", status: "in afwachting", organization: {name: "De Regenboog"}},
@@ -99,12 +99,15 @@ export default {
     },
     cancelOrganization() {
       this.requestedOrganization = null
+    },
+    fetchPatient(patientID) {
+      this.$api.get(`/web/private/patient/${patientID}`)
+          .then(patient => this.patient = patient)
+          .catch(error => this.apiError = error)
     }
   },
   mounted() {
-    this.$api.get(`/web/private/patient/${this.$route.params.id}`)
-        .then(patient => this.patient = patient)
-        .catch(error => this.apiError = error)
+    this.fetchPatient(this.$route.params.id)
   }
 }
 </script>

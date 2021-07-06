@@ -3,7 +3,8 @@
     <div class="w-24 h-24 border"></div>
     <div v-if="!!patient">
       <div class="flex">
-        <h1 class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>
+        <h1 v-if="patient.surname || patient.firstName" class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>
+        <h1 v-else class="text-2xl mb-2 mr-4">Unknown patient</h1>
         <button
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
             class="float-right inline-flex items-center"
@@ -18,10 +19,9 @@
       <div class="grid grid-cols-2 gap-x-6">
         <div><span class="text-sm font-bold">SSN</span>: {{ patient.ssn }}</div>
         <div><span class="text-sm font-bold">Gender</span>: {{ patient.gender }}</div>
-        <div><span class="text-sm font-bold">Birth date</span>: {{ patient.dob }}</div>
-        <div><span class="text-sm font-bold">Patient number</span>: {{ patient.id }}</div>
-        <div><span class="text-sm font-bold">E-mail</span>: {{ patient.email }}</div>
-        <div><span class="text-sm font-bold">Zipcode</span>: {{ patient.zipcode }}</div>
+        <div><span class="text-sm font-bold">Birth date</span>: {{ patient.dob ? patient.dob : "unknown" }}</div>
+        <div v-if="patient.email"><span class="text-sm font-bold">E-mail</span>: {{ patient.email }}</div>
+        <div v-if="patient.zipcode"><span class="text-sm font-bold">Zipcode</span>: {{ patient.zipcode }}</div>
       </div>
     </div>
   </div>

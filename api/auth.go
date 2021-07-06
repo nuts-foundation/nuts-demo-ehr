@@ -94,14 +94,14 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 				token, err := auth.extractJWTFromHeader(ctx)
 				if err != nil {
 					ctx.Echo().Logger.Error(err)
-					return ctx.NoContent(http.StatusUnauthorized)
+					return echo.NewHTTPError(http.StatusUnauthorized, err)
 				}
 				if _, ok := token.Get(SessionID); !ok {
-					return ctx.NoContent(http.StatusUnauthorized)
+					return echo.NewHTTPError(http.StatusUnauthorized, "could not get sessionID from token")
 				}
 
 				if customerId, ok := token.Get(CustomerID); !ok {
-					return ctx.NoContent(http.StatusUnauthorized)
+					return echo.NewHTTPError(http.StatusUnauthorized, "could not get customerID from token")
 				} else {
 					ctx.Set(CustomerID, customerId)
 				}

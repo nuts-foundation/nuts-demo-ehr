@@ -17,6 +17,11 @@ FROM golang:1.16-alpine as backend-builder
 ARG TARGETARCH
 ARG TARGETOS
 
+RUN apk update \
+ && apk add --no-cache \
+            gcc=10.3.1_git20210424-r2 \
+            musl-dev
+
 ENV GO111MODULE on
 ENV GOPATH /
 
@@ -28,7 +33,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 COPY --from=frontend-builder /app/web/dist /app/web/dist
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/nuts-demo-ehr
+RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/nuts-demo-ehr
 
 #
 # Runtime

@@ -19,7 +19,8 @@ ARG TARGETOS
 
 RUN apk update \
  && apk add --no-cache \
-            gcc=10.2.1_pre1-r3
+            gcc=10.3.1_git20210424-r2 \
+            musl-dev
 
 ENV GO111MODULE on
 ENV GOPATH /

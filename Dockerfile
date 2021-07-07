@@ -17,6 +17,10 @@ FROM golang:1.16-alpine as backend-builder
 ARG TARGETARCH
 ARG TARGETOS
 
+RUN apk update \
+ && apk add --no-cache \
+            gcc=10.2.1_pre1-r3
+
 ENV GO111MODULE on
 ENV GOPATH /
 

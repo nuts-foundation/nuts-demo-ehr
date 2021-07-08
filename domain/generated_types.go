@@ -38,12 +38,12 @@ type AcceptTransferRequest struct {
 	NegotiationID ObjectID `json:"negotiationID"`
 }
 
-// CreateTransferRequest defines model for CreateTransferRequest.
+// Create a new transfer for a specific dossier with a date and description.
 type CreateTransferRequest struct {
 	Description string `json:"description"`
 
 	// An internal object UUID which can be used as unique identifier for entities.
-	PatientID    ObjectID           `json:"patientID"`
+	DossierID    ObjectID           `json:"dossierID"`
 	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
@@ -67,6 +67,17 @@ type Customer struct {
 
 	// Internal name for this customer.
 	Name string `json:"name"`
+}
+
+// Dossier defines model for Dossier.
+type Dossier struct {
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id   ObjectID `json:"id"`
+	Name string   `json:"name"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	PatientID ObjectID `json:"patientID"`
 }
 
 // IRMAAuthenticationRequest defines model for IRMAAuthenticationRequest.
@@ -186,6 +197,13 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
+
+// GetWebPrivateDossierParams defines parameters for GetWebPrivateDossier.
+type GetWebPrivateDossierParams struct {
+
+	// The patient ID
+	PatientID string `json:"patientID"`
+}
 
 // SearchOrganizationsParams defines parameters for SearchOrganizations.
 type SearchOrganizationsParams struct {

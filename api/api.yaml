@@ -348,6 +348,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Organization"
+  /web/private/dossier:
+    parameters:
+      - name: patientID
+        in: query
+        description: The patient ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: Get list of dossiers for a patient
+      responses:
+        200:
+          description: The list of dossiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dossier"
 
 components:
   schemas:
@@ -495,12 +514,14 @@ components:
           type: string
           format: date
     CreateTransferRequest:
+      description: >
+        Create a new transfer for a specific dossier with a date and description.
       required:
-        - patientID
+        - dossierID
         - transferDate
         - description
       properties:
-        patientID:
+        dossierID:
           $ref: '#/components/schemas/ObjectID'
         description:
           type: string
@@ -548,3 +569,15 @@ components:
       properties:
         negotiationID:
           $ref: '#/components/schemas/ObjectID'
+    Dossier:
+      required:
+        - id
+        - patientID
+        - name
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectID'
+        patientID:
+          $ref: '#/components/schemas/ObjectID'
+        name:
+          type: string

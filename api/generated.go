@@ -35,6 +35,9 @@ type ServerInterface interface {
 	// (GET /web/private/customer)
 	GetCustomer(ctx echo.Context) error
 
+	// (GET /web/private/dossier)
+	GetWebPrivateDossier(ctx echo.Context, params GetWebPrivateDossierParams) error
+
 	// (GET /web/private/network/organizations)
 	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
 
@@ -141,6 +144,24 @@ func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetCustomer(ctx)
+	return err
+}
+
+// GetWebPrivateDossier converts echo context to params.
+func (w *ServerInterfaceWrapper) GetWebPrivateDossier(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWebPrivateDossierParams
+	// ------------- Required query parameter "patientID" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "patientID", ctx.QueryParams(), &params.PatientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetWebPrivateDossier(ctx, params)
 	return err
 }
 
@@ -361,6 +382,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 	router.GET(baseURL+"/web/private/customer", wrapper.GetCustomer)
+	router.GET(baseURL+"/web/private/dossier", wrapper.GetWebPrivateDossier)
 	router.GET(baseURL+"/web/private/network/organizations", wrapper.SearchOrganizations)
 	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/web/private/patient/:patientID", wrapper.UpdatePatient)

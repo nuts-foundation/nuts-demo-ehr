@@ -144,14 +144,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
-  /web/private/patient/{patientID}/transfer:
-    parameters:
-      - name: patientID
-        in: path
-        description: The patient ID
-        required: true
-        schema:
-          type: string
+  /web/private/transfer:
     post:
       description: Create a new patient transfer dossier.
       operationId: createTransfer
@@ -172,15 +165,27 @@ paths:
           description: Patient not found
         400:
           description: Invalid request.
-
-  /web/private/patient/{patientID}/transfer/{transferID}:
+    get:
+      parameters:
+        - name: patientID
+          in: query
+          description: The patient ID
+          required: true
+          schema:
+            type: string
+      description: Get all transfer dossiers for a patient
+      operationId: getTransfer
+      responses:
+        200:
+          description: Transfer found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        404:
+          description: Transfer not found
+  /web/private/transfer/{transferID}:
     parameters:
-      - name: patientID
-        in: path
-        description: The patient ID
-        required: true
-        schema:
-          type: string
       - name: transferID
         in: path
         description: ID of the transfer dossier.
@@ -198,16 +203,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Transfer'
         404:
-          description: Patient or transfer not found
+          description: Transfer not found
 
-  /web/private/patient/{patientID}/transfer/{transferID}/negotiation:
+  /web/private/transfer/{transferID}/negotiation:
     parameters:
-      - name: patientID
-        in: path
-        description: The patient ID
-        required: true
-        schema:
-          type: string
       - name: transferID
         in: path
         description: ID of the transfer dossier.
@@ -226,17 +225,25 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TransferNegotiation'
+  /web/private/transfer/{transferID}/negotiation/{organizationDID}:
+    parameters:
+      - name: transferID
+        in: path
+        description: ID of the transfer dossier.
+        required: true
+        schema:
+          type: string
+      - name: organizationDID
+        in: path
+        description: ID of the transfer negotation.
+        required: true
+        schema:
+          type: string
     post:
       description: >
         Start a negotiation with a care organization for this transfer.
         Calling this operation will update the state of the transfer to "requested".
       operationId: startTransferNegotiation
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TransferNegotiationRequest'
       responses:
         200:
           description: Negotiation started.
@@ -248,31 +255,25 @@ paths:
           description: Patient or transfer not found
         400:
           description: Invalid request.
-  /web/private/patient/{patientID}/transfer/{transferID}/negotiation/{negotiationID}:
+  /web/private/transfer/{transferID}/negotiation/{organizationDID}/assign:
     parameters:
-      - name: patientID
-        in: path
-        description: The patient ID
-        required: true
-        schema:
-          type: string
       - name: transferID
         in: path
         description: ID of the transfer dossier.
         required: true
         schema:
           type: string
-      - name: negotiationID
+      - name: organizationDID
         in: path
         description: ID of the transfer negotation.
         required: true
         schema:
           type: string
-    put:
+    post:
       description: >
-        Accepts the transfer of a patient, to a care organization that accepted the transfer negotiation.
-        Calling this operation will update the state of the transfer to "accepted".
-      operationId: acceptTransferNegotiation
+        Assign the transfer of a patient to a care organization that accepted the transfer negotiation.
+        Calling this operation will update the state of the negotiation to "inProgress" and the transfer to "assigned".
+      operationId: assignTransferNegotiation
       requestBody:
         required: true
         content:
@@ -495,9 +496,12 @@ components:
           format: date
     CreateTransferRequest:
       required:
+        - patientID
         - transferDate
         - description
       properties:
+        patientID:
+          $ref: '#/components/schemas/ObjectID'
         description:
           type: string
         transferDate:
@@ -522,11 +526,11 @@ components:
             In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values:
             - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet.
             - Requested: one or more requests were sent to care organizations
-            - Accepted: one of the requests, accepted by the receiving care organizations is accepted by the sending care organization.
+            - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer.
             - Completed: the patient transfer is completed and marked as such by the receiving care organization.
             - Cancelled: the transfer is cancelled by the sending care organization.
           type: string
-          enum: [created, requested, accepted, completed, cancelled]
+          enum: [created, requested, assigned, completed, cancelled]
         description:
           description: >
             Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
@@ -535,14 +539,6 @@ components:
           description: Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
           type: string
           format: date
-    TransferNegotiationRequest:
-      description: API request to start a negotiation with a specific care organization for transferring a patient.
-      required:
-        - organizationDID
-      properties:
-        organizationDID:
-          description: Decentralized Identifier of the organization to which transfer of a patient is requested.
-          type: string
     AcceptTransferRequest:
       description: >
         API request to accept the transfer of a patient, to a care organization that accepted transfer.

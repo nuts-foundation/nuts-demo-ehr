@@ -20,7 +20,7 @@ const (
 
 // Defines values for TransferStatus.
 const (
-	TransferStatusAccepted TransferStatus = "accepted"
+	TransferStatusAssigned TransferStatus = "assigned"
 
 	TransferStatusCancelled TransferStatus = "cancelled"
 
@@ -40,7 +40,10 @@ type AcceptTransferRequest struct {
 
 // CreateTransferRequest defines model for CreateTransferRequest.
 type CreateTransferRequest struct {
-	Description  string             `json:"description"`
+	Description string `json:"description"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	PatientID    ObjectID           `json:"patientID"`
 	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
@@ -149,14 +152,14 @@ type Transfer struct {
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 
-	// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Accepted: one of the requests, accepted by the receiving care organizations is accepted by the sending care organization. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
+	// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 	Status TransferStatus `json:"status"`
 
 	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
 	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
-// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Accepted: one of the requests, accepted by the receiving care organizations is accepted by the sending care organization. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
+// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 type TransferStatus string
 
 // A negotiation with a specific care organization to transfer a patient.
@@ -173,13 +176,6 @@ type TransferNegotiation struct {
 
 	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
-}
-
-// API request to start a negotiation with a specific care organization for transferring a patient.
-type TransferNegotiationRequest struct {
-
-	// Decentralized Identifier of the organization to which transfer of a patient is requested.
-	OrganizationDID string `json:"organizationDID"`
 }
 
 // SetCustomerJSONBody defines parameters for SetCustomer.
@@ -204,17 +200,21 @@ type SearchOrganizationsParams struct {
 // UpdatePatientJSONBody defines parameters for UpdatePatient.
 type UpdatePatientJSONBody PatientProperties
 
+// NewPatientJSONBody defines parameters for NewPatient.
+type NewPatientJSONBody PatientProperties
+
+// GetTransferParams defines parameters for GetTransfer.
+type GetTransferParams struct {
+
+	// The patient ID
+	PatientID string `json:"patientID"`
+}
+
 // CreateTransferJSONBody defines parameters for CreateTransfer.
 type CreateTransferJSONBody CreateTransferRequest
 
-// StartTransferNegotiationJSONBody defines parameters for StartTransferNegotiation.
-type StartTransferNegotiationJSONBody TransferNegotiationRequest
-
-// AcceptTransferNegotiationJSONBody defines parameters for AcceptTransferNegotiation.
-type AcceptTransferNegotiationJSONBody AcceptTransferRequest
-
-// NewPatientJSONBody defines parameters for NewPatient.
-type NewPatientJSONBody PatientProperties
+// AssignTransferNegotiationJSONBody defines parameters for AssignTransferNegotiation.
+type AssignTransferNegotiationJSONBody AcceptTransferRequest
 
 // SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.
 type SetCustomerJSONRequestBody SetCustomerJSONBody
@@ -228,14 +228,11 @@ type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody UpdatePatientJSONBody
 
+// NewPatientJSONRequestBody defines body for NewPatient for application/json ContentType.
+type NewPatientJSONRequestBody NewPatientJSONBody
+
 // CreateTransferJSONRequestBody defines body for CreateTransfer for application/json ContentType.
 type CreateTransferJSONRequestBody CreateTransferJSONBody
 
-// StartTransferNegotiationJSONRequestBody defines body for StartTransferNegotiation for application/json ContentType.
-type StartTransferNegotiationJSONRequestBody StartTransferNegotiationJSONBody
-
-// AcceptTransferNegotiationJSONRequestBody defines body for AcceptTransferNegotiation for application/json ContentType.
-type AcceptTransferNegotiationJSONRequestBody AcceptTransferNegotiationJSONBody
-
-// NewPatientJSONRequestBody defines body for NewPatient for application/json ContentType.
-type NewPatientJSONRequestBody NewPatientJSONBody
+// AssignTransferNegotiationJSONRequestBody defines body for AssignTransferNegotiation for application/json ContentType.
+type AssignTransferNegotiationJSONRequestBody AssignTransferNegotiationJSONBody

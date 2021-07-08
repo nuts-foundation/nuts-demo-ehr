@@ -70,7 +70,7 @@ export default {
     },
     fetchPatient() {
       let patientID = this.$route.params.id
-      this.$api.get(`/web/private/patient/${patientID}`)
+      this.$api.get(`web/private/patient/${patientID}`)
           .then(patient => this.patient = patient)
           .catch(error => this.apiError = error)
     }

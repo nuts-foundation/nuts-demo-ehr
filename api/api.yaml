@@ -240,7 +240,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
-  /web/private/network/organizations/transfer:
+  /web/private/network/organizations:
     get:
       description: Searches for care organizations that can transfer patients using the Nuts Network.
       operationId: searchOrganizationsForTransfer
@@ -249,6 +249,14 @@ paths:
           in: query
           description: Keyword for finding care organization for patient transfer.
           required: true
+          schema:
+            type: string
+        - name: didServiceType
+          in: query
+          description: >
+            Filters care organizations on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType.
+            If not supplied, care organizations aren't filtered on service.
+          required: false
           schema:
             type: string
       responses:

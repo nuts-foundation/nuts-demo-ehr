@@ -2,35 +2,12 @@
   <div>
     <p v-if="!!error" class="m-4">Error: {{ error }}</p>
 
-    <div class="flex flex-row gap-4 m4">
-      <img v-bind:src="patient.photo" class="w-24 h-24">
-      <div>
-        <div class="flex">
-          <h1 class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>
-          <button
-              @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
-              class="float-right inline-flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Edit</button>
-        </div>
-        <div class="grid grid-cols-2 gap-x-6">
-          <div><span class="text-sm font-bold">SSN</span>: {{ patient.ssn }}</div>
-          <div><span class="text-sm font-bold">Gender</span>: {{patient.gender}}</div>
-          <div><span class="text-sm font-bold">Birth date</span>: {{ patient.dob }}</div>
-          <div><span class="text-sm font-bold">Patient number</span>: {{ patient.id }}</div>
-          <div><span class="text-sm font-bold">E-mail</span>: {{ patient.email }}</div>
-          <div><span class="text-sm font-bold">Zipcode</span>: {{ patient.zipcode }}</div>
-        </div>
-      </div>
-    </div>
+    <patient-details :patient="patient"/>
 
     <div class="mt-8">
       <div>
         <h1 class="text-xl float-left">Dossiers</h1>
-        <button class="float-right inline-flex items-center">
+        <button class="float-right inline-flex items-center" @click="$router.push({name: 'ehr.patient.dossier.new'})">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -92,20 +69,14 @@
   </div>
 </template>
 <script>
-import patientPhoto from '../../img/patients/vries.jpg';
+import PatientDetails from "./PatientDetails.vue";
+import ModalWindow from "../../components/ModalWindow.vue";
 
 export default {
+  components: {PatientDetails, ModalWindow},
   data() {
     return {
-      patient: {
-        objectID: '',
-        ssn: 99999880,
-        dob: "1981-03-01",
-        firstName: "Henk",
-        surname: "de Vries",
-        email: "hdevries@securemail.nuts",
-        photo: patientPhoto,
-      },
+      patient: {},
       dossiers: [
         {
           name: "Thuiszorg",
@@ -145,8 +116,7 @@ export default {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
     },
     fetchPatient() {
-      let patientID = this.$route.params.id
-      this.$api.get(`/web/private/patient/${patientID}`)
+      this.$api.get(`/web/private/patient/${this.$route.params.id}`)
           .then(patient => this.patient = patient)
           .catch(reason => console.log(reason))
     }

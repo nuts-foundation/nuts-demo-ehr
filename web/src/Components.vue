@@ -14,6 +14,8 @@
   </div>
 </template>
 <script>
+// This file can be used to develop and test components with different configurations.
+
 import AutoComplete from "./components/Autocomplete.vue";
 
 export default {

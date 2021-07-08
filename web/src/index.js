@@ -89,7 +89,7 @@ const routes = [
     ],
     meta: {requiresAuth: true}
   },
-  {path: '/components', component: Components},
+  {path: '/test/components', component: Components},
   {path: '/:pathMatch*', name: 'NotFound', component: NotFound}
 ]
 

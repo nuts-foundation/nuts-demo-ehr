@@ -32,11 +32,14 @@
       </tr>
       <tr>
         <td colspan="3" v-if="requestedOrganization === null">
-          <Autocomplete @input="searchOrganization" :results="organizations" @onSelect="chooseOrganization"
-                        :input-class="['border']"
-                        :results-container-class="['border']"
-                        :results-item-class="['cursor-pointer', 'p-2', 'hover:bg-gray-100']"
-          ></Autocomplete>
+
+          <auto-complete
+              :items="organizations"
+              v-model:selected="requestedOrganization"
+              v-slot="slotProps"
+          >
+            {{slotProps.item.name}}
+          </auto-complete>
         </td>
         <td colspan="2" v-if="!!requestedOrganization">
           {{ requestedOrganization.name }}
@@ -64,11 +67,11 @@
   </div>
 </template>
 <script>
-import Autocomplete from 'vue3-autocomplete'
 import PatientDetails from "../PatientDetails.vue";
+import AutoComplete from "../../../components/Autocomplete.vue";
 
 export default {
-  components: {PatientDetails, Autocomplete},
+  components: {PatientDetails, AutoComplete},
   data() {
     return {
       apiError: null,
@@ -82,18 +85,14 @@ export default {
         {title: "Aanmeldbericht", contents: "Some content"},
         {title: "Overdrachtsbericht", contents: "Some content 2"},
       ],
-      organizations: [],
+      organizations: [
+        {name: "HengeZorg", zipcode: "7552AB", starred: true},
+        {name: "Zorgcentrum Enschede", zipcode: "7552CC", starred: false},
+      ],
       requestedOrganization: null,
     }
   },
   methods: {
-    searchOrganization(query) {
-      console.log('searching for ' + query)
-      this.organizations = [
-        {name: "HengeZorg", zipcode: "7552AB", starred: true},
-        {name: "Zorgcentrum Enschede", zipcode: "7552CC", starred: false},
-      ]
-    },
     chooseOrganization(organization) {
       this.requestedOrganization = organization
     },

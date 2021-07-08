@@ -79,7 +79,10 @@ func main() {
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	if config.LoadTestPatients {
-		customers, _ := repository.All()
+		customers, err := repository.All()
+		if err != nil {
+			log.Fatal(err)
+		}
 		for _, customer := range customers {
 			registerPatients(patientRepository, customer.Id)
 		}
@@ -127,31 +130,37 @@ func registerPatients(repository patients.Repository, customerID string) {
 	pstring := func(value string) *string {
 		return &value
 	}
-
-	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
-		Ssn:       pstring("1234567890"),
-		Dob:       pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
-		FirstName: "Henk",
-		Surname:   "de Vries",
-		Gender:    domain.PatientPropertiesGenderMale,
-		Zipcode:   "6825AX",
-	})
-	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
-		Ssn:       pstring("1234567891"),
-		Dob:       pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
-		FirstName: "Grepelsteeltje",
-		Surname:   "Grouw",
-		Gender:    domain.PatientPropertiesGenderFemale,
-		Zipcode:   "9999AA",
-	})
-	repository.NewPatient(context.Background(), customerID, domain.PatientProperties{
-		Ssn:       pstring("1234567892"),
-		Dob:       pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
-		FirstName: "Dibbes",
-		Surname:   "Bouwman",
-		Gender:    domain.PatientPropertiesGenderMale,
-		Zipcode:   "1234ZZ",
-	})
+	props := []domain.PatientProperties{
+		{
+			Ssn:       pstring("1234567890"),
+			Dob:       pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
+			FirstName: "Henk",
+			Surname:   "de Vries",
+			Gender:    domain.PatientPropertiesGenderMale,
+			Zipcode:   "6825AX",
+		},
+		{
+			Ssn:       pstring("1234567891"),
+			Dob:       pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
+			FirstName: "Grepelsteeltje",
+			Surname:   "Grouw",
+			Gender:    domain.PatientPropertiesGenderFemale,
+			Zipcode:   "9999AA",
+		},
+		{
+			Ssn:       pstring("1234567892"),
+			Dob:       pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
+			FirstName: "Dibbes",
+			Surname:   "Bouwman",
+			Gender:    domain.PatientPropertiesGenderMale,
+			Zipcode:   "1234ZZ",
+		},
+	}
+	for _, prop := range props {
+		if _, err := repository.NewPatient(context.Background(), customerID, prop); err != nil {
+			log.Fatalf("unable to register test patient: %v", err)
+		}
+	}
 }
 
 func generateAuthenticationPassword(config Config) string {

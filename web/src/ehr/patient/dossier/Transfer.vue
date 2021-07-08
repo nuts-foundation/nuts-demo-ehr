@@ -1,6 +1,7 @@
 <template>
   <div>
-    <patient-details :patientID="this.$route.params.patientID"/>
+    <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
+    <patient-details :patient="patient"/>
 
     <table class="mt-4 min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
@@ -70,6 +71,8 @@ export default {
   components: {PatientDetails, Autocomplete},
   data() {
     return {
+      apiError: null,
+      patient: null,
       description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
       transfers: [
         {date: "2021-06-22", status: "in afwachting", organization: {name: "De Regenboog"}},
@@ -98,5 +101,10 @@ export default {
       this.requestedOrganization = null
     }
   },
+  mounted() {
+    this.$api.get(`/web/private/patient/${this.$route.params.id}`)
+        .then(patient => this.patient = patient)
+        .catch(error => this.apiError = error)
+  }
 }
 </script>

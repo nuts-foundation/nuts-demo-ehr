@@ -35,11 +35,29 @@ type ServerInterface interface {
 	// (GET /web/private/customer)
 	GetCustomer(ctx echo.Context) error
 
+	// (GET /web/private/network/organizations)
+	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
+
 	// (GET /web/private/patient/{patientID})
 	GetPatient(ctx echo.Context, patientID string) error
 
 	// (PUT /web/private/patient/{patientID})
 	UpdatePatient(ctx echo.Context, patientID string) error
+
+	// (POST /web/private/patient/{patientID}/transfer)
+	CreateTransfer(ctx echo.Context, patientID string) error
+
+	// (GET /web/private/patient/{patientID}/transfer/{transferID})
+	GetTransfer(ctx echo.Context, patientID string, transferID string) error
+
+	// (GET /web/private/patient/{patientID}/transfer/{transferID}/negotiation)
+	ListTransferNegotiations(ctx echo.Context, patientID string, transferID string) error
+
+	// (POST /web/private/patient/{patientID}/transfer/{transferID}/negotiation)
+	StartTransferNegotiation(ctx echo.Context, patientID string, transferID string) error
+
+	// (PUT /web/private/patient/{patientID}/transfer/{transferID}/negotiation/{negotiationID})
+	AcceptTransferNegotiation(ctx echo.Context, patientID string, transferID string, negotiationID string) error
 
 	// (GET /web/private/patients)
 	GetPatients(ctx echo.Context) error
@@ -123,6 +141,31 @@ func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 	return err
 }
 
+// SearchOrganizations converts echo context to params.
+func (w *ServerInterfaceWrapper) SearchOrganizations(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchOrganizationsParams
+	// ------------- Required query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "query", ctx.QueryParams(), &params.Query)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter query: %s", err))
+	}
+
+	// ------------- Optional query parameter "didServiceType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "didServiceType", ctx.QueryParams(), &params.DidServiceType)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter didServiceType: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SearchOrganizations(ctx, params)
+	return err
+}
+
 // GetPatient converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPatient(ctx echo.Context) error {
 	var err error
@@ -152,6 +195,126 @@ func (w *ServerInterfaceWrapper) UpdatePatient(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.UpdatePatient(ctx, patientID)
+	return err
+}
+
+// CreateTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CreateTransfer(ctx, patientID)
+	return err
+}
+
+// GetTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// ------------- Path parameter "transferID" -------------
+	var transferID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "transferID", runtime.ParamLocationPath, ctx.Param("transferID"), &transferID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetTransfer(ctx, patientID, transferID)
+	return err
+}
+
+// ListTransferNegotiations converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTransferNegotiations(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// ------------- Path parameter "transferID" -------------
+	var transferID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "transferID", runtime.ParamLocationPath, ctx.Param("transferID"), &transferID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListTransferNegotiations(ctx, patientID, transferID)
+	return err
+}
+
+// StartTransferNegotiation converts echo context to params.
+func (w *ServerInterfaceWrapper) StartTransferNegotiation(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// ------------- Path parameter "transferID" -------------
+	var transferID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "transferID", runtime.ParamLocationPath, ctx.Param("transferID"), &transferID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.StartTransferNegotiation(ctx, patientID, transferID)
+	return err
+}
+
+// AcceptTransferNegotiation converts echo context to params.
+func (w *ServerInterfaceWrapper) AcceptTransferNegotiation(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// ------------- Path parameter "transferID" -------------
+	var transferID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "transferID", runtime.ParamLocationPath, ctx.Param("transferID"), &transferID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
+	}
+
+	// ------------- Path parameter "negotiationID" -------------
+	var negotiationID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "negotiationID", runtime.ParamLocationPath, ctx.Param("negotiationID"), &negotiationID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter negotiationID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AcceptTransferNegotiation(ctx, patientID, transferID, negotiationID)
 	return err
 }
 
@@ -208,8 +371,14 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 	router.GET(baseURL+"/web/private/customer", wrapper.GetCustomer)
+	router.GET(baseURL+"/web/private/network/organizations", wrapper.SearchOrganizations)
 	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/web/private/patient/:patientID", wrapper.UpdatePatient)
+	router.POST(baseURL+"/web/private/patient/:patientID/transfer", wrapper.CreateTransfer)
+	router.GET(baseURL+"/web/private/patient/:patientID/transfer/:transferID", wrapper.GetTransfer)
+	router.GET(baseURL+"/web/private/patient/:patientID/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)
+	router.POST(baseURL+"/web/private/patient/:patientID/transfer/:transferID/negotiation", wrapper.StartTransferNegotiation)
+	router.PUT(baseURL+"/web/private/patient/:patientID/transfer/:transferID/negotiation/:negotiationID", wrapper.AcceptTransferNegotiation)
 	router.GET(baseURL+"/web/private/patients", wrapper.GetPatients)
 	router.POST(baseURL+"/web/private/patients", wrapper.NewPatient)
 

@@ -242,12 +242,12 @@ paths:
 
   /web/private/network/organizations:
     get:
-      description: Searches for care organizations that can transfer patients using the Nuts Network.
-      operationId: searchOrganizationsForTransfer
+      description: Searches for care organizations on Nuts Network.
+      operationId: searchOrganizations
       parameters:
         - name: query
           in: query
-          description: Keyword for finding care organization for patient transfer.
+          description: Keyword for finding care organizations.
           required: true
           schema:
             type: string

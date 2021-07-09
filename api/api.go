@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -27,6 +29,8 @@ type Wrapper struct {
 	Client             client.HTTPClient
 	CustomerRepository customers.Repository
 	PatientRepository  patients.Repository
+	TransferRepository transfer.Repository
+	FHIRGateway        fhir.Gateway
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {

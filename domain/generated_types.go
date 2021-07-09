@@ -31,6 +31,19 @@ const (
 	TransferStatusRequested TransferStatus = "requested"
 )
 
+// Defines values for TransferNegotiationStatus.
+const (
+	TransferNegotiationStatusAccepted TransferNegotiationStatus = "accepted"
+
+	TransferNegotiationStatusCompleted TransferNegotiationStatus = "completed"
+
+	TransferNegotiationStatusInProgress TransferNegotiationStatus = "in-progress"
+
+	TransferNegotiationStatusOnHold TransferNegotiationStatus = "on-hold"
+
+	TransferNegotiationStatusRequested TransferNegotiationStatus = "requested"
+)
+
 // API request to accept the transfer of a patient, to a care organization that accepted transfer. negotiationID contains the ID of the negotiation that will complete the transfer.
 type AcceptTransferRequest struct {
 
@@ -183,11 +196,14 @@ type TransferNegotiation struct {
 	OrganizationDID string `json:"organizationDID"`
 
 	// Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
-	Status string `json:"status"`
+	Status TransferNegotiationStatus `json:"status"`
 
 	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
 }
+
+// Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
+type TransferNegotiationStatus string
 
 // SetCustomerJSONBody defines parameters for SetCustomer.
 type SetCustomerJSONBody Customer
@@ -198,8 +214,8 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
-// GetWebPrivateDossierParams defines parameters for GetWebPrivateDossier.
-type GetWebPrivateDossierParams struct {
+// GetDossierParams defines parameters for GetDossier.
+type GetDossierParams struct {
 
 	// The patient ID
 	PatientID string `json:"patientID"`
@@ -221,8 +237,8 @@ type UpdatePatientJSONBody PatientProperties
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
 
-// GetTransferParams defines parameters for GetTransfer.
-type GetTransferParams struct {
+// GetPatientTransfersParams defines parameters for GetPatientTransfers.
+type GetPatientTransfersParams struct {
 
 	// The patient ID
 	PatientID string `json:"patientID"`

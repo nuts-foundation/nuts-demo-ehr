@@ -79,3 +79,8 @@ func (w Wrapper) getCustomerID() string {
 	}
 	return customerID
 }
+
+func (w Wrapper) getCustomerDID() *string {
+	customer, _ := w.CustomerRepository.FindByID(w.getCustomerID())
+	return customer.Did
+}

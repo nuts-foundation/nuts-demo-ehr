@@ -36,7 +36,7 @@ type ServerInterface interface {
 	GetCustomer(ctx echo.Context) error
 
 	// (GET /web/private/dossier)
-	GetWebPrivateDossier(ctx echo.Context, params GetWebPrivateDossierParams) error
+	GetDossier(ctx echo.Context, params GetDossierParams) error
 
 	// (GET /web/private/network/organizations)
 	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
@@ -54,7 +54,7 @@ type ServerInterface interface {
 	NewPatient(ctx echo.Context) error
 
 	// (GET /web/private/transfer)
-	GetTransfer(ctx echo.Context, params GetTransferParams) error
+	GetPatientTransfers(ctx echo.Context, params GetPatientTransfersParams) error
 
 	// (POST /web/private/transfer)
 	CreateTransfer(ctx echo.Context) error
@@ -147,12 +147,12 @@ func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 	return err
 }
 
-// GetWebPrivateDossier converts echo context to params.
-func (w *ServerInterfaceWrapper) GetWebPrivateDossier(ctx echo.Context) error {
+// GetDossier converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDossier(ctx echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetWebPrivateDossierParams
+	var params GetDossierParams
 	// ------------- Required query parameter "patientID" -------------
 
 	err = runtime.BindQueryParameter("form", true, true, "patientID", ctx.QueryParams(), &params.PatientID)
@@ -161,7 +161,7 @@ func (w *ServerInterfaceWrapper) GetWebPrivateDossier(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetWebPrivateDossier(ctx, params)
+	err = w.Handler.GetDossier(ctx, params)
 	return err
 }
 
@@ -240,12 +240,12 @@ func (w *ServerInterfaceWrapper) NewPatient(ctx echo.Context) error {
 	return err
 }
 
-// GetTransfer converts echo context to params.
-func (w *ServerInterfaceWrapper) GetTransfer(ctx echo.Context) error {
+// GetPatientTransfers converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPatientTransfers(ctx echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetTransferParams
+	var params GetPatientTransfersParams
 	// ------------- Required query parameter "patientID" -------------
 
 	err = runtime.BindQueryParameter("form", true, true, "patientID", ctx.QueryParams(), &params.PatientID)
@@ -254,7 +254,7 @@ func (w *ServerInterfaceWrapper) GetTransfer(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetTransfer(ctx, params)
+	err = w.Handler.GetPatientTransfers(ctx, params)
 	return err
 }
 
@@ -382,13 +382,13 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
 	router.GET(baseURL+"/web/private", wrapper.CheckSession)
 	router.GET(baseURL+"/web/private/customer", wrapper.GetCustomer)
-	router.GET(baseURL+"/web/private/dossier", wrapper.GetWebPrivateDossier)
+	router.GET(baseURL+"/web/private/dossier", wrapper.GetDossier)
 	router.GET(baseURL+"/web/private/network/organizations", wrapper.SearchOrganizations)
 	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/web/private/patient/:patientID", wrapper.UpdatePatient)
 	router.GET(baseURL+"/web/private/patients", wrapper.GetPatients)
 	router.POST(baseURL+"/web/private/patients", wrapper.NewPatient)
-	router.GET(baseURL+"/web/private/transfer", wrapper.GetTransfer)
+	router.GET(baseURL+"/web/private/transfer", wrapper.GetPatientTransfers)
 	router.POST(baseURL+"/web/private/transfer", wrapper.CreateTransfer)
 	router.GET(baseURL+"/web/private/transfer/:transferID", wrapper.GetTransfer)
 	router.GET(baseURL+"/web/private/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)

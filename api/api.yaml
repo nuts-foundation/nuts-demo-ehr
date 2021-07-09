@@ -174,7 +174,7 @@ paths:
           schema:
             type: string
       description: Get all transfer dossiers for a patient
-      operationId: getTransfer
+      operationId: getPatientTransfers
       responses:
         200:
           description: Transfer found
@@ -193,7 +193,7 @@ paths:
         schema:
           type: string
     get:
-      description: Get a transfer dossier by ID.
+      description: Get a transfer by ID.
       operationId: getTransfer
       responses:
         200:
@@ -358,6 +358,7 @@ paths:
           type: string
     get:
       description: Get list of dossiers for a patient
+      operationId: getDossier
       responses:
         200:
           description: The list of dossiers
@@ -509,6 +510,7 @@ components:
         status:
           description: Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
           type: string
+          enum: [requested, accepted, in-progress, completed, on-hold]
         transferDate:
           description: Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
           type: string

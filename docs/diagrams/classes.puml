@@ -1,0 +1,49 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class Dossier {
+    Subject : String
+}
+class Patient
+class Collaboration {
+    Description
+    Dossier
+}
+class Customer {
+    CustomerCode
+}
+class Organization {
+    DID : String
+}
+class Transfer {
+    State
+    Date
+    Description
+    Dossier
+}
+class Negotiation {
+    State
+    TransferDate
+}
+class Observation
+class Membership {
+    State
+    StartDate
+}
+
+Patient <-- Dossier
+Patient --> Customer
+Observation "1" --> "1..*" Dossier
+
+'Transfer --> Patient
+Transfer -> Dossier
+Negotiation "*" --> "1" Transfer
+Negotiation "1" -> "1" Organization : transfersTo
+
+'Collaboration -> Patient
+Collaboration -> Dossier
+Collaboration --> Membership
+Membership -> Organization
+
+
+@enduml

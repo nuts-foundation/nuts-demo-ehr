@@ -1,7 +1,7 @@
-openapi: 3.0.0
+openapi: "3.0.0"
 info:
-  title: Nuts Demo EHR API
-  version: 1.0.0
+  title: "Nuts Demo EHR API"
+  version: "1.0.0"
 
 paths:
   /web/auth:
@@ -583,3 +583,11 @@ components:
           $ref: '#/components/schemas/ObjectID'
         name:
           type: string
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -4,6 +4,7 @@
   "description": "A demo electronic health record system that interfaces with the Nuts node",
   "private": true,
   "scripts": {
+    "gen-api": "yaml2json api/api.yaml > api/api.json && fetch-openapi --verbose --api-doc-file-path api/api.json --output-file-path web/src/plugins/api-impl.js --preset es6",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "NODE_ENV=production webpack --mode=production",
     "watch": "webpack --mode=development --watch",
@@ -26,6 +27,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "eslint-plugin-vue": "^7.8.0",
+    "fetch-openapi": "^9.1.0",
     "html-webpack-plugin": "^5.3.1",
     "postcss": "^8.2.10",
     "postcss-loader": "^5.2.0",
@@ -47,6 +49,7 @@
     "url": "^0.11.0",
     "util": "^0.12.4",
     "vue": "^3.0.11",
-    "vue-router": "^4.0.6"
+    "vue-router": "^4.0.6",
+    "yamljs": "^0.3.0"
   }
 }

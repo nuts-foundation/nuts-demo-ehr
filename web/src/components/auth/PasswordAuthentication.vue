@@ -52,7 +52,7 @@ export default {
       this.$router.push({name: "ehr.home"})
     },
     login() {
-      this.api.authenticateWithPassword({body: this.credentials})
+      this.$api.authenticateWithPassword({body: this.credentials})
           .then(responseData => {
             localStorage.setItem("session", responseData.token)
             console.log("Password authentication successful")

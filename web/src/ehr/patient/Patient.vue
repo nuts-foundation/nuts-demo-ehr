@@ -116,7 +116,7 @@ export default {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
     },
     fetchPatient() {
-      this.api.getPatient({patientID: this.$route.params.id})
+      this.$api.getPatient({patientID: this.$route.params.id})
           .then(patient => this.patient = patient)
           .catch(reason => console.log(reason))
     }

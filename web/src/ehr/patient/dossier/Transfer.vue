@@ -100,7 +100,7 @@ export default {
       this.requestedOrganization = null
     },
     fetchPatient(patientID) {
-      this.api.getPatient({patientID: patientID})
+      this.$api.getPatient({patientID: patientID})
           .then(patient => this.patient = patient)
           .catch(error => this.apiError = error)
     }

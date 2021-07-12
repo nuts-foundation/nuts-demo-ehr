@@ -55,6 +55,6 @@ export default {
             }
         }
 
-        app.config.globalProperties.api = proxy
+        app.config.globalProperties.$api = proxy
     }
 }

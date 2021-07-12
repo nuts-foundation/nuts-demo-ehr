@@ -54,7 +54,7 @@ export default {
     // changes to selected customer
     'selectedCustomer'() {
       localStorage.removeItem("session")
-      this.api.setCustomer({body: this.selectedCustomer})
+      this.$api.setCustomer({body: this.selectedCustomer})
           .then(responseData => {
             localStorage.setItem("session", responseData.token)
             this.loginError = ''
@@ -70,7 +70,7 @@ export default {
       this.$router.push("/ehr/")
     },
     fetchData() {
-      this.api.listCustomers()
+      this.$api.listCustomers()
           .then(data => this.customers = data)
           .catch(response => {
             console.error("failure", response)

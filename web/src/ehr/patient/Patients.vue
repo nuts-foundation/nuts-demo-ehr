@@ -47,7 +47,7 @@ export default {
   },
   methods: {
     list() {
-      this.api.getPatients()
+      this.$api.getPatients()
           .then((response) => this.patients = response)
           .catch((reason) => this.error = reason)
     },

@@ -61,7 +61,7 @@ export default {
     },
     updatePatient() {
       let patientID = this.$route.params.id
-      this.api.updatePatient({patientID: patientID, body: this.patient})
+      this.$api.updatePatient({patientID: patientID, body: this.patient})
           .then(response => {
             this.$emit("statusUpdate", "Patient updated")
             this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
@@ -69,7 +69,7 @@ export default {
           .catch(error => this.apiError = error)
     },
     fetchPatient() {
-      this.api.getPatient({patientID: this.$route.params.id})
+      this.$api.getPatient({patientID: this.$route.params.id})
           .then(patient => this.patient = patient)
           .catch(error => this.apiError = error)
     }

@@ -7,6 +7,10 @@ import (
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 )
 
+const (
+	BearerAuthScopes = "bearerAuth.Scopes"
+)
+
 // Defines values for PatientPropertiesGender.
 const (
 	PatientPropertiesGenderFemale PatientPropertiesGender = "female"

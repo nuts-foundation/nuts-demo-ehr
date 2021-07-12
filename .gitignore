@@ -2,8 +2,8 @@ node_modules
 .idea
 web/dist
 
-# api.json is generated from api.yaml to aid ES6 code generation
-api/api.json
+# Files generated from api.yaml to aid ES6 code generation
+api/api_swagger*
 
 customers.json
 logo.png

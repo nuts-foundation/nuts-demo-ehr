@@ -14,61 +14,61 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /web/auth)
+	// (POST /auth)
 	SetCustomer(ctx echo.Context) error
 
-	// (POST /web/auth/irma/session)
+	// (POST /auth/irma/session)
 	AuthenticateWithIRMA(ctx echo.Context) error
 
-	// (GET /web/auth/irma/session/{sessionToken}/result)
+	// (GET /auth/irma/session/{sessionToken}/result)
 	GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error
 
-	// (POST /web/auth/passwd)
+	// (POST /auth/passwd)
 	AuthenticateWithPassword(ctx echo.Context) error
 
-	// (GET /web/customers)
+	// (GET /customers)
 	ListCustomers(ctx echo.Context) error
 
-	// (GET /web/private)
+	// (GET /private)
 	CheckSession(ctx echo.Context) error
 
-	// (GET /web/private/customer)
+	// (GET /private/customer)
 	GetCustomer(ctx echo.Context) error
 
-	// (GET /web/private/dossier)
+	// (GET /private/dossier)
 	GetDossier(ctx echo.Context, params GetDossierParams) error
 
-	// (GET /web/private/network/organizations)
+	// (GET /private/network/organizations)
 	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
 
-	// (GET /web/private/patient/{patientID})
+	// (GET /private/patient/{patientID})
 	GetPatient(ctx echo.Context, patientID string) error
 
-	// (PUT /web/private/patient/{patientID})
+	// (PUT /private/patient/{patientID})
 	UpdatePatient(ctx echo.Context, patientID string) error
 
-	// (GET /web/private/patients)
+	// (GET /private/patients)
 	GetPatients(ctx echo.Context) error
 
-	// (POST /web/private/patients)
+	// (POST /private/patients)
 	NewPatient(ctx echo.Context) error
 
-	// (GET /web/private/transfer)
+	// (GET /private/transfer)
 	GetPatientTransfers(ctx echo.Context, params GetPatientTransfersParams) error
 
-	// (POST /web/private/transfer)
+	// (POST /private/transfer)
 	CreateTransfer(ctx echo.Context) error
 
-	// (GET /web/private/transfer/{transferID})
+	// (GET /private/transfer/{transferID})
 	GetTransfer(ctx echo.Context, transferID string) error
 
-	// (GET /web/private/transfer/{transferID}/negotiation)
+	// (GET /private/transfer/{transferID}/negotiation)
 	ListTransferNegotiations(ctx echo.Context, transferID string) error
 
-	// (POST /web/private/transfer/{transferID}/negotiation/{organizationDID})
+	// (POST /private/transfer/{transferID}/negotiation/{organizationDID})
 	StartTransferNegotiation(ctx echo.Context, transferID string, organizationDID string) error
 
-	// (POST /web/private/transfer/{transferID}/negotiation/{organizationDID}/assign)
+	// (POST /private/transfer/{transferID}/negotiation/{organizationDID}/assign)
 	AssignTransferNegotiation(ctx echo.Context, transferID string, organizationDID string) error
 }
 
@@ -81,6 +81,8 @@ type ServerInterfaceWrapper struct {
 func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.SetCustomer(ctx)
 	return err
@@ -89,6 +91,8 @@ func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 // AuthenticateWithIRMA converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.AuthenticateWithIRMA(ctx)
@@ -106,6 +110,8 @@ func (w *ServerInterfaceWrapper) GetIRMAAuthenticationResult(ctx echo.Context) e
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
 	}
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetIRMAAuthenticationResult(ctx, sessionToken)
 	return err
@@ -114,6 +120,8 @@ func (w *ServerInterfaceWrapper) GetIRMAAuthenticationResult(ctx echo.Context) e
 // AuthenticateWithPassword converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.AuthenticateWithPassword(ctx)
@@ -124,6 +132,8 @@ func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) erro
 func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.ListCustomers(ctx)
 	return err
@@ -132,6 +142,8 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 // CheckSession converts echo context to params.
 func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CheckSession(ctx)
@@ -142,6 +154,8 @@ func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetCustomer(ctx)
 	return err
@@ -150,6 +164,8 @@ func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 // GetDossier converts echo context to params.
 func (w *ServerInterfaceWrapper) GetDossier(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetDossierParams
@@ -168,6 +184,8 @@ func (w *ServerInterfaceWrapper) GetDossier(ctx echo.Context) error {
 // SearchOrganizations converts echo context to params.
 func (w *ServerInterfaceWrapper) SearchOrganizations(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params SearchOrganizationsParams
@@ -201,6 +219,8 @@ func (w *ServerInterfaceWrapper) GetPatient(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
 	}
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetPatient(ctx, patientID)
 	return err
@@ -217,6 +237,8 @@ func (w *ServerInterfaceWrapper) UpdatePatient(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
 	}
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.UpdatePatient(ctx, patientID)
 	return err
@@ -225,6 +247,8 @@ func (w *ServerInterfaceWrapper) UpdatePatient(ctx echo.Context) error {
 // GetPatients converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPatients(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetPatients(ctx)
@@ -235,6 +259,8 @@ func (w *ServerInterfaceWrapper) GetPatients(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) NewPatient(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.NewPatient(ctx)
 	return err
@@ -243,6 +269,8 @@ func (w *ServerInterfaceWrapper) NewPatient(ctx echo.Context) error {
 // GetPatientTransfers converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPatientTransfers(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetPatientTransfersParams
@@ -262,6 +290,8 @@ func (w *ServerInterfaceWrapper) GetPatientTransfers(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) CreateTransfer(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CreateTransfer(ctx)
 	return err
@@ -278,6 +308,8 @@ func (w *ServerInterfaceWrapper) GetTransfer(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
 	}
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetTransfer(ctx, transferID)
 	return err
@@ -293,6 +325,8 @@ func (w *ServerInterfaceWrapper) ListTransferNegotiations(ctx echo.Context) erro
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
 	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.ListTransferNegotiations(ctx, transferID)
@@ -318,6 +352,8 @@ func (w *ServerInterfaceWrapper) StartTransferNegotiation(ctx echo.Context) erro
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter organizationDID: %s", err))
 	}
 
+	ctx.Set(BearerAuthScopes, []string{""})
+
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.StartTransferNegotiation(ctx, transferID, organizationDID)
 	return err
@@ -341,6 +377,8 @@ func (w *ServerInterfaceWrapper) AssignTransferNegotiation(ctx echo.Context) err
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter organizationDID: %s", err))
 	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.AssignTransferNegotiation(ctx, transferID, organizationDID)
@@ -375,25 +413,25 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/web/auth", wrapper.SetCustomer)
-	router.POST(baseURL+"/web/auth/irma/session", wrapper.AuthenticateWithIRMA)
-	router.GET(baseURL+"/web/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
-	router.POST(baseURL+"/web/auth/passwd", wrapper.AuthenticateWithPassword)
-	router.GET(baseURL+"/web/customers", wrapper.ListCustomers)
-	router.GET(baseURL+"/web/private", wrapper.CheckSession)
-	router.GET(baseURL+"/web/private/customer", wrapper.GetCustomer)
-	router.GET(baseURL+"/web/private/dossier", wrapper.GetDossier)
-	router.GET(baseURL+"/web/private/network/organizations", wrapper.SearchOrganizations)
-	router.GET(baseURL+"/web/private/patient/:patientID", wrapper.GetPatient)
-	router.PUT(baseURL+"/web/private/patient/:patientID", wrapper.UpdatePatient)
-	router.GET(baseURL+"/web/private/patients", wrapper.GetPatients)
-	router.POST(baseURL+"/web/private/patients", wrapper.NewPatient)
-	router.GET(baseURL+"/web/private/transfer", wrapper.GetPatientTransfers)
-	router.POST(baseURL+"/web/private/transfer", wrapper.CreateTransfer)
-	router.GET(baseURL+"/web/private/transfer/:transferID", wrapper.GetTransfer)
-	router.GET(baseURL+"/web/private/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)
-	router.POST(baseURL+"/web/private/transfer/:transferID/negotiation/:organizationDID", wrapper.StartTransferNegotiation)
-	router.POST(baseURL+"/web/private/transfer/:transferID/negotiation/:organizationDID/assign", wrapper.AssignTransferNegotiation)
+	router.POST(baseURL+"/auth", wrapper.SetCustomer)
+	router.POST(baseURL+"/auth/irma/session", wrapper.AuthenticateWithIRMA)
+	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
+	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
+	router.GET(baseURL+"/customers", wrapper.ListCustomers)
+	router.GET(baseURL+"/private", wrapper.CheckSession)
+	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
+	router.GET(baseURL+"/private/dossier", wrapper.GetDossier)
+	router.GET(baseURL+"/private/network/organizations", wrapper.SearchOrganizations)
+	router.GET(baseURL+"/private/patient/:patientID", wrapper.GetPatient)
+	router.PUT(baseURL+"/private/patient/:patientID", wrapper.UpdatePatient)
+	router.GET(baseURL+"/private/patients", wrapper.GetPatients)
+	router.POST(baseURL+"/private/patients", wrapper.NewPatient)
+	router.GET(baseURL+"/private/transfer", wrapper.GetPatientTransfers)
+	router.POST(baseURL+"/private/transfer", wrapper.CreateTransfer)
+	router.GET(baseURL+"/private/transfer/:transferID", wrapper.GetTransfer)
+	router.GET(baseURL+"/private/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)
+	router.POST(baseURL+"/private/transfer/:transferID/negotiation/:organizationDID", wrapper.StartTransferNegotiation)
+	router.POST(baseURL+"/private/transfer/:transferID/negotiation/:organizationDID/assign", wrapper.AssignTransferNegotiation)
 
 }
 

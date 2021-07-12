@@ -36,10 +36,8 @@ export default {
   emits: ['statusUpdate'],
   methods: {
     fetchData() {
-      this.$api.get("web/private/customer")
-          .then(responseData => {
-            this.customer = responseData
-          })
+      this.api.getCustomer()
+          .then(responseData => this.customer = responseData)
           .catch(reason => {
             console.error("failure", reason)
           })

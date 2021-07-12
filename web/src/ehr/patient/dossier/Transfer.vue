@@ -100,7 +100,7 @@ export default {
       this.requestedOrganization = null
     },
     fetchPatient(patientID) {
-      this.$api.get(`web/private/patient/${patientID}`)
+      this.api.getPatient({patientID: patientID})
           .then(patient => this.patient = patient)
           .catch(error => this.apiError = error)
     }

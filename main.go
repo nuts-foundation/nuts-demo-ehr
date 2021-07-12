@@ -110,7 +110,7 @@ func main() {
 	}
 	e.HTTPErrorHandler = httpErrorHandler
 
-	api.RegisterHandlers(e, apiWrapper)
+	api.RegisterHandlersWithBaseURL(e, apiWrapper, "/web")
 
 	// Setup asset serving:
 	// Check if we use live mode from the file system or using embedded files

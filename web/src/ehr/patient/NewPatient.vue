@@ -61,7 +61,7 @@ export default {
       // e.preventDefault()
     },
     confirm() {
-      this.$api.post('web/private/patients', this.patient)
+      this.api.newPatient({body: this.patient})
           .then(response => {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})

@@ -14,6 +14,8 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 )
 
+const BearerAuthScopes = domain.BearerAuthScopes
+
 type errorResponse struct {
 	Error error
 }

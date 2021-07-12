@@ -16,3 +16,5 @@ type Repository interface {
 	CreateNegotiation(ctx context.Context, transferID string, organizationDID string) (*domain.TransferNegotiation, error)
 	ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error)
 }
+
+type Factory struct{}

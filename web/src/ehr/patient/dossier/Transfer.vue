@@ -3,20 +3,25 @@
     <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
     <patient-details :patient="patient"/>
 
-    <table class="mt-4 min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-      <tr>
-        <th>Description</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td><textarea v-model="description" class="border min-w-full h-32"></textarea></td>
-      </tr>
-      </tbody>
-    </table>
+    <div class="mt-4">
+      <div class="bg-gray-50 font-bold">Description</div>
+      <div>
+        <textarea v-model="!!transfer.description" class="border min-w-full h-32"></textarea>
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="bg-gray-50 font-bold">Transfer date</div>
+      <div>
+        <td><input type="date" v-model="!!transfer.transferDate"></td>
+      </div>
+    </div>
 
-    <table class="mt-4 min-w-full divide-y divide-gray-200">
+    <div class="mt-4">
+      <button @click="createTransfer" v-if="transfer === null" class="btn btn-primary">Create Transfer</button>
+      <button @click="updateTransfer" v-if="transfer !== null" class="btn btn-primary">Update Transfer</button>
+    </div>
+
+    <table class="mt-4 min-w-full divide-y divide-gray-200" v-if="!!transfer">
       <thead class="bg-gray-50">
       <tr>
         <th>Organization</th>
@@ -25,10 +30,10 @@
       </tr>
       </thead>
       <tbody>
-      <tr v-for="transfer in transfers">
-        <td>{{ transfer.organization.name }}</td>
-        <td>{{ transfer.date }}</td>
-        <td>{{ transfer.status }}</td>
+      <tr v-for="negotiation in transfer.negotiations">
+        <td>{{ negotiation.organization.name }}</td>
+        <td>{{ negotiation.date }}</td>
+        <td>{{ negotiation.status }}</td>
       </tr>
       <tr>
         <td colspan="3" v-if="requestedOrganization === null">
@@ -52,14 +57,14 @@
       </tbody>
     </table>
 
-    <table class="min-w-full divide-y divide-gray-200 mt-4">
+    <table class="min-w-full divide-y divide-gray-200 mt-4" v-if="!!transfer">
       <thead class="bg-gray-50">
       <tr>
         <th>Messages</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="message in messages">
+      <tr v-for="message in transfer.messages">
         <td>{{ message.title }}</td>
       </tr>
       </tbody>
@@ -76,11 +81,12 @@ export default {
     return {
       apiError: null,
       patient: {},
-      description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
-      transfers: [
-        {date: "2021-06-22", status: "in afwachting", organization: {name: "De Regenboog"}},
-        {date: "2021-06-23", status: "geaccepteerd", organization: {name: "Avondrust"}},
-      ],
+      transfer: null,
+      // description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
+      // transfers: [
+      //   {date: "2021-06-22", status: "in afwachting", organization: {name: "De Regenboog"}},
+      //   {date: "2021-06-23", status: "geaccepteerd", organization: {name: "Avondrust"}},
+      // ],
       messages: [
         {title: "Aanmeldbericht", contents: "Some content"},
         {title: "Overdrachtsbericht", contents: "Some content 2"},
@@ -98,6 +104,12 @@ export default {
     },
     cancelOrganization() {
       this.requestedOrganization = null
+    },
+    createTransfer() {
+      this.$api.createTransfer()
+    },
+    updateTransfer() {
+
     },
     fetchPatient(patientID) {
       this.$api.getPatient({patientID: patientID})

@@ -37,6 +37,7 @@
     <main class="relative w-full p-5">
       <!-- Main content -->
       <div class="max-w-4xl mx-auto my-8">
+        <error-reporter :message="errorMessage.value"></error-reporter>
         <router-view @statusUpdate="updateStatus"></router-view>
       </div>
       <status-bar :statusMessage="eventMessage"></status-bar>
@@ -45,19 +46,29 @@
 </template>
 
 <script>
-import StatusBar from "../components/StatusBar.vue";
+import StatusBar from "../components/StatusBar.vue"
+import ErrorReporter from "../components/ErrorReporter.vue"
 
 export default {
-  components: {StatusBar},
+  components: {StatusBar,ErrorReporter},
   data() {
     return {
-      eventMessage: ''
+      eventMessage: '',
     }
   },
   methods: {
     updateStatus(status) {
       this.eventMessage = status
+    },
+  },
+  computed: {
+    errorMessage() {
+      return this.$errors.message
     }
+  },
+  beforeRouteUpdate(to, from, next) {
+    this.$errors.clear()
+    next()
   }
 }
 </script>

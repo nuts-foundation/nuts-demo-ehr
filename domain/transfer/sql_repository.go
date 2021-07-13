@@ -33,7 +33,7 @@ func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID, dossierID
 	return nil
 }
 
-func (dbTransfer sqlTransfer) MarshalToDomainPatient() (*domain.Transfer, error) {
+func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error) {
 	var status domain.TransferStatus
 	switch dbTransfer.Status {
 	case string(domain.TransferStatusCreated):
@@ -107,7 +107,7 @@ func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerI
 	result := make([]domain.Transfer, len(dbTransfers))
 
 	for idx, dbTransfer := range dbTransfers {
-		patient, err := dbTransfer.MarshalToDomainPatient()
+		patient, err := dbTransfer.MarshalToDomainTransfer()
 		if err != nil {
 			return nil, err
 		}

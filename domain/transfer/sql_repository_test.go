@@ -31,7 +31,7 @@ func TestSQLiteTransferRepository_Create(t *testing.T) {
 		}
 		assert.NotEmpty(t, newTransfer.Id)
 		query := "SELECT * FROM `transfer` WHERE customer_id = ? ORDER BY id ASC"
-		rows, err := repo.db.Queryx(query, "c1", "14")
+		rows, err := repo.db.Queryx(query, "c1")
 		if !assert.NoError(t, err) {
 			return
 		}

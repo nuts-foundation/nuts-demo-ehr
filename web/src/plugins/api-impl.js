@@ -169,11 +169,31 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getDossier');
-      return fetch(endpoint + basePath + '/private/dossier'
+      return fetch(endpoint + basePath + '/private/dossier' + '?' + buildQuery({
+          'patientID': params['patientID'],
+        })
+
         , {
           method: 'GET',
           headers,
           mode,
+        });
+    },
+    createDossier(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createDossier');
+      return fetch(endpoint + basePath + '/private/dossier'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
         });
     },
     searchOrganizations(parameters) {

@@ -55,6 +55,14 @@ type AcceptTransferRequest struct {
 	NegotiationID ObjectID `json:"negotiationID"`
 }
 
+// API request to create a dossier for a patient.
+type CreateDossierRequest struct {
+	Name string `json:"name"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	PatientID ObjectID `json:"patientID"`
+}
+
 // Create a new transfer for a specific dossier with a date and description.
 type CreateTransferRequest struct {
 	Description string `json:"description"`
@@ -225,6 +233,9 @@ type GetDossierParams struct {
 	PatientID string `json:"patientID"`
 }
 
+// CreateDossierJSONBody defines parameters for CreateDossier.
+type CreateDossierJSONBody CreateDossierRequest
+
 // SearchOrganizationsParams defines parameters for SearchOrganizations.
 type SearchOrganizationsParams struct {
 
@@ -262,6 +273,9 @@ type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
+
+// CreateDossierJSONRequestBody defines body for CreateDossier for application/json ContentType.
+type CreateDossierJSONRequestBody CreateDossierJSONBody
 
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody UpdatePatientJSONBody

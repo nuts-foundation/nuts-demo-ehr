@@ -2,8 +2,6 @@
   <div>
     <h1 class="text-2xl">Patients</h1>
 
-    <p v-if="!!error" class="m-4">Error: {{ error }}</p>
-
     <button
         @click="$router.push({name: 'ehr.patients.new'})"
         class="float-right inline-flex items-center"
@@ -39,7 +37,6 @@ export default {
   data() {
     return {
       patients: [],
-      error: null,
     }
   },
   mounted() {
@@ -49,7 +46,7 @@ export default {
     list() {
       this.$api.getPatients()
           .then((response) => this.patients = response)
-          .catch((reason) => this.error = reason)
+          .catch(error => this.$errors.report(error))
     },
   },
 }

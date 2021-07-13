@@ -1,6 +1,4 @@
 <template>
-  <patient-details :patient="patient"/>
-
   <div class="mt-4">
     <div class="bg-gray-50 font-bold">Description</div>
     <div>
@@ -15,12 +13,9 @@
   </div>
 </template>
 <script>
-import PatientDetails from "../PatientDetails.vue"
 
 export default {
-  components: {PatientDetails},
   props: {
-    patient: Object,
     transfer: Object,
     mode: {
       type: String,

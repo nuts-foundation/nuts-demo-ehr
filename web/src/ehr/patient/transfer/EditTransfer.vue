@@ -1,7 +1,5 @@
 <template>
   <div>
-    <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
-
     <transfer-form v-if="transfer" :patient="transfer.patient" :transfer="transfer"
                    @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
 
@@ -67,7 +65,6 @@ export default {
   components: {TransferForm, AutoComplete},
   data() {
     return {
-      apiError: null,
       transfer: null,
       // description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
       // transfers: [
@@ -98,7 +95,7 @@ export default {
     fetchTransfer(id) {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
-          .catch(error => this.apiError = error)
+          .catch(error => this.$errors.report(error))
     }
   },
   mounted() {

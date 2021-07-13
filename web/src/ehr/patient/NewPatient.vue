@@ -1,6 +1,5 @@
 <template>
   <h1 class="text-2xl">New Patient</h1>
-  <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
   <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
     <b>Please correct the following error(s):</b>
     <ul>
@@ -27,7 +26,6 @@ export default {
   components: {PatientForm},
   data() {
     return {
-      apiError: '',
       formErrors: [],
       patient: {
         id: '',
@@ -49,7 +47,6 @@ export default {
     checkForm(e) {
       // reset the errors
       this.formErrors.length = 0
-      this.apiError = ''
 
       if (this.patient.ssn === "") {
         this.formErrors.push("SSN is a required field.")
@@ -66,7 +63,7 @@ export default {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
-          .catch(error => this.apiError = error)
+          .catch(error => this.$errors.report(error))
     }
   }
 }

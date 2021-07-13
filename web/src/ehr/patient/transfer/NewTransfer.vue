@@ -1,8 +1,6 @@
 <template>
   <div>
-    <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
-
-    <transfer-form :patient="patient" :transfer="transfer" @input="(newTransfer) => {this.transfer = newTransfer}"/>
+    <transfer-form :transfer="transfer"></transfer-form>
 
     <div class="mt-4">
       <button @click="createDossierAndTransfer" class="btn btn-primary">Create Transfer</button>
@@ -16,8 +14,6 @@ export default {
   components: {TransferForm},
   data() {
     return {
-      apiError: null,
-      patient: {},
       transfer: {
         id: undefined,
         transferDate: "",
@@ -29,8 +25,8 @@ export default {
     createDossierAndTransfer() {
       this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Transfer'}})
           .then(dossier => this.createTransfer(dossier.id))
-          .then(transfer => this.$router.push({name: 'ehr.transfer.edit', params: {id: transfer.id}}))
-          .catch(error => this.apiError = error)
+          .then(transfer => this.$router.push({name: 'ehr.patient.transfer.edit', params: {transferID: transfer.id}}))
+          .catch(error => this.$errors.report(error))
     },
     createTransfer(dossierID) {
       return this.$api.createTransfer({
@@ -44,7 +40,7 @@ export default {
     fetchPatient(patientID) {
       this.$api.getPatient({patientID: patientID})
           .then(patient => this.patient = patient)
-          .catch(error => this.apiError = error)
+          .catch(error => this.$errors.report(error))
     }
   },
   mounted() {

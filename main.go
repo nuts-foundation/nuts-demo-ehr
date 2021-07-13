@@ -98,7 +98,17 @@ func main() {
 	}
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Logger())
+	// Register Echo logger middleware but do not log calls to the status endpoint,
+	// since that gets called by the Docker healthcheck very, very often which leads to lots of clutter in the log.
+	e.GET("/status", func(c echo.Context) error {
+		c.Response().WriteHeader(http.StatusNoContent)
+		return nil
+	})
+	loggerConfig := middleware.DefaultLoggerConfig
+	loggerConfig.Skipper = func(ctx echo.Context) bool {
+		return ctx.Request().RequestURI == "/status"
+	}
+	e.Use(middleware.LoggerWithConfig(loggerConfig))
 	// JWT checking for correct claims
 	e.Use(auth.JWTHandler)
 	e.Logger.SetLevel(log2.DEBUG)

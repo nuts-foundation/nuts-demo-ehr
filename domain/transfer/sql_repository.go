@@ -89,7 +89,17 @@ func NewSQLiteTransferRepository(factory Factory, db *sqlx.DB) *SQLiteTransferRe
 }
 
 func (r SQLiteTransferRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Transfer, error) {
-	panic("implement me")
+	// TODO: filter on patient by dossier
+	const query = `SELECT * FROM transfer WHERE customer_id = ? AND id = ? ORDER BY id ASC`
+
+	dbTransfer := sqlTransfer{}
+	err := r.db.GetContext(ctx, &dbTransfer, query, customerID, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return dbTransfer.MarshalToDomainTransfer()
 }
 
 func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerID, patientID string) ([]domain.Transfer, error) {

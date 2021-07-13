@@ -24,6 +24,8 @@ type sqlPatient struct {
 	// Date of birth. Can include time if known.
 	Dob sql.NullTime `db:"date_of_birth"`
 
+	AvatarURL sql.NullString `db:"avatar_url"`
+
 	// Primary email address.
 	Email sql.NullString `db:"email"`
 
@@ -76,6 +78,12 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 		ssn = &tmp
 	}
 
+	var avatarURL *string
+	if dbPatient.AvatarURL.Valid {
+		tmp := dbPatient.AvatarURL.String
+		avatarURL = &tmp
+	}
+
 	return &domain.Patient{
 		ObjectID: domain.ObjectID(dbPatient.ID),
 		PatientProperties: domain.PatientProperties{
@@ -87,14 +95,16 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 			Gender:    gender,
 			Zipcode:   dbPatient.Zipcode,
 		},
+		AvatarUrl: avatarURL,
 	}, nil
 }
 
 func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patient domain.Patient) error {
 	var (
-		email string
-		ssn   string
-		dob   time.Time
+		email     string
+		ssn       string
+		dob       time.Time
+		avatarURL string
 	)
 	if patient.Email != nil {
 		tmp := *patient.Email
@@ -106,12 +116,16 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 	if patient.Dob != nil {
 		dob = patient.Dob.Time
 	}
+	if patient.AvatarUrl != nil {
+		avatarURL = *patient.AvatarUrl
+	}
 	*dbPatient = sqlPatient{
 		ID:         string(patient.ObjectID),
 		SSN:        sql.NullString{String: ssn, Valid: ssn != ""},
 		CustomerID: customerID,
 		Dob:        sql.NullTime{Time: dob.UTC(), Valid: !dob.IsZero()},
 		Email:      sql.NullString{String: email, Valid: email != ""},
+		AvatarURL:  sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 		FirstName:  patient.FirstName,
 		Surname:    patient.Surname,
 		Gender:     string(patient.Gender),
@@ -136,6 +150,7 @@ const schema = `
 		surname varchar(100) NOT NULL,
 		gender varchar(10) NOT NULL DEFAULT 'unknown',
 		zipcode varchar(10) NOT NULL DEFAULT '',
+	    avatar_url varchar(100),
 		PRIMARY KEY (customer_id, id),
 		UNIQUE(customer_id, ssn)
 	);
@@ -205,7 +220,7 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 }
 
 func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (patient *domain.Patient, err error) {
-	patient, err = r.factory.NewUUIDPatient(patientProperties)
+	patient, err = r.factory.NewAvatarPatient(patientProperties)
 	if err != nil {
 		return nil, err
 	}
@@ -231,8 +246,8 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 		}
 	}()
 	const query = `INSERT INTO patient 
-		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode)
-		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode)
+		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode, avatar_url)
+		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode, :avatar_url)
 `
 
 	_, err = tx.NamedExec(query, dbPatient)

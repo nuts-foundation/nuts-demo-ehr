@@ -1,10 +1,11 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type GetDossierParams = domain.GetDossierParams

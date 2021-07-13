@@ -1,6 +1,8 @@
 <template>
   <div class="flex flex-row gap-4 m4">
-    <div class="w-24 h-24 border"></div>
+    <div class="w-24 h-24 border">
+      <img :src="patient.avatar_url" alt="avatar">
+    </div>
     <div v-if="!!patient">
       <div class="flex">
         <h1 v-if="patient.surname || patient.firstName" class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>

@@ -142,6 +142,8 @@ type Patient struct {
 	ObjectID `yaml:",inline"`
 	// Embedded struct due to allOf(#/components/schemas/PatientProperties)
 	PatientProperties `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	AvatarUrl *string `json:"avatar_url,omitempty"`
 }
 
 // A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.

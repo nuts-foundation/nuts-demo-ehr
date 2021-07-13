@@ -426,6 +426,10 @@ components:
       allOf:
         - $ref: "#/components/schemas/ObjectID"
         - $ref: "#/components/schemas/PatientProperties"
+        - type: object
+          properties:
+            avatar_url:
+              type: string
     PatientProperties:
       type: object
       description: |

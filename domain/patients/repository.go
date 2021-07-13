@@ -2,7 +2,14 @@ package patients
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math"
+	"net/http"
+	"net/url"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -23,9 +30,53 @@ func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*do
 		patientProperties.Gender = domain.PatientPropertiesGenderUnknown
 	}
 	return &domain.Patient{
-		ObjectID:         domain.ObjectID(uuid.NewString()),
+		ObjectID:          domain.ObjectID(uuid.NewString()),
 		PatientProperties: patientProperties,
 	}, nil
+}
+
+func (f Factory) NewAvatarPatient(properties domain.PatientProperties) (*domain.Patient, error) {
+	patient, err := f.NewUUIDPatient(properties)
+	if err != nil {
+		return nil, err
+	}
+	tr := &http.Transport{
+		IdleConnTimeout: 5 * time.Second,
+	}
+	client := &http.Client{Transport: tr}
+	const fakeFaceAPIURL = "https://fakeface.rest/face/json"
+	url, err := url.Parse(fakeFaceAPIURL)
+	if err != nil {
+		return patient, err
+	}
+
+	q := url.Query()
+	if patient.Gender == domain.PatientPropertiesGenderMale {
+		q.Add("gender", "male")
+	} else if patient.Gender == domain.PatientPropertiesGenderFemale {
+		q.Add("gender", "female")
+	}
+	if !patient.Dob.IsZero() {
+		age := math.Floor(time.Since(patient.Dob.Time).Hours() / 24 / 365)
+		q.Set("minimum_age", fmt.Sprintf("%d", int(age-3)))
+		q.Set("maximum_age", fmt.Sprintf("%d", int(age+3)))
+	}
+	url.RawQuery = q.Encode()
+
+	resp, err := client.Get(url.String())
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return patient, err
+	}
+	apiResponse := map[string]interface{}{}
+	json.Unmarshal(body, &apiResponse)
+
+	if avatarURL, ok := apiResponse["image_url"]; ok {
+		tmp := avatarURL.(string)
+		patient.AvatarUrl = &tmp
+	}
+
+	return patient, nil
 }
 
 type MemoryPatientRepository struct {

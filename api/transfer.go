@@ -2,10 +2,11 @@ package api
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	transfer2 "github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
-	"net/http"
 )
 
 type GetPatientTransfersParams = domain.GetPatientTransfersParams
@@ -23,7 +24,10 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetPatientTransfers(ctx echo.Context, params GetPatientTransfersParams) error {
-	transfers := w.TransferRepository.FindByPatientID(ctx.Request().Context(), w.getCustomerID(), params.PatientID)
+	transfers, err := w.TransferRepository.FindByPatientID(ctx.Request().Context(), w.getCustomerID(), params.PatientID)
+	if err != nil {
+		return err
+	}
 	return ctx.JSON(http.StatusOK, transfers)
 }
 

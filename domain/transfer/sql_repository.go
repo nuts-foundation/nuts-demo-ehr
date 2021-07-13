@@ -3,8 +3,11 @@ package transfer
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
@@ -14,18 +17,45 @@ type sqlTransfer struct {
 	CustomerID  string       `db:"customer_id"`
 	Date        sql.NullTime `db:"date"`
 	Status      string       `db:"status"`
+	DossierID   string       `db:"dossier_id"`
 	Description string       `db:"description"`
 }
 
-func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID string, transfer domain.Transfer) error {
+func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID, dossierID string, transfer domain.Transfer) error {
 	*dbTransfer = sqlTransfer{
 		ID:          string(transfer.Id),
-		Date:        sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
 		CustomerID:  customerID,
+		DossierID:   dossierID,
+		Date:        sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
 		Status:      string(transfer.Status),
 		Description: transfer.Description,
 	}
 	return nil
+}
+
+func (dbTransfer sqlTransfer) MarshalToDomainPatient() (*domain.Transfer, error) {
+	var status domain.TransferStatus
+	switch dbTransfer.Status {
+	case string(domain.TransferStatusCreated):
+		status = domain.TransferStatusCreated
+	case string(domain.TransferStatusAssigned):
+		status = domain.TransferStatusAssigned
+	case string(domain.TransferStatusRequested):
+		status = domain.TransferStatusRequested
+	case string(domain.TransferStatusCompleted):
+		status = domain.TransferStatusCompleted
+	case string(domain.TransferStatusCancelled):
+		status = domain.TransferStatusCancelled
+	default:
+		return nil, fmt.Errorf("unknown tranfser status: '%s'", dbTransfer.Status)
+	}
+
+	return &domain.Transfer{
+		Id:           domain.ObjectID(dbTransfer.ID),
+		Description:  dbTransfer.Description,
+		Status:       status,
+		TransferDate: openapi_types.Date{},
+	}, nil
 }
 
 const schema = `
@@ -35,6 +65,7 @@ const schema = `
 		date DATETIME DEFAULT NULL,
 		status char(10) NOT NULL DEFAULT 'created',
 		description varchar(200) NOT NULL,
+	    dossier_id char(36) NOT NULL,
 		PRIMARY KEY (id),
 		UNIQUE(customer_id, id)
 	);
@@ -61,19 +92,39 @@ func (r SQLiteTransferRepository) FindByID(ctx context.Context, customerID, id s
 	panic("implement me")
 }
 
-func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerID, patientID string) []domain.Transfer {
-	panic("implement me")
+func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerID, patientID string) ([]domain.Transfer, error) {
+	// TODO: filter on patient by dossier
+	const query = `SELECT * FROM transfer WHERE customer_id = ? ORDER BY id ASC`
+
+	dbTransfers := []sqlTransfer{}
+	err := r.db.SelectContext(ctx, &dbTransfers, query, customerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return []domain.Transfer{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.Transfer, len(dbTransfers))
+
+	for idx, dbTransfer := range dbTransfers {
+		patient, err := dbTransfer.MarshalToDomainPatient()
+		if err != nil {
+			return nil, err
+		}
+		result[idx] = *patient
+	}
+	return result, nil
 }
 
 func (r SQLiteTransferRepository) Create(ctx context.Context, customerID, dossierID, description string, date time.Time) (*domain.Transfer, error) {
 	transfer := r.factory.NewTransfer(description, date)
 	dbTransfer := sqlTransfer{}
-	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, *transfer); err != nil {
+	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, dossierID, *transfer); err != nil {
 		return nil, err
 	}
 	const query = `INSERT INTO transfer 
-		(id, customer_id, date, status, description)
-		values(:id, :customer_id, :date, :status, :description)
+		(id, customer_id, dossier_id, date, status, description)
+		values(:id, :customer_id, :dossier_id, :date, :status, :description)
 `
 
 	if _, err := r.db.NamedExec(query, dbTransfer); err != nil {

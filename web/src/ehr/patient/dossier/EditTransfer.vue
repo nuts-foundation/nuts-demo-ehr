@@ -1,27 +1,15 @@
 <template>
   <div>
     <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
-    <patient-details :patient="patient"/>
+
+    <transfer-form v-if="transfer" :patient="transfer.patient" :transfer="transfer"
+                   @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
 
     <div class="mt-4">
-      <div class="bg-gray-50 font-bold">Description</div>
-      <div>
-        <textarea v-model="!!transfer.description" class="border min-w-full h-32"></textarea>
-      </div>
-    </div>
-    <div class="mt-4">
-      <div class="bg-gray-50 font-bold">Transfer date</div>
-      <div>
-        <td><input type="date" v-model="!!transfer.transferDate"></td>
-      </div>
+      <button @click="updateTransfer" class="btn btn-primary">Update</button>
     </div>
 
-    <div class="mt-4">
-      <button @click="createTransfer" v-if="transfer === null" class="btn btn-primary">Create Transfer</button>
-      <button @click="updateTransfer" v-if="transfer !== null" class="btn btn-primary">Update Transfer</button>
-    </div>
-
-    <table class="mt-4 min-w-full divide-y divide-gray-200" v-if="!!transfer">
+    <table class="mt-4 min-w-full divide-y divide-gray-200" v-if="transfer">
       <thead class="bg-gray-50">
       <tr>
         <th>Organization</th>
@@ -43,7 +31,7 @@
               v-model:selected="requestedOrganization"
               v-slot="slotProps"
           >
-            {{slotProps.item.name}}
+            {{ slotProps.item.name }}
           </auto-complete>
         </td>
         <td colspan="2" v-if="!!requestedOrganization">
@@ -57,7 +45,7 @@
       </tbody>
     </table>
 
-    <table class="min-w-full divide-y divide-gray-200 mt-4" v-if="!!transfer">
+    <table class="min-w-full divide-y divide-gray-200 mt-4" v-if="transfer">
       <thead class="bg-gray-50">
       <tr>
         <th>Messages</th>
@@ -72,15 +60,14 @@
   </div>
 </template>
 <script>
-import PatientDetails from "../PatientDetails.vue";
-import AutoComplete from "../../../components/Autocomplete.vue";
+import TransferForm from "./TransferForm.vue"
+import AutoComplete from "../../../components/Autocomplete.vue"
 
 export default {
-  components: {PatientDetails, AutoComplete},
+  components: {TransferForm, AutoComplete},
   data() {
     return {
       apiError: null,
-      patient: {},
       transfer: null,
       // description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
       // transfers: [
@@ -105,20 +92,18 @@ export default {
     cancelOrganization() {
       this.requestedOrganization = null
     },
-    createTransfer() {
-      this.$api.createTransfer()
-    },
     updateTransfer() {
 
     },
-    fetchPatient(patientID) {
-      this.$api.getPatient({patientID: patientID})
-          .then(patient => this.patient = patient)
+    fetchTransfer(id) {
+      this.$api.getTransfer({transferID: id})
+          .then(transfer => this.transfer = transfer)
           .catch(error => this.apiError = error)
     }
   },
   mounted() {
-    this.fetchPatient(this.$route.params.id)
-  }
+    this.fetchTransfer(this.$route.params.id)
+  },
+
 }
 </script>

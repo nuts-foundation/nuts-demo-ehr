@@ -14,7 +14,8 @@ import Patient from './ehr/patient/Patient.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
-import TransferDossier from "./ehr/patient/dossier/Transfer.vue"
+import NewTransfer from "./ehr/patient/dossier/NewTransfer.vue"
+import EditTransfer from "./ehr/patient/dossier/EditTransfer.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 
@@ -77,9 +78,14 @@ const routes = [
         component: NewDossier
       },
       {
-        path: 'patient/:id/transfer',
-        name: 'ehr.patient.transfer',
-        component: TransferDossier
+        path: 'patient/:id/transfer/new',
+        name: 'ehr.patient.transfer.new',
+        component: NewTransfer
+      },
+      {
+        path: 'transfer/:id/edit',
+        name: 'ehr.transfer.edit',
+        component: EditTransfer
       },
       {
         path: 'settings',

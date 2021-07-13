@@ -15,7 +15,10 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	transfer := w.TransferRepository.Create(ctx.Request().Context(), w.getCustomerID(), string(request.DossierID), request.Description, request.TransferDate.Time)
+	transfer, err := w.TransferRepository.Create(ctx.Request().Context(), w.getCustomerID(), string(request.DossierID), request.Description, request.TransferDate.Time)
+	if err != nil {
+		return err
+	}
 	return ctx.JSON(http.StatusOK, transfer)
 }
 

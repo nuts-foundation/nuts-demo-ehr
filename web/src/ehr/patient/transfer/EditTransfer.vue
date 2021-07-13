@@ -16,14 +16,13 @@
       </tr>
       </thead>
       <tbody>
-      <tr v-for="negotiation in transfer.negotiations">
+      <tr v-for="negotiation in negotiations">
         <td>{{ negotiation.organization.name }}</td>
         <td>{{ negotiation.date }}</td>
         <td>{{ negotiation.status }}</td>
       </tr>
       <tr>
         <td colspan="3" v-if="requestedOrganization === null">
-
           <auto-complete
               :items="organizations"
               v-model:selected="requestedOrganization"
@@ -36,7 +35,7 @@
           {{ requestedOrganization.name }}
         </td>
         <td v-if="!!requestedOrganization">
-          <button class="btn btn-primary">Request</button>
+          <button class="btn btn-primary" @click="startNegotiation">Request</button>
           <button class="btn" @click="cancelOrganization">Cancel</button>
         </td>
       </tr>
@@ -66,18 +65,14 @@ export default {
   data() {
     return {
       transfer: null,
-      // description: "Meneer heeft wondzorg nodig aan rechterbeen. 3 maal daags verband wisselen.",
-      // transfers: [
-      //   {date: "2021-06-22", status: "in afwachting", organization: {name: "De Regenboog"}},
-      //   {date: "2021-06-23", status: "geaccepteerd", organization: {name: "Avondrust"}},
-      // ],
+      negotiations: [],
       messages: [
         {title: "Aanmeldbericht", contents: "Some content"},
         {title: "Overdrachtsbericht", contents: "Some content 2"},
       ],
       organizations: [
-        {name: "HengeZorg", zipcode: "7552AB", starred: true},
-        {name: "Zorgcentrum Enschede", zipcode: "7552CC", starred: false},
+        {did: "1234", name: "HengeZorg", zipcode: "7552AB", starred: true},
+        {did: "5678", name: "Zorgcentrum Enschede", zipcode: "7552CC", starred: false},
       ],
       requestedOrganization: null,
     }
@@ -89,12 +84,17 @@ export default {
     cancelOrganization() {
       this.requestedOrganization = null
     },
+    startNegotiation() {
+      this.$api.startTransferNegotiation({transferID: this.transfer.id, organizationDID: this.requestedOrganization.did})
+    },
     updateTransfer() {
 
     },
     fetchTransfer(id) {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
+          .then(() => this.$api.listTransferNegotiations({transferID: id}))
+          .then(negotiations => this.negotiations = negotiations)
           .catch(error => this.$errors.report(error))
     }
   },

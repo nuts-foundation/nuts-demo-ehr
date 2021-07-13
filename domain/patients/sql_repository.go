@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	sql2 "github.com/nuts-foundation/nuts-demo-ehr/domain/sql"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -117,12 +118,6 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 		Zipcode:    patient.Zipcode,
 	}
 	return nil
-}
-
-// sqlContextGetter is an interface provided both by transaction and standard db connection
-type sqlContextGetter interface {
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 type SQLitePatientRepository struct {
@@ -266,7 +261,7 @@ func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]
 	return result, nil
 }
 
-func (r SQLitePatientRepository) getPatient(ctx context.Context, db sqlContextGetter, customerID, patientID string) (*domain.Patient, error) {
+func (r SQLitePatientRepository) getPatient(ctx context.Context, db sql2.SQLContextGetter, customerID, patientID string) (*domain.Patient, error) {
 	query := "SELECT * FROM `patient` WHERE customer_id = ? AND id = ? LIMIT 1"
 	dbPatient := &sqlPatient{}
 	err := db.GetContext(ctx, dbPatient, query, customerID, patientID)

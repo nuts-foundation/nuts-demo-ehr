@@ -186,6 +186,9 @@ type Transfer struct {
 	Description string `json:"description"`
 
 	// An internal object UUID which can be used as unique identifier for entities.
+	DossierID ObjectID `json:"dossierID"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 
 	// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.

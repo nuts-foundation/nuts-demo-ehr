@@ -550,11 +550,14 @@ components:
         TODO: proposing/handling alternative transfer dates is not supported yet.
       required:
         - id
+        - dossierID
         - status
         - description
         - transferDate
       properties:
         id:
+          $ref: '#/components/schemas/ObjectID'
+        dossierID:
           $ref: '#/components/schemas/ObjectID'
         status:
           description: >

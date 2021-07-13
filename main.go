@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"io/fs"
 	"log"
@@ -99,6 +100,7 @@ func main() {
 		PatientRepository:  patientRepository,
 		DossierRepository:  dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
 		TransferRepository: transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
+		FHIRGateway:        &fhir.StubGateway{},
 	}
 	e := echo.New()
 	e.HideBanner = true

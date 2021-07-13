@@ -20,9 +20,9 @@ func (w Wrapper) CreateDossier(ctx echo.Context) error {
 		return err
 	}
 	logrus.Infof("Creating dossier (name=%s, patientID=%s)", request.Name, request.PatientID)
-	return ctx.JSON(http.StatusOK, domain.Dossier{
-		Id:        "712BC28B-C368-475F-9D98-1F80F61E0956",
-		Name:      request.Name,
-		PatientID: request.PatientID,
-	})
+	dossier, err := w.DossierRepository.Create(ctx.Request().Context(), request.Name, string(request.PatientID))
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, dossier)
 }

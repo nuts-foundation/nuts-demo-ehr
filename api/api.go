@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"net/http"
@@ -31,6 +32,7 @@ type Wrapper struct {
 	Client             client.HTTPClient
 	CustomerRepository customers.Repository
 	PatientRepository  patients.Repository
+	DossierRepository  dossier.Repository
 	TransferRepository transfer.Repository
 	FHIRGateway        fhir.Gateway
 }

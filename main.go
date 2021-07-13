@@ -7,6 +7,8 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"io/fs"
 	"log"
 	"net/http"
@@ -75,11 +77,11 @@ func main() {
 	}
 
 	// Initialize services
-	repository := customers.NewJsonFileRepository(config.CustomersFile)
+	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	if config.LoadTestPatients {
-		customers, err := repository.All()
+		customers, err := customerRepository.All()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -87,14 +89,16 @@ func main() {
 			registerPatients(patientRepository, customer.Id)
 		}
 	}
-	auth := api.NewAuth(config.sessionKey, nodeClient, repository, passwd)
+	auth := api.NewAuth(config.sessionKey, nodeClient, customerRepository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:               auth,
 		Client:             nodeClient,
-		CustomerRepository: repository,
+		CustomerRepository: customerRepository,
 		PatientRepository:  patientRepository,
+		DossierRepository:  dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
+		TransferRepository: transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
 	}
 	e := echo.New()
 	e.HideBanner = true

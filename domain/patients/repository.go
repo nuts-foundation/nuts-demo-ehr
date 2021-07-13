@@ -35,7 +35,7 @@ func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*do
 	}, nil
 }
 
-func (f Factory) NewAvatarPatient(properties domain.PatientProperties) (*domain.Patient, error) {
+func (f Factory) NewPatientWithAvatar(properties domain.PatientProperties) (*domain.Patient, error) {
 	patient, err := f.NewUUIDPatient(properties)
 	if err != nil {
 		return nil, err
@@ -64,6 +64,9 @@ func (f Factory) NewAvatarPatient(properties domain.PatientProperties) (*domain.
 	url.RawQuery = q.Encode()
 
 	resp, err := client.Get(url.String())
+	if err != nil {
+		return patient, err
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return patient, err

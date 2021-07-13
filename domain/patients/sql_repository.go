@@ -220,7 +220,7 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 }
 
 func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (patient *domain.Patient, err error) {
-	patient, err = r.factory.NewAvatarPatient(patientProperties)
+	patient, err = r.factory.NewPatientWithAvatar(patientProperties)
 	if err != nil {
 		return nil, err
 	}

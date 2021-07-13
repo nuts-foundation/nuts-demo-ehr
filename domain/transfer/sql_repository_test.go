@@ -61,3 +61,15 @@ func TestSQLiteTransferRepository_FindByPatientID(t *testing.T) {
 		assert.Equal(t, domain.TransferStatusCreated, transfers[0].Status)
 	})
 }
+
+func TestSQLiteTransferRepository_CreateNegotiation(t *testing.T) {
+	t.Run("create new negotiation", func(t *testing.T) {
+		db := sqlx.MustConnect("sqlite3", ":memory:")
+		repo := NewSQLiteTransferRepository(Factory{}, db)
+		now := time.Now().UTC().Round(time.Minute)
+		transfer, _ := repo.Create(context.Background(), "c1", "14", "foo", now)
+		negotiation, err := repo.CreateNegotiation(context.Background(), "c1", string(transfer.Id), "foo", now)
+		assert.NoError(t, err)
+		assert.NotNil(t, negotiation)
+	})
+}

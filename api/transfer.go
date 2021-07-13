@@ -53,7 +53,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string, o
 		return errors.New("transferring care organization isn't registered on Nuts Network")
 	}
 	// Create negotiation and share it to the other party
-	negotiation, err := w.TransferRepository.CreateNegotiation(ctx.Request().Context(), transferID, organizationDID)
+	negotiation, err := w.TransferRepository.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, organizationDID, transfer.TransferDate.Time)
 	if err != nil {
 		return err
 	}

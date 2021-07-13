@@ -21,6 +21,22 @@ type sqlTransfer struct {
 	Description string       `db:"description"`
 }
 
+type sqlNegotiation struct {
+	TransferID      string    `db:"transfer_id"`
+	OrganizationDID string    `db:"organization_did"`
+	CustomerID      string    `db:"customer_id"`
+	Date            time.Time `db:"date"`
+	Status          string    `db:"status"`
+}
+
+func (n sqlNegotiation) MarshalToDomainTransfer() (*domain.TransferNegotiation, error) {
+	return &domain.TransferNegotiation{
+		OrganizationDID: n.OrganizationDID,
+		Status:          domain.TransferNegotiationStatus(n.Status),
+		TransferDate:    openapi_types.Date{Time: n.Date},
+	}, nil
+}
+
 func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID, dossierID string, transfer domain.Transfer) error {
 	*dbTransfer = sqlTransfer{
 		ID:          string(transfer.Id),
@@ -58,7 +74,7 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 	}, nil
 }
 
-const schema = `
+const transferSchema = `
 	CREATE TABLE IF NOT EXISTS transfer (
 		id char(36) NOT NULL,
 		customer_id varchar(100) NOT NULL,
@@ -71,6 +87,18 @@ const schema = `
 	);
 `
 
+const negotiationSchema = `
+	CREATE TABLE IF NOT EXISTS transfer_negotiation (
+		organization_did varchar(200) NOT NULL,
+		transfer_id char(36) NOT NULL,
+		customer_id varchar(100) NOT NULL,
+		date DATETIME DEFAULT NULL,
+		status char(10) NOT NULL DEFAULT 'requested',
+		PRIMARY KEY (organization_did, transfer_id),
+		FOREIGN KEY (transfer_id) REFERENCES transfer(id)
+	);
+`
+
 type SQLiteTransferRepository struct {
 	factory Factory
 	db      *sqlx.DB
@@ -80,7 +108,8 @@ func NewSQLiteTransferRepository(factory Factory, db *sqlx.DB) *SQLiteTransferRe
 	if db == nil {
 		panic("missing db")
 	}
-	db.MustExec(schema)
+	db.MustExec(transferSchema)
+	db.MustExec(negotiationSchema)
 
 	return &SQLiteTransferRepository{
 		factory: factory,
@@ -151,10 +180,44 @@ func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID, id str
 	panic("implement me")
 }
 
-func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, transferID string, organizationDID string) (*domain.TransferNegotiation, error) {
-	panic("implement me")
+func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, date time.Time) (*domain.TransferNegotiation, error) {
+	negotiation := sqlNegotiation{
+		TransferID:      transferID,
+		OrganizationDID: organizationDID,
+		CustomerID:      customerID,
+		Date:            date,
+	}
+	const query = `INSERT INTO transfer_negotiation 
+		(transfer_id, organization_did, customer_id, date)
+		values(:transfer_id, :organization_did, :customer_id, :date)
+`
+
+	if _, err := r.db.NamedExec(query, negotiation); err != nil {
+		return nil, err
+	}
+	return negotiation.MarshalToDomainTransfer()
 }
 
 func (r SQLiteTransferRepository) ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error) {
-	panic("implement me")
+	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? AND id = ? ORDER BY id ASC`
+
+	dbNegotiations := []sqlNegotiation{}
+	err := r.db.SelectContext(ctx, &dbNegotiations, query, customerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return []domain.TransferNegotiation{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.TransferNegotiation, len(dbNegotiations))
+
+	for idx, dbNegotiation := range dbNegotiations {
+		item, err := dbNegotiation.MarshalToDomainTransfer()
+		if err != nil {
+			return nil, err
+		}
+		result[idx] = *item
+	}
+
+	return result, nil
 }

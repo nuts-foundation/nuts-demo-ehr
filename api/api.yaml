@@ -513,13 +513,10 @@ components:
     TransferNegotiation:
       description: A negotiation with a specific care organization to transfer a patient.
       required:
-        - id
         - organizationDID
         - status
         - transferDate
       properties:
-        id:
-          $ref: '#/components/schemas/ObjectID'
         organizationDID:
           description: Decentralized Identifier of the organization to which transfer of a patient is requested.
           type: string

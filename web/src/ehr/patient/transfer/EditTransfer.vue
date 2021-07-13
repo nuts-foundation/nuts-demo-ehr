@@ -99,7 +99,7 @@ export default {
     }
   },
   mounted() {
-    this.fetchTransfer(this.$route.params.id)
+    this.fetchTransfer(this.$route.params.transferID)
   },
 
 }

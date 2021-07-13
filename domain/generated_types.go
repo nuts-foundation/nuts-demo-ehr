@@ -201,9 +201,6 @@ type TransferStatus string
 // A negotiation with a specific care organization to transfer a patient.
 type TransferNegotiation struct {
 
-	// An internal object UUID which can be used as unique identifier for entities.
-	Id ObjectID `json:"id"`
-
 	// Decentralized Identifier of the organization to which transfer of a patient is requested.
 	OrganizationDID string `json:"organizationDID"`
 

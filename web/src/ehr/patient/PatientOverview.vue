@@ -105,6 +105,14 @@ export default {
     truncate(str, n) {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
     },
+    fetchDossiers() {
+      this.$api.getPatientTransfers({patientID: this.$route.params.id})
+          .then(transfers => this.dossiers = transfers)
+          .catch(error => this.$errors.report(error))
+    }
+  },
+  mounted() {
+    this.fetchDossiers()
   },
 }
 </script>

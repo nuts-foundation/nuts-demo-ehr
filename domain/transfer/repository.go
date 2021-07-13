@@ -15,7 +15,7 @@ type Repository interface {
 	Create(ctx context.Context, customerID, dossierID, description string, date time.Time) (*domain.Transfer, error)
 	Update(ctx context.Context, customerID, description string, date time.Time, state domain.TransferStatus) error
 	Cancel(ctx context.Context, customerID, id string)
-	CreateNegotiation(ctx context.Context, transferID string, organizationDID string) (*domain.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 	ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error)
 }
 

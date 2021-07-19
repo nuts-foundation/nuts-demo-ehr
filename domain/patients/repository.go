@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sync"
@@ -14,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
+
+const maxMinimumAgeForAvatar = 76
 
 type Repository interface {
 	FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error)
@@ -50,19 +53,33 @@ func (f Factory) NewPatientWithAvatar(properties domain.PatientProperties) (*dom
 		return patient, err
 	}
 
-	q := url.Query()
-	if patient.Gender == domain.PatientPropertiesGenderMale {
-		q.Add("gender", "male")
-	} else if patient.Gender == domain.PatientPropertiesGenderFemale {
-		q.Add("gender", "female")
+	var gender string
+	switch patient.Gender {
+	case domain.PatientPropertiesGenderMale:
+		gender = "male"
+	case domain.PatientPropertiesGenderFemale:
+		gender = "female"
+	default:
+		// For "other" and "unknown" we take a random gender
+		if rand.Intn(1000)%2 == 0 {
+			gender = "male"
+		} else {
+			gender = "female"
+		}
 	}
+	q := url.Query()
+	q.Add("gender", gender)
 	if !patient.Dob.IsZero() {
 		age := math.Floor(time.Since(patient.Dob.Time).Hours() / 24 / 365)
-		q.Set("minimum_age", fmt.Sprintf("%d", int(age-3)))
+		minimumAge := int(age - 3)
+		// FakeFace API doesn't return results for age >= 77, for some reason so we cap it at 76
+		if minimumAge > maxMinimumAgeForAvatar {
+			minimumAge = maxMinimumAgeForAvatar
+		}
+		q.Set("minimum_age", fmt.Sprintf("%d", minimumAge))
 		q.Set("maximum_age", fmt.Sprintf("%d", int(age+3)))
 	}
 	url.RawQuery = q.Encode()
-
 	resp, err := client.Get(url.String())
 	if err != nil {
 		return patient, err

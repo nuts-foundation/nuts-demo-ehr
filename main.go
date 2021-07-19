@@ -161,6 +161,14 @@ func registerPatients(repository patients.Repository, customerID string) {
 			Gender:    domain.PatientPropertiesGenderMale,
 			Zipcode:   "1234ZZ",
 		},
+		{
+			Ssn:       pstring("1234567893"),
+			Dob:       pdate(time.Date(2001, 2, 27, 0, 0, 0, 0, time.UTC)),
+			FirstName: "Patrizia",
+			Surname:   "von Portz",
+			Gender:    domain.PatientPropertiesGenderOther,
+			Zipcode:   "7777AX",
+		},
 	}
 	for _, prop := range props {
 		if _, err := repository.NewPatient(context.Background(), customerID, prop); err != nil {

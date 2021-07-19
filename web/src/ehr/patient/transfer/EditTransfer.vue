@@ -26,6 +26,7 @@
           <auto-complete
               :items="organizations"
               v-model:selected="requestedOrganization"
+              v-on:update:search="searchOrganizations"
               v-slot="slotProps"
           >
             {{ slotProps.item.name }}
@@ -70,10 +71,7 @@ export default {
         {title: "Aanmeldbericht", contents: "Some content"},
         {title: "Overdrachtsbericht", contents: "Some content 2"},
       ],
-      organizations: [
-        {did: "1234", name: "HengeZorg", zipcode: "7552AB", starred: true},
-        {did: "5678", name: "Zorgcentrum Enschede", zipcode: "7552CC", starred: false},
-      ],
+      organizations: [],
       requestedOrganization: null,
     }
   },
@@ -84,16 +82,20 @@ export default {
     cancelOrganization() {
       this.requestedOrganization = null
     },
+    searchOrganizations(query) {
+        this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-sender"})
+          .then((organizations) => this.organizations = organizations)
+          .catch(error => this.$errors.report(error))
+    },
     startNegotiation() {
       this.$api.startTransferNegotiation({
         transferID: this.transfer.id,
         organizationDID: this.requestedOrganization.did
       })
-          .then(() => {
-            this.requestedOrganization = null
-            this.fetchTransfer(this.transfer.id)
-          })
-          .catch(error => this.$errors.report(error))
+      .then(() => {
+        this.requestedOrganization = null
+        this.fetchTransfer(this.transfer.id)
+      })
     },
     updateTransfer() {
       this.$api.updateTransfer({
@@ -110,10 +112,7 @@ export default {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
           .then(() => this.$api.listTransferNegotiations({transferID: id}))
-          .then(negotiations => {
-            this.negotiations = negotiations;
-            console.log(negotiations)
-          })
+          .then(negotiations => this.negotiations = negotiations)
           .catch(error => this.$errors.report(error))
     }
   },

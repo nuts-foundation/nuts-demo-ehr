@@ -6,8 +6,8 @@
     <div class="border border-gray-300 rounded-md inline-flex items-center w-full px-2" >
       <input type="text"
              class="border-none h-8 p-0"
-             :value="searchQuery"
-             @input="$emit('update:searchQuery', $event.target.value)"
+             :value="query"
+             @input="query = $event.target.value; $emit('update:search', $event.target.value)"
       >
       <svg class="h-5 w-5 text-gray-400"
            @click="open = !open"
@@ -38,17 +38,21 @@ export default {
   name: 'auto-complete',
   data() {
     return {
-      open: false
+      open: false,
+      query: "",
     }
   },
   methods: {
     select(item) {
       this.$emit('update:selected', item)
       this.open = false
+    },
+    emitSearch() {
+      this.$emit('update:search', this.query)
+      return true
     }
   },
   props: {
-    searchQuery: String,
     selected: Object,
     items: {
       type: Array,
@@ -56,6 +60,6 @@ export default {
     },
     itemText: String
   },
-  emits: ['update:searchQuery', 'update:selected']
+  emits: ['update:search', 'update:selected']
 }
 </script>

@@ -37,7 +37,7 @@ func defaultConfig() Config {
 		NutsNodeAddress:    defaultNutsNodeAddress,
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
-		DBConnectionString: ":memory:",
+		DBConnectionString: ":memory:?cache=shared",
 		LoadTestPatients:   false,
 	}
 }

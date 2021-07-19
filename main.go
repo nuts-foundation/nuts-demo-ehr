@@ -80,6 +80,7 @@ func main() {
 	// Initialize services
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
+	sqlDB.SetMaxOpenConns(1)
 	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	if config.LoadTestPatients {
 		customers, err := customerRepository.All()

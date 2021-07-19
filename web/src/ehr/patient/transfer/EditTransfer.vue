@@ -17,8 +17,8 @@
       </thead>
       <tbody>
       <tr v-for="negotiation in negotiations">
-        <td>{{ negotiation.organization.name }}</td>
-        <td>{{ negotiation.date }}</td>
+        <td>{{ negotiation.organizationDID }}</td>
+        <td>{{ negotiation.transferDate }}</td>
         <td>{{ negotiation.status }}</td>
       </tr>
       <tr>
@@ -86,6 +86,11 @@ export default {
     },
     startNegotiation() {
       this.$api.startTransferNegotiation({transferID: this.transfer.id, organizationDID: this.requestedOrganization.did})
+        .then(() => {
+          this.requestedOrganization = null
+          this.fetchTransfer(this.transfer.id)
+        })
+        .catch(error => this.$errors.report(error))
     },
     updateTransfer() {
 
@@ -94,7 +99,7 @@ export default {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
           .then(() => this.$api.listTransferNegotiations({transferID: id}))
-          .then(negotiations => this.negotiations = negotiations)
+          .then(negotiations => { this.negotiations = negotiations; console.log(negotiations) })
           .catch(error => this.$errors.report(error))
     }
   },

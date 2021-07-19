@@ -63,13 +63,14 @@ type CreateDossierRequest struct {
 	PatientID ObjectID `json:"patientID"`
 }
 
-// Create a new transfer for a specific dossier with a date and description.
+// CreateTransferRequest defines model for CreateTransferRequest.
 type CreateTransferRequest struct {
-	Description string `json:"description"`
+	// Embedded struct due to allOf(#/components/schemas/TransferProperties)
+	TransferProperties `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
 
 	// An internal object UUID which can be used as unique identifier for entities.
-	DossierID    ObjectID           `json:"dossierID"`
-	TransferDate openapi_types.Date `json:"transferDate"`
+	DossierID ObjectID `json:"dossierID"`
 }
 
 // A customer object.
@@ -181,11 +182,11 @@ type SessionToken struct {
 	Token string `json:"token"`
 }
 
-// A dossier for transferring a patient to another care organization. It is composed of negotiations with specific care organizations. The patient can be transferred to one of the care organizations that accepted the transfer. TODO: proposing/handling alternative transfer dates is not supported yet.
+// Transfer defines model for Transfer.
 type Transfer struct {
-
-	// Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
-	Description string `json:"description"`
+	// Embedded struct due to allOf(#/components/schemas/TransferProperties)
+	TransferProperties `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
 
 	// An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
@@ -195,9 +196,6 @@ type Transfer struct {
 
 	// Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 	Status TransferStatus `json:"status"`
-
-	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
-	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
 // Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
@@ -218,6 +216,16 @@ type TransferNegotiation struct {
 
 // Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
 type TransferNegotiationStatus string
+
+// Properties of a transfer. These values can be updated over time.
+type TransferProperties struct {
+
+	// Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
+	Description string `json:"description"`
+
+	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
+	TransferDate openapi_types.Date `json:"transferDate"`
+}
 
 // SetCustomerJSONBody defines parameters for SetCustomer.
 type SetCustomerJSONBody Customer
@@ -264,6 +272,9 @@ type GetPatientTransfersParams struct {
 // CreateTransferJSONBody defines parameters for CreateTransfer.
 type CreateTransferJSONBody CreateTransferRequest
 
+// UpdateTransferJSONBody defines parameters for UpdateTransfer.
+type UpdateTransferJSONBody TransferProperties
+
 // AssignTransferNegotiationJSONBody defines parameters for AssignTransferNegotiation.
 type AssignTransferNegotiationJSONBody AcceptTransferRequest
 
@@ -287,6 +298,9 @@ type NewPatientJSONRequestBody NewPatientJSONBody
 
 // CreateTransferJSONRequestBody defines body for CreateTransfer for application/json ContentType.
 type CreateTransferJSONRequestBody CreateTransferJSONBody
+
+// UpdateTransferJSONRequestBody defines body for UpdateTransfer for application/json ContentType.
+type UpdateTransferJSONRequestBody UpdateTransferJSONBody
 
 // AssignTransferNegotiationJSONRequestBody defines body for AssignTransferNegotiation for application/json ContentType.
 type AssignTransferNegotiationJSONRequestBody AssignTransferNegotiationJSONBody

@@ -25,8 +25,10 @@ func (f Factory) NewTransfer(description string, date time.Time, dossierID domai
 	return &domain.Transfer{
 		Id:           domain.ObjectID(uuid.NewString()),
 		DossierID:    dossierID,
-		Description:  description,
 		Status:       domain.TransferStatusCreated,
-		TransferDate: openapi_types.Date{Time: date},
+		TransferProperties: domain.TransferProperties{
+			Description:  description,
+			TransferDate: openapi_types.Date{Time: date},
+		},
 	}
 }

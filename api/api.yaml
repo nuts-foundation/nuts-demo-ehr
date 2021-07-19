@@ -204,6 +204,24 @@ paths:
                 $ref: '#/components/schemas/Transfer'
         404:
           description: Transfer not found
+    put:
+      description: Update the transfer.
+      operationId: updateTransfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferProperties'
+      responses:
+        200:
+          description: Transfer updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        404:
+          description: Transfer not found
 
   /private/transfer/{transferID}/negotiation:
     parameters:
@@ -532,48 +550,13 @@ components:
           description: Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
           type: string
           format: date
-    CreateTransferRequest:
+    TransferProperties:
       description: >
-        Create a new transfer for a specific dossier with a date and description.
+        Properties of a transfer. These values can be updated over time.
       required:
-        - dossierID
         - transferDate
         - description
       properties:
-        dossierID:
-          $ref: '#/components/schemas/ObjectID'
-        description:
-          type: string
-        transferDate:
-          type: string
-          format: date
-    Transfer:
-      description: >
-        A dossier for transferring a patient to another care organization. It is composed of negotiations with specific care organizations.
-        The patient can be transferred to one of the care organizations that accepted the transfer.
-        TODO: proposing/handling alternative transfer dates is not supported yet.
-      required:
-        - id
-        - dossierID
-        - status
-        - description
-        - transferDate
-      properties:
-        id:
-          $ref: '#/components/schemas/ObjectID'
-        dossierID:
-          $ref: '#/components/schemas/ObjectID'
-        status:
-          description: >
-            Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only.
-            In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values:
-            - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet.
-            - Requested: one or more requests were sent to care organizations
-            - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer.
-            - Completed: the patient transfer is completed and marked as such by the receiving care organization.
-            - Cancelled: the transfer is cancelled by the sending care organization.
-          type: string
-          enum: [created, requested, assigned, completed, cancelled]
         description:
           description: >
             Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
@@ -582,6 +565,45 @@ components:
           description: Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
           type: string
           format: date
+    CreateTransferRequest:
+      description: >
+        Create a new transfer for a specific dossier with a date and description.
+      allOf:
+        - $ref: '#/components/schemas/TransferProperties'
+        - type: object
+          required:
+            - dossierID
+          properties:
+            dossierID:
+              $ref: '#/components/schemas/ObjectID'
+    Transfer:
+      description: >
+        A dossier for transferring a patient to another care organization. It is composed of negotiations with specific care organizations.
+        The patient can be transferred to one of the care organizations that accepted the transfer.
+        TODO: proposing/handling alternative transfer dates is not supported yet.
+      allOf:
+        - $ref: '#/components/schemas/TransferProperties'
+        - type: object
+          required:
+            - id
+            - dossierID
+            - status
+          properties:
+            id:
+              $ref: '#/components/schemas/ObjectID'
+            dossierID:
+              $ref: '#/components/schemas/ObjectID'
+            status:
+              description: >
+                Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only.
+                In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values:
+                - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet.
+                - Requested: one or more requests were sent to care organizations
+                - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer.
+                - Completed: the patient transfer is completed and marked as such by the receiving care organization.
+                - Cancelled: the transfer is cancelled by the sending care organization.
+              type: string
+              enum: [created, requested, assigned, completed, cancelled]
     AcceptTransferRequest:
       description: >
         API request to accept the transfer of a patient, to a care organization that accepted transfer.

@@ -73,11 +73,13 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 	}
 
 	return &domain.Transfer{
-		Id:           domain.ObjectID(dbTransfer.ID),
-		DossierID:    domain.ObjectID(dbTransfer.DossierID),
-		Description:  dbTransfer.Description,
-		Status:       status,
-		TransferDate: transferTime,
+		Id:        domain.ObjectID(dbTransfer.ID),
+		DossierID: domain.ObjectID(dbTransfer.DossierID),
+		Status:    status,
+		TransferProperties: domain.TransferProperties{
+			Description:  dbTransfer.Description,
+			TransferDate: transferTime,
+		},
 	}, nil
 }
 
@@ -208,13 +210,13 @@ func (r SQLiteTransferRepository) Update(ctx context.Context, customerID, transf
 	if err != nil {
 		return
 	}
-	updated, err := updateFn(*entity)
+	entity, err = updateFn(*entity)
 	if err != nil {
 		return
 	}
 
 	dbEntity := sqlTransfer{}
-	err = dbEntity.UnmarshalFromDomainTransfer(customerID, *updated)
+	err = dbEntity.UnmarshalFromDomainTransfer(customerID, *entity)
 	if err != nil {
 		return
 	}

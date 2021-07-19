@@ -40,6 +40,20 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
+func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
+	updateRequest := &domain.TransferProperties{}
+	err := ctx.Bind(updateRequest)
+	if err != nil {
+		return err
+	}
+	transfer, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(), transferID, func(t domain.Transfer) (*domain.Transfer, error) {
+		t.Description = updateRequest.Description
+		t.TransferDate = updateRequest.TransferDate
+		return &t, nil
+	})
+	return ctx.JSON(http.StatusOK, transfer)
+}
+
 func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string, organizationDID string) error {
 	var negotiation *domain.TransferNegotiation
 	_, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(), transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {

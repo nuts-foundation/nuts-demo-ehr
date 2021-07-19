@@ -1,6 +1,6 @@
 <template>
   <div>
-    <transfer-form v-if="transfer" :patient="transfer.patient" :transfer="transfer"
+    <transfer-form v-if="transfer" :transfer="transfer"
                    @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
 
     <div class="mt-4">
@@ -85,21 +85,35 @@ export default {
       this.requestedOrganization = null
     },
     startNegotiation() {
-      this.$api.startTransferNegotiation({transferID: this.transfer.id, organizationDID: this.requestedOrganization.did})
-        .then(() => {
-          this.requestedOrganization = null
-          this.fetchTransfer(this.transfer.id)
-        })
-        .catch(error => this.$errors.report(error))
+      this.$api.startTransferNegotiation({
+        transferID: this.transfer.id,
+        organizationDID: this.requestedOrganization.did
+      })
+          .then(() => {
+            this.requestedOrganization = null
+            this.fetchTransfer(this.transfer.id)
+          })
+          .catch(error => this.$errors.report(error))
     },
     updateTransfer() {
+      this.$api.updateTransfer({
+        transferID: this.transfer.id,
+        body: {
+          description: this.transfer.description,
+          transferDate: this.transfer.date,
+        }
+      }).then(transfer => this.transfer = transfer)
+          .catch(error => this.$errors.report(error))
 
     },
     fetchTransfer(id) {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
           .then(() => this.$api.listTransferNegotiations({transferID: id}))
-          .then(negotiations => { this.negotiations = negotiations; console.log(negotiations) })
+          .then(negotiations => {
+            this.negotiations = negotiations;
+            console.log(negotiations)
+          })
           .catch(error => this.$errors.report(error))
     }
   },

@@ -14,7 +14,7 @@
 
     <div class="dossier-list">
 
-      <table v-if="collaborationDossiers" class="min-w-full divide-y divide-gray-200">
+      <table v-if="collaborationDossiers.length > 0" class="min-w-full divide-y divide-gray-200">
         <thead>
         <tr>
           <th class="text-left">Name</th>

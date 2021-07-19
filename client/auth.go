@@ -22,11 +22,11 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 		ValidFrom:     &t,
 		Version:       "v3",
 	}
-	contractRespBody, err := client.authClient().DrawUpContract(ctx, contractBody)
+	contractRespBody, err := client.auth().DrawUpContract(ctx, contractBody)
 	if err != nil {
 		return nil, err
 	}
-	contractResp, err := testAndParseResponse(http.StatusOK, contractRespBody)
+	contractResp, err := testAndReadResponse(http.StatusOK, contractRespBody)
 	if err != nil {
 		return nil, err
 	}
@@ -38,25 +38,25 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 		Payload: contract.Message,
 	}
 
-	resp, err := client.authClient().CreateSignSession(ctx, body)
+	resp, err := client.auth().CreateSignSession(ctx, body)
 	if err != nil {
 		return nil, err
 	}
-	return testAndParseResponse(http.StatusCreated, resp)
+	return testAndReadResponse(http.StatusCreated, resp)
 }
 
 func (client HTTPClient) GetIrmaSessionResult(sessionToken string) ([]byte, error) {
 	// todo set user session
 
 	ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second)
-	resp, err := client.authClient().GetSignSessionStatus(ctx, sessionToken)
+	resp, err := client.auth().GetSignSessionStatus(ctx, sessionToken)
 	if err != nil {
 		return nil, err
 	}
-	return testAndParseResponse(http.StatusOK, resp)
+	return testAndReadResponse(http.StatusOK, resp)
 }
 
-func (client HTTPClient) authClient() auth.ClientInterface {
+func (client HTTPClient) auth() auth.ClientInterface {
 	response, err := auth.NewClientWithResponses(client.getNodeURL())
 	if err != nil {
 		panic(err)

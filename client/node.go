@@ -20,7 +20,7 @@ func (client HTTPClient) getNodeURL() string {
 	return url
 }
 
-func testAndParseResponse(status int, response *http.Response) ([]byte, error) {
+func testAndReadResponse(status int, response *http.Response) ([]byte, error) {
 	if response.StatusCode == http.StatusNotFound {
 		return nil, errors.New("not found")
 	}

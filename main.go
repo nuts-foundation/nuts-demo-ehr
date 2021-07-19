@@ -167,8 +167,8 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID st
 		{
 			Ssn:       pstring("1234567893"),
 			Dob:       pdate(time.Date(2001, 2, 27, 0, 0, 0, 0, time.UTC)),
-			FirstName: "Patrizia",
-			Surname:   "von Portz",
+			FirstName: "Anne",
+			Surname:   "von Oben",
 			Gender:    domain.PatientPropertiesGenderOther,
 			Zipcode:   "7777AX",
 		},

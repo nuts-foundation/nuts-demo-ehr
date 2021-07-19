@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/nuts-foundation/nuts-node/core"
 )
 
 type HTTPClient struct {
@@ -22,9 +22,9 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 
-	le := LegalEntity(*customer.Did)
+	le := auth.LegalEntity(*customer.Did)
 	t := time.Now().Format(time.RFC3339)
-	contractBody := DrawUpContractJSONRequestBody{
+	contractBody := auth.DrawUpContractJSONRequestBody{
 		Language:      "NL",
 		LegalEntity:   le,
 		Type:          "BehandelaarLogin",
@@ -39,10 +39,10 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	contract := ContractResponse{}
+	contract := auth.ContractResponse{}
 	json.Unmarshal(contractResp, &contract)
 
-	body := CreateSignSessionJSONRequestBody{
+	body := auth.CreateSignSessionJSONRequestBody{
 		Means:   "irma",
 		Payload: contract.Message,
 	}
@@ -65,13 +65,13 @@ func (client HTTPClient) GetIrmaSessionResult(sessionToken string) ([]byte, erro
 	return testAndParseResponse(http.StatusOK, resp)
 }
 
-func (client HTTPClient) client() ClientInterface {
+func (client HTTPClient) client() auth.ClientInterface {
 	url := client.NutsNodeAddress
 	if !strings.Contains(url, "http") {
 		url = fmt.Sprintf("http://%v", client.NutsNodeAddress)
 	}
 
-	response, err := NewClientWithResponses(url)
+	response, err := auth.NewClientWithResponses(url)
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +82,17 @@ func testAndParseResponse(status int, response *http.Response) ([]byte, error) {
 	if response.StatusCode == http.StatusNotFound {
 		return nil, errors.New("not found")
 	}
-	if err := core.TestResponseCode(status, response); err != nil {
+	if err := testResponseCode(status, response); err != nil {
 		return nil, err
 	}
 	return io.ReadAll(response.Body)
+}
+
+func testResponseCode(expectedStatusCode int, response *http.Response) error {
+	if response.StatusCode != expectedStatusCode {
+		responseData, _ := io.ReadAll(response.Body)
+		return fmt.Errorf("server returned HTTP %d (expected: %d), response: %s",
+			response.StatusCode, expectedStatusCode, string(responseData))
+	}
+	return nil
 }

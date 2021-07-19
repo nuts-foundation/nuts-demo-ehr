@@ -40,7 +40,7 @@ The API and domain types are generated from the `api/api.yaml`.
 ```shell
 oapi-codegen -generate server -package api api/api.yaml > api/generated.go
 oapi-codegen -generate types -package domain -o domain/generated_types.go api/api.yaml
-oapi-codegen -generate client,types -package client -o client/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
+oapi-codegen -generate client,types -package auth -o client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
 
 ```
 

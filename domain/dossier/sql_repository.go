@@ -2,6 +2,7 @@ package dossier
 
 import (
 	"context"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"database/sql"
 	"errors"
 
@@ -47,18 +48,20 @@ const schema = `
 
 type SQLiteDossierRepository struct {
 	factory Factory
-	db      *sqlx.DB
 }
 
 func NewSQLiteDossierRepository(factory Factory, db *sqlx.DB) *SQLiteDossierRepository {
 	if db == nil {
 		panic("missing db for DossierRepository")
 	}
-	db.MustExec(schema)
+	tx, _ := db.Beginx()
+	tx.MustExec(schema)
+	if err := tx.Commit(); err != nil {
+		panic(err)
+	}
 
 	return &SQLiteDossierRepository{
 		factory: factory,
-		db:      db,
 	}
 }
 
@@ -67,6 +70,10 @@ func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID, id st
 }
 
 func (r SQLiteDossierRepository) Create(ctx context.Context, customerID, name, patientID string) (*domain.Dossier, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
 	dossier := r.factory.NewDossier(patientID, name)
 	dbDossier := sqlDossier{}
 	if err := dbDossier.UnmarshalFromDomainDossier(customerID, dossier); err != nil {
@@ -77,7 +84,7 @@ func (r SQLiteDossierRepository) Create(ctx context.Context, customerID, name, p
 		(id, customer_id, patient_id, name)
 		VALUES (:id, :customer_id, :patient_id, :name)`
 
-	if _, err := r.db.NamedExec(query, dbDossier); err != nil {
+	if _, err := tx.NamedExec(query, dbDossier); err != nil {
 		return nil, err
 	}
 	return dossier, nil
@@ -86,7 +93,11 @@ func (r SQLiteDossierRepository) Create(ctx context.Context, customerID, name, p
 func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID, patientID string) ([]domain.Dossier, error) {
 	const query = `SELECT * FROM dossier WHERE patient_id = ? and customer_id = ? ORDER BY id ASC`
 	dbDossiers := []sqlDossier{}
-	err := r.db.SelectContext(ctx, &dbDossiers, query, patientID, customerID)
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.SelectContext(ctx, &dbDossiers, query, patientID, customerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return []domain.Dossier{}, nil
 	} else if err != nil {

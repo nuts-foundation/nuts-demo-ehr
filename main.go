@@ -10,6 +10,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"io/fs"
 	"log"
 	"net/http"
@@ -88,7 +89,7 @@ func main() {
 			log.Fatal(err)
 		}
 		for _, customer := range customers {
-			registerPatients(patientRepository, customer.Id)
+			registerPatients(patientRepository, sqlDB, customer.Id)
 		}
 	}
 	auth := api.NewAuth(config.sessionKey, nodeClient, customerRepository, passwd)
@@ -108,6 +109,7 @@ func main() {
 	e.Use(middleware.Logger())
 	// JWT checking for correct claims
 	e.Use(auth.JWTHandler)
+	e.Use(sql.Transactional(sqlDB))
 	e.Logger.SetLevel(log2.DEBUG)
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		if !ctx.Response().Committed {
@@ -129,7 +131,7 @@ func main() {
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
 }
 
-func registerPatients(repository patients.Repository, customerID string) {
+func registerPatients(repository patients.Repository, db *sqlx.DB, customerID string) {
 	pdate := func(value time.Time) *openapi_types.Date {
 		val := openapi_types.Date{value}
 		return &val
@@ -171,10 +173,15 @@ func registerPatients(repository patients.Repository, customerID string) {
 			Zipcode:   "7777AX",
 		},
 	}
-	for _, prop := range props {
-		if _, err := repository.NewPatient(context.Background(), customerID, prop); err != nil {
-			log.Fatalf("unable to register test patient: %v", err)
+	if err := sql.ExecuteTransactional(db, func(ctx context.Context) error {
+		for _, prop := range props {
+			if _, err := repository.NewPatient(ctx, customerID, prop); err != nil {
+				return fmt.Errorf("unable to register test patient: %w", err)
+			}
 		}
+		return nil
+	}); err != nil {
+		log.Fatal(err)
 	}
 }
 

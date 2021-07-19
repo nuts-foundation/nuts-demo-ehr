@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	sql2 "github.com/nuts-foundation/nuts-demo-ehr/domain/sql"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
@@ -136,7 +134,6 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 
 type SQLitePatientRepository struct {
 	factory Factory
-	db      *sqlx.DB
 }
 
 const schema = `
@@ -161,33 +158,28 @@ func NewSQLitePatientRepository(factory Factory, db *sqlx.DB) *SQLitePatientRepo
 		panic("missing db")
 	}
 
-	db.MustExec(schema)
+	tx, _ := db.Beginx()
+	tx.MustExec(schema)
+	if err := tx.Commit(); err != nil {
+		panic(err)
+	}
 
-	return &SQLitePatientRepository{factory: factory, db: db}
+	return &SQLitePatientRepository{factory: factory}
 }
 
 func (r SQLitePatientRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error) {
-	return r.getPatient(ctx, r.db, customerID, id)
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.getPatient(ctx, tx, customerID, id)
 }
 
 func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (patient *domain.Patient, err error) {
-	tx, err := r.db.Beginx()
+	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w, unable to start transaction", err)
+		return nil, err
 	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
-			log.Debug(err)
-			tx.Rollback()
-			patient = nil
-		}
-		if err != nil {
-			patient = nil
-		}
-	}()
 
 	patient, err = r.getPatient(ctx, tx, customerID, id)
 	if err != nil {
@@ -229,22 +221,10 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 	if err != nil {
 		return nil, err
 	}
-	tx, err := r.db.Beginx()
+	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w, unable to start transaction", err)
+		return nil, err
 	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
-			tx.Rollback()
-			patient = nil
-		}
-		if err != nil {
-			patient = nil
-		}
-	}()
 	const query = `INSERT INTO patient 
 		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode, avatar_url)
 		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode, :avatar_url)
@@ -255,9 +235,13 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 }
 
 func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
 	query := "SELECT * FROM `patient` WHERE customer_id = ? ORDER BY id ASC"
 	dbPatients := []sqlPatient{}
-	err := r.db.SelectContext(ctx, &dbPatients, query, customerID)
+	err = tx.SelectContext(ctx, &dbPatients, query, customerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return []domain.Patient{}, nil
 	} else if err != nil {
@@ -276,10 +260,10 @@ func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]
 	return result, nil
 }
 
-func (r SQLitePatientRepository) getPatient(ctx context.Context, db sql2.SQLContextGetter, customerID, patientID string) (*domain.Patient, error) {
+func (r SQLitePatientRepository) getPatient(ctx context.Context, tx *sqlx.Tx, customerID, patientID string) (*domain.Patient, error) {
 	query := "SELECT * FROM `patient` WHERE customer_id = ? AND id = ? LIMIT 1"
 	dbPatient := &sqlPatient{}
-	err := db.GetContext(ctx, dbPatient, query, customerID, patientID)
+	err := tx.GetContext(ctx, dbPatient, query, customerID, patientID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {

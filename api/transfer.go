@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -91,7 +92,7 @@ func (w Wrapper) AssignTransferNegotiation(ctx echo.Context, transferID string, 
 		}
 		// Make sure the negotiation is accepted by the receiving care organization
 		var err error
-		negotiation, err = w.findNegotiation(ctx, transferID, organizationDID, err)
+		negotiation, err = w.findNegotiation(ctx.Request().Context(), transferID, organizationDID, err)
 		if err != nil {
 			return nil, err
 		}
@@ -126,8 +127,8 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 	return ctx.JSON(http.StatusOK, negotiations)
 }
 
-func (w Wrapper) findNegotiation(ctx echo.Context, transferID string, organizationDID string, err error) (*domain.TransferNegotiation, error) {
-	negotiations, err := w.TransferRepository.ListNegotiations(ctx.Request().Context(), transferID, transferID)
+func (w Wrapper) findNegotiation(ctx context.Context, transferID string, organizationDID string, err error) (*domain.TransferNegotiation, error) {
+	negotiations, err := w.TransferRepository.ListNegotiations(ctx, transferID, transferID)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"context"
+	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"testing"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 func TestNewSQLiteTransferRepository(t *testing.T) {
 	t.Run("create database", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
-		repo := NewSQLiteTransferRepository(Factory{}, db)
-		assert.NoError(t, repo.db.Ping())
+		_ = NewSQLiteTransferRepository(Factory{}, db)
+		assert.NoError(t, db.Ping())
 	})
 }
 
@@ -24,14 +25,20 @@ func TestSQLiteTransferRepository_Create(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLiteTransferRepository(Factory{}, db)
 		now := time.Now().UTC().Round(time.Minute)
-		newTransfer, err := repo.Create(context.Background(), "c1", "14", "foo", now)
+
+		var newTransfer *domain.Transfer
+		var err error
+		sql.ExecuteTransactional(db, func(ctx context.Context) error {
+			newTransfer, err = repo.Create(ctx, "c1", "14", "foo", now)
+			return err
+		})
 
 		if !assert.NoError(t, err) || !assert.NotNil(t, newTransfer) {
 			return
 		}
 		assert.NotEmpty(t, newTransfer.Id)
 		query := "SELECT * FROM `transfer` WHERE customer_id = ? ORDER BY id ASC"
-		rows, err := repo.db.Queryx(query, "c1")
+		rows, err := db.Queryx(query, "c1")
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -50,8 +57,13 @@ func TestSQLiteTransferRepository_FindByPatientID(t *testing.T) {
 	t.Run("simple select", func(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLiteTransferRepository(Factory{}, db)
-		repo.db.MustExec("INSERT INTO transfer (`id`, `customer_id`, `status`, `description`, `dossier_id`) VALUES('123', 'c1', 'created', 'the description', 'd1')")
-		transfers, err := repo.FindByPatientID(context.Background(), "c1", "p1")
+		db.MustExec("INSERT INTO transfer (`id`, `customer_id`, `status`, `description`, `dossier_id`) VALUES('123', 'c1', 'created', 'the description', 'd1')")
+		var transfers []domain.Transfer
+		var err error
+		sql.ExecuteTransactional(db, func(ctx context.Context) error {
+			transfers, err = repo.FindByPatientID(ctx, "c1", "p1")
+			return err
+		})
 
 		if !assert.NoError(t, err) {
 			return
@@ -67,9 +79,12 @@ func TestSQLiteTransferRepository_CreateNegotiation(t *testing.T) {
 		db := sqlx.MustConnect("sqlite3", ":memory:")
 		repo := NewSQLiteTransferRepository(Factory{}, db)
 		now := time.Now().UTC().Round(time.Minute)
-		transfer, _ := repo.Create(context.Background(), "c1", "14", "foo", now)
-		negotiation, err := repo.CreateNegotiation(context.Background(), "c1", string(transfer.Id), "foo", now)
-		assert.NoError(t, err)
-		assert.NotNil(t, negotiation)
+		sql.ExecuteTransactional(db, func(ctx context.Context) error {
+			transfer, _ := repo.Create(ctx, "c1", "14", "foo", now)
+			negotiation, err := repo.CreateNegotiation(ctx, "c1", string(transfer.Id), "foo", now)
+			assert.NoError(t, err)
+			assert.NotNil(t, negotiation)
+			return nil
+		})
 	})
 }

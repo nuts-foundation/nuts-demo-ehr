@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	sql2 "github.com/nuts-foundation/nuts-demo-ehr/domain/sql"
 	"time"
+
+	sql2 "github.com/nuts-foundation/nuts-demo-ehr/domain/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
@@ -30,7 +31,7 @@ type sqlNegotiation struct {
 	Status          string    `db:"status"`
 }
 
-func (n sqlNegotiation) MarshalToDomainTransfer() (*domain.TransferNegotiation, error) {
+func (n sqlNegotiation) MarshalToDomainNegotiation() (*domain.TransferNegotiation, error) {
 	return &domain.TransferNegotiation{
 		OrganizationDID: n.OrganizationDID,
 		Status:          domain.TransferNegotiationStatus(n.Status),
@@ -67,17 +68,22 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 		return nil, fmt.Errorf("unknown tranfser status: '%s'", dbTransfer.Status)
 	}
 
+	var transferTime openapi_types.Date
+	if dbTransfer.Date.Valid {
+		transferTime = openapi_types.Date{Time: dbTransfer.Date.Time}
+	}
+
 	return &domain.Transfer{
 		Id:           domain.ObjectID(dbTransfer.ID),
 		DossierID:    domain.ObjectID(dbTransfer.DossierID),
 		Description:  dbTransfer.Description,
 		Status:       status,
-		TransferDate: openapi_types.Date{},
+		TransferDate: transferTime,
 	}, nil
 }
 
 const transferSchema = `
-	CREATE TABLE transfer (
+	CREATE TABLE IF NOT EXISTS transfer (
 		id char(36) NOT NULL,
 		customer_id varchar(100) NOT NULL,
 		date DATETIME DEFAULT NULL,
@@ -90,7 +96,7 @@ const transferSchema = `
 `
 
 const negotiationSchema = `
-	CREATE TABLE transfer_negotiation (
+	CREATE TABLE IF NOT EXISTS transfer_negotiation (
 		organization_did varchar(200) NOT NULL,
 		transfer_id char(36) NOT NULL,
 		customer_id varchar(100) NOT NULL,
@@ -242,7 +248,7 @@ func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, custome
 	if _, err := r.db.NamedExec(query, negotiation); err != nil {
 		return nil, err
 	}
-	return negotiation.MarshalToDomainTransfer()
+	return negotiation.MarshalToDomainNegotiation()
 }
 
 func (r SQLiteTransferRepository) ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error) {
@@ -259,7 +265,7 @@ func (r SQLiteTransferRepository) ListNegotiations(ctx context.Context, customer
 	result := make([]domain.TransferNegotiation, len(dbNegotiations))
 
 	for idx, dbNegotiation := range dbNegotiations {
-		item, err := dbNegotiation.MarshalToDomainTransfer()
+		item, err := dbNegotiation.MarshalToDomainNegotiation()
 		if err != nil {
 			return nil, err
 		}

@@ -12,7 +12,14 @@ type GetDossierParams = domain.GetDossierParams
 type CreateDossierRequest = domain.CreateDossierRequest
 
 func (w Wrapper) GetDossier(ctx echo.Context, params GetDossierParams) error {
-	panic("not implemented")
+	if params.PatientID != "" {
+		dossiers, err := w.DossierRepository.AllByPatient(ctx.Request().Context(), w.getCustomerID(), params.PatientID)
+		if err != nil {
+			return err
+		}
+		return ctx.JSON(http.StatusOK, dossiers)
+	}
+	return echo.NewHTTPError(http.StatusBadRequest, "missing patient_id query param")
 }
 
 func (w Wrapper) CreateDossier(ctx echo.Context) error {

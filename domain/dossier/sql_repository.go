@@ -2,6 +2,8 @@ package dossier
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -22,6 +24,14 @@ func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID string, dossi
 		PatientID:  string(dossier.PatientID),
 	}
 	return nil
+}
+
+func (dbDossier sqlDossier) MarshalToDomainDossier() (*domain.Dossier, error) {
+	return &domain.Dossier{
+		Id:        domain.ObjectID(dbDossier.ID),
+		Name:      dbDossier.Name,
+		PatientID: domain.ObjectID(dbDossier.PatientID),
+	}, nil
 }
 
 const schema = `
@@ -71,5 +81,23 @@ func (r SQLiteDossierRepository) Create(ctx context.Context, customerID, name, p
 		return nil, err
 	}
 	return dossier, nil
-
 }
+
+func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID, patientID string) ([]domain.Dossier, error) {
+	const query = `SELECT * FROM dossier WHERE patient_id = ? and customer_id = ? ORDER BY id ASC`
+	dbDossiers := []sqlDossier{}
+	err := r.db.SelectContext(ctx, &dbDossiers, query, patientID, customerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return []domain.Dossier{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.Dossier, len(dbDossiers))
+	for idx, dbDossier := range dbDossiers {
+		dossier, _ := dbDossier.MarshalToDomainDossier()
+		result[idx] = *dossier
+	}
+	return result, nil
+}
+

@@ -9,7 +9,7 @@ import IRMAAuthentication from './components/auth/IRMAAuthentication.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
-import ErrorReporter from './plugins/ErrorReporter'
+import StatusReporter from './plugins/StatusReporter.js'
 import Patients from './ehr/patient/Patients.vue'
 import Patient from './ehr/patient/Patient.vue'
 import PatientOverview from './ehr/patient/PatientOverview.vue'
@@ -131,6 +131,6 @@ router.beforeEach((to, from) => {
 })
 
 app.use(router)
-app.use(ErrorReporter)
+app.use(StatusReporter)
 app.use(Api, {forbiddenRoute: {name: 'logout'}})
 app.mount('#app')

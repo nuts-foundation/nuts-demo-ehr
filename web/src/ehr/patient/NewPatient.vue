@@ -63,7 +63,7 @@ export default {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     }
   }
 }

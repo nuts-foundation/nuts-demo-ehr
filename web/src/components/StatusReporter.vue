@@ -1,11 +1,19 @@
 <template>
-  <p class="p-3 bg-red-100 rounded-md mb-4" v-if="show">Error: {{ message }}</p>
+  <p class="p-3 bg-red-100 rounded-md mb-4"
+     :class="{ 'bg-red-100': type === 'error', 'bg-blue-100': type === 'info' }"
+     v-if="show">{{ message }}</p>
 </template>
 
 <script>
 export default {
-  name: 'error-reporter',
-  props: {message: String},
+  name: 'status-reporter',
+  props: {
+    message: String,
+    type: {
+      type: String,
+      default: "info"
+    }
+  },
   data() {
     return {
       timeout: null,

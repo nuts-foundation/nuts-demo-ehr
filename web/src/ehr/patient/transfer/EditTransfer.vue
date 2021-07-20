@@ -92,7 +92,7 @@ export default {
             // Only show organizations that we aren't already negotiating with
             this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
           })
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     },
     startNegotiation() {
       const negotiation = {
@@ -110,12 +110,15 @@ export default {
         transferID: this.transfer.id,
         body: {
           description: this.transfer.description,
-          transferDate: this.transfer.date,
+          transferDate: this.transfer.transferDate,
         }
       };
       this.$api.updateTransfer(transfer)
-          .then(transfer => this.transfer = transfer)
-          .catch(error => this.$errors.report(error))
+          .then(transfer => {
+            this.transfer = transfer
+            this.$status.status("Transfer updated")
+          })
+          .catch(error => this.$status.error(error))
 
     },
     fetchTransfer(id) {
@@ -123,7 +126,7 @@ export default {
           .then(transfer => this.transfer = transfer)
           .then(() => this.$api.listTransferNegotiations({transferID: id}))
           .then(negotiations => this.negotiations = negotiations)
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     }
   },
   mounted() {

@@ -32,7 +32,7 @@ export default {
       this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Transfer'}})
           .then(dossier => this.createTransfer(dossier.id))
           .then(transfer => this.$router.push({name: 'ehr.patient.transfer.edit', params: {transferID: transfer.id}}))
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     },
     createTransfer(dossierID) {
       return this.$api.createTransfer({
@@ -46,7 +46,7 @@ export default {
     fetchPatient(patientID) {
       this.$api.getPatient({patientID: patientID})
           .then(patient => this.patient = patient)
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     }
   },
   mounted() {

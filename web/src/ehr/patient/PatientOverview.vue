@@ -112,7 +112,7 @@ export default {
     fetchDossiers() {
       this.$api.getDossier({patientID: this.$route.params.id})
           .then(dossiers => this.dossiers = dossiers)
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     },
     fetchTransfers() {
       this.$api.getPatientTransfers({patientID: this.$route.params.id})
@@ -126,7 +126,7 @@ export default {
               this.transfers[i].negotiations = negotiations[i]
             }
           })
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.error(error))
     },
     openDossier(dossier) {
       const patientID = this.$route.params.id

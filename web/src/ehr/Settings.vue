@@ -38,7 +38,7 @@ export default {
     fetchData() {
       this.$api.getCustomer()
           .then(responseData => this.customer = responseData)
-          .catch(error => this.$errors.report(error))
+          .catch(error => this.$status.report(error))
     }
   }
 }

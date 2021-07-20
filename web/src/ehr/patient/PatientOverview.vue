@@ -19,7 +19,7 @@
         <tr>
           <th class="text-left">Name</th>
           <th class="text-left">Status</th>
-          <!--          <th class="text-left">Network</th>-->
+          <th class="text-left">Network</th>
         </tr>
         </thead>
         <tbody>
@@ -28,7 +28,7 @@
             v-for="dossier in collaborationDossiers">
           <td>{{ dossier.name }}</td>
           <td>{{ dossier.transfer ? dossier.transfer.status : "" }}</td>
-          <!--          <td>{{ dossier.network.join(', ') }}</td>-->
+          <td>{{ dossier.transfer && dossier.transfer.negotiations ? dossier.transfer.negotiations.map(n => n.organization.name).join(', ') : ""}}</td>
         </tr>
         </tbody>
       </table>
@@ -104,7 +104,6 @@ export default {
         return dossier
       })
     }
-
   },
   methods: {
     truncate(str, n) {
@@ -113,18 +112,21 @@ export default {
     fetchDossiers() {
       this.$api.getDossier({patientID: this.$route.params.id})
           .then(dossiers => this.dossiers = dossiers)
-          .catch(error => {
-            this.$errors.report(error)
-            console.log(error)
-          })
+          .catch(error => this.$errors.report(error))
     },
     fetchTransfers() {
       this.$api.getPatientTransfers({patientID: this.$route.params.id})
-          .then(transfers => this.transfers = transfers)
-          .catch(error => {
-            this.$errors.report(error)
-            console.log(error)
+          .then(transfers => {
+            this.transfers = transfers
+            // Also fetch negotiations so we can show the "network" of the dossier
+            return Promise.all(this.transfers.map(t => this.$api.listTransferNegotiations({transferID: t.id})))
           })
+          .then(negotiations => {
+            for (let i = 0; i < negotiations.length; i++) {
+              this.transfers[i].negotiations = negotiations[i]
+            }
+          })
+          .catch(error => this.$errors.report(error))
     },
     openDossier(dossier) {
       const patientID = this.$route.params.id

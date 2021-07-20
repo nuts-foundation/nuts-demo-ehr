@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/sirupsen/logrus"
 )
 
 type OrganizationRegistry interface {
@@ -48,7 +47,6 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
-	logrus.Infof("%v", results)
 	result := organizationConceptToDomain(results[0])
 	return &result, nil
 }

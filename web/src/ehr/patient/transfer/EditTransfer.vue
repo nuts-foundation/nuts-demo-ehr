@@ -43,6 +43,9 @@
       </tr>
       </tbody>
     </table>
+    <p>
+      Note: only care organizations that accept patient transfers over the Nuts Network can be selected.
+    </p>
 
     <table class="min-w-full divide-y divide-gray-200 mt-4" v-if="transfer">
       <thead class="bg-gray-50">
@@ -84,7 +87,7 @@ export default {
       this.requestedOrganization = null
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-sender"})
+      this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-receiver"})
           .then((organizations) => {
             // Only show organizations that we aren't already negotiating with
             this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)

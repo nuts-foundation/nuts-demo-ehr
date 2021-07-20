@@ -6,7 +6,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type OrganizationRegistry interface {
@@ -22,12 +21,6 @@ func NewOrganizationRegistry(client *client.HTTPClient) OrganizationRegistry {
 
 type remoteOrganizationRegistry struct {
 	client *client.HTTPClient
-	cache  map[string]cacheEntry // TODO: Use expiring LRU cache instead
-}
-
-type cacheEntry struct {
-	validTil time.Time
-	domain.Organization
 }
 
 func (r remoteOrganizationRegistry) Search(ctx context.Context, query string) ([]domain.Organization, error) {
@@ -43,7 +36,7 @@ func (r remoteOrganizationRegistry) Search(ctx context.Context, query string) ([
 }
 
 func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID string) (*domain.Organization, error) {
-	// TODO: Load from cache
+	// TODO: Load from cache (use LRU cache)
 	results, err := r.client.GetOrganization(ctx, organizationDID)
 	if err != nil {
 		return nil, err

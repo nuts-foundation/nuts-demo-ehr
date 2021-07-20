@@ -26,8 +26,8 @@
         <td colspan="3" v-if="requestedOrganization === null">
           <auto-complete
               :items="organizations"
-              v-model:selected="requestedOrganization"
-              v-on:update:search="searchOrganizations"
+              @selected="chooseOrganization"
+              @search="searchOrganizations"
               v-slot="slotProps"
           >
             {{ slotProps.item.name }}

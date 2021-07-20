@@ -4,8 +4,8 @@
     query: {{ search }}
     <auto-complete
         :items="this.items"
-        v-model:searchQuery="search"
-        v-model:selected="selectedCat"
+        @search="onSearch"
+        @selected="catSelected"
         v-slot="slotProps"
     >
        {{slotProps.item.id}}
@@ -27,6 +27,14 @@ export default {
     isLoading: false,
     selectedCat: {}
   }),
+  methods: {
+    onSearch(val) {
+      this.search = val
+    },
+    catSelected(val) {
+      this.selectedCat = val
+    }
+  },
   watch: {
     search(val) {
       if (val === "") {

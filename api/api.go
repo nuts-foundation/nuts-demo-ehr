@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
@@ -29,13 +30,14 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 }
 
 type Wrapper struct {
-	Auth               *Auth
-	Client             client.HTTPClient
-	CustomerRepository customers.Repository
-	PatientRepository  patients.Repository
-	DossierRepository  dossier.Repository
-	TransferRepository transfer.Repository
-	FHIRGateway        fhir.Gateway
+	Auth                 *Auth
+	Client               client.HTTPClient
+	CustomerRepository   customers.Repository
+	PatientRepository    patients.Repository
+	DossierRepository    dossier.Repository
+	TransferRepository   transfer.Repository
+	FHIRGateway          fhir.Gateway
+	OrganizationRegistry registry.OrganizationRegistry
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {

@@ -17,7 +17,8 @@
       </thead>
       <tbody>
       <tr v-for="negotiation in negotiations">
-        <td>{{ negotiation.organizationDID }}</td>
+        <td v-if="negotiation.organization">{{ negotiation.organization.name }}</td>
+        <td v-else>{{ negotiation.organizationDID }}</td>
         <td>{{ negotiation.transferDate }}</td>
         <td>{{ negotiation.status }}</td>
       </tr>
@@ -83,28 +84,34 @@ export default {
       this.requestedOrganization = null
     },
     searchOrganizations(query) {
-        this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-sender"})
-          .then((organizations) => this.organizations = organizations)
+      this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-sender"})
+          .then((organizations) => {
+            // Only show organizations that we aren't already negotiating with
+            this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
+          })
           .catch(error => this.$errors.report(error))
     },
     startNegotiation() {
-      this.$api.startTransferNegotiation({
+      const negotiation = {
         transferID: this.transfer.id,
         organizationDID: this.requestedOrganization.did
-      })
-      .then(() => {
-        this.requestedOrganization = null
-        this.fetchTransfer(this.transfer.id)
-      })
+      };
+      this.$api.startTransferNegotiation(negotiation)
+          .then(() => {
+            this.requestedOrganization = null
+            this.fetchTransfer(this.transfer.id)
+          })
     },
     updateTransfer() {
-      this.$api.updateTransfer({
+      const transfer = {
         transferID: this.transfer.id,
         body: {
           description: this.transfer.description,
           transferDate: this.transfer.date,
         }
-      }).then(transfer => this.transfer = transfer)
+      };
+      this.$api.updateTransfer(transfer)
+          .then(transfer => this.transfer = transfer)
           .catch(error => this.$errors.report(error))
 
     },

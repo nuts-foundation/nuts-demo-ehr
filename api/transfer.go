@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -137,6 +138,15 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 	negotiations, err := w.TransferRepository.ListNegotiations(ctx.Request().Context(), w.getCustomerID(), transferID)
 	if err != nil {
 		return err
+	}
+	// Enrich with organization info
+	for i, negotiation := range negotiations {
+		organization, err := w.OrganizationRegistry.Get(ctx.Request().Context(), negotiation.OrganizationDID)
+		if err != nil {
+			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationDID, err)
+			continue
+		}
+		negotiations[i].Organization = organization
 	}
 	return ctx.JSON(http.StatusOK, negotiations)
 }

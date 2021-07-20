@@ -7,13 +7,23 @@ import (
 	"net/http"
 )
 
+const organizationConcept = "organization"
+
 func (client HTTPClient) SearchOrganizations(ctx context.Context, query string) ([]map[string]interface{}, error) {
-	response, err := client.vcr().Search(ctx, "organization", vcr.SearchJSONRequestBody{
-		Params: []vcr.KeyValuePair{
-			{Key: "organization.name", Value: query},
-			{Key: "organization.city", Value: ""},
-		},
+	return client.searchVCR(ctx, []vcr.KeyValuePair{
+		{Key: "organization.name", Value: query},
+		{Key: "organization.city", Value: ""},
 	})
+}
+
+func (client HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
+	return client.searchVCR(ctx, []vcr.KeyValuePair{
+		{Key: "subject", Value: organizationDID},
+	})
+}
+
+func (client HTTPClient) searchVCR(ctx context.Context, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {
+	response, err := client.vcr().Search(ctx, organizationConcept, vcr.SearchJSONRequestBody{Params: params})
 	if err != nil {
 		return nil, err
 	}

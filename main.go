@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"io/fs"
@@ -96,13 +97,14 @@ func main() {
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		Auth:               auth,
-		Client:             nodeClient,
-		CustomerRepository: customerRepository,
-		PatientRepository:  patientRepository,
-		DossierRepository:  dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
-		TransferRepository: transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
-		FHIRGateway:        &fhir.StubGateway{},
+		Auth:                 auth,
+		Client:               nodeClient,
+		CustomerRepository:   customerRepository,
+		PatientRepository:    patientRepository,
+		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
+		TransferRepository:   transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
+		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
+		FHIRGateway:          &fhir.StubGateway{},
 	}
 	e := echo.New()
 	e.HideBanner = true

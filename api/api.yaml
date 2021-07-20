@@ -533,7 +533,9 @@ components:
           description: Decentralized Identifier which uniquely identifies the care organization on the Nuts Network.
           type: string
     TransferNegotiation:
-      description: A negotiation with a specific care organization to transfer a patient.
+      description: >
+        A negotiation with a specific care organization to transfer a patient. If the organization could be resolved on the Nuts Network,
+        it is returned as well (in that case the 'organization' property is filled).
       required:
         - organizationDID
         - status
@@ -542,6 +544,8 @@ components:
         organizationDID:
           description: Decentralized Identifier of the organization to which transfer of a patient is requested.
           type: string
+        organization:
+          $ref: '#/components/schemas/Organization'
         status:
           description: Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
           type: string

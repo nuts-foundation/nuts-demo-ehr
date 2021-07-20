@@ -204,6 +204,9 @@ type TransferStatus string
 // A negotiation with a specific care organization to transfer a patient.
 type TransferNegotiation struct {
 
+	// A care organization available through the Nuts Network to exchange information.
+	Organization *Organization `json:"organization,omitempty"`
+
 	// Decentralized Identifier of the organization to which transfer of a patient is requested.
 	OrganizationDID string `json:"organizationDID"`
 

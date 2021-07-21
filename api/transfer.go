@@ -3,8 +3,9 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -52,6 +53,14 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 		t.TransferDate = updateRequest.TransferDate
 		return &t, nil
 	})
+	return ctx.JSON(http.StatusOK, transfer)
+}
+
+func (w Wrapper) CancelTransfer(ctx echo.Context, transferID string) error {
+	transfer, err := w.TransferRepository.Cancel(ctx.Request().Context(), w.getCustomerID(), transferID)
+	if err != nil {
+		return err
+	}
 	return ctx.JSON(http.StatusOK, transfer)
 }
 

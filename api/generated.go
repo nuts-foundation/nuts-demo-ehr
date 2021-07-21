@@ -68,6 +68,9 @@ type ServerInterface interface {
 	// (PUT /private/transfer/{transferID})
 	UpdateTransfer(ctx echo.Context, transferID string) error
 
+	// (PUT /private/transfer/{transferID}/cancel)
+	CancelTransfer(ctx echo.Context, transferID string) error
+
 	// (GET /private/transfer/{transferID}/negotiation)
 	ListTransferNegotiations(ctx echo.Context, transferID string) error
 
@@ -350,6 +353,24 @@ func (w *ServerInterfaceWrapper) UpdateTransfer(ctx echo.Context) error {
 	return err
 }
 
+// CancelTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferID" -------------
+	var transferID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "transferID", runtime.ParamLocationPath, ctx.Param("transferID"), &transferID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CancelTransfer(ctx, transferID)
+	return err
+}
+
 // ListTransferNegotiations converts echo context to params.
 func (w *ServerInterfaceWrapper) ListTransferNegotiations(ctx echo.Context) error {
 	var err error
@@ -466,6 +487,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/private/transfer", wrapper.CreateTransfer)
 	router.GET(baseURL+"/private/transfer/:transferID", wrapper.GetTransfer)
 	router.PUT(baseURL+"/private/transfer/:transferID", wrapper.UpdateTransfer)
+	router.PUT(baseURL+"/private/transfer/:transferID/cancel", wrapper.CancelTransfer)
 	router.GET(baseURL+"/private/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)
 	router.POST(baseURL+"/private/transfer/:transferID/negotiation/:organizationDID", wrapper.StartTransferNegotiation)
 	router.POST(baseURL+"/private/transfer/:transferID/negotiation/:organizationDID/assign", wrapper.AssignTransferNegotiation)

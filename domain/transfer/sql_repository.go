@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"time"
+
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
@@ -30,12 +31,24 @@ type sqlNegotiation struct {
 	Status          string    `db:"status"`
 }
 
-func (n sqlNegotiation) MarshalToDomainNegotiation() (*domain.TransferNegotiation, error) {
+func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*domain.TransferNegotiation, error) {
 	return &domain.TransferNegotiation{
-		OrganizationDID: n.OrganizationDID,
-		Status:          domain.TransferNegotiationStatus(n.Status),
-		TransferDate:    openapi_types.Date{Time: n.Date},
+		OrganizationDID: dbNegotiation.OrganizationDID,
+		Status:          domain.TransferNegotiationStatus(dbNegotiation.Status),
+		TransferDate:    openapi_types.Date{Time: dbNegotiation.Date},
+		TransferID:      domain.ObjectID(dbNegotiation.TransferID),
 	}, nil
+}
+
+func (dbNegotiation *sqlNegotiation) UnmarshalFromDomainNegotiation(customerID string, negotiation domain.TransferNegotiation) error {
+	*dbNegotiation = sqlNegotiation{
+		TransferID:      string(negotiation.TransferID),
+		OrganizationDID: negotiation.OrganizationDID,
+		CustomerID:      customerID,
+		Date:            negotiation.TransferDate.Time,
+		Status:          string(negotiation.Status),
+	}
+	return nil
 }
 
 func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID string, transfer domain.Transfer) error {
@@ -143,6 +156,40 @@ func (r SQLiteTransferRepository) findByID(ctx context.Context, tx *sqlx.Tx, cus
 	return dbTransfer.MarshalToDomainTransfer()
 }
 
+func (r SQLiteTransferRepository) updateTransfer(ctx context.Context, tx *sqlx.Tx, customerID string, transfer domain.Transfer) error {
+	const query = `
+	UPDATE transfer SET
+		date = :date,
+		status = :status,
+		description = :description
+	WHERE customer_id = :customer_id AND id = :id
+`
+	dbEntity := sqlTransfer{}
+	err := dbEntity.UnmarshalFromDomainTransfer(customerID, transfer)
+	if err != nil {
+		return err
+	}
+	_, err = tx.NamedExecContext(ctx, query, dbEntity)
+	if err != nil {
+		return fmt.Errorf("unable to update the Transfer: %w", err)
+	}
+	return nil
+}
+
+func (r SQLiteTransferRepository) findNegotiationByID(ctx context.Context, tx *sqlx.Tx, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? id = ?`
+
+	dbNegotiation := sqlNegotiation{}
+	err := tx.SelectContext(ctx, &dbNegotiation, query, customerID, negotiationID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return dbNegotiation.MarshalToDomainNegotiation()
+}
+
 func (r SQLiteTransferRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Transfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
@@ -194,7 +241,7 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID, dossie
 		values(:id, :customer_id, :dossier_id, :date, :status, :description)
 `
 
-	if _, err := tx.NamedExec(query, dbTransfer); err != nil {
+	if _, err := tx.NamedExecContext(ctx, query, dbTransfer); err != nil {
 		return nil, err
 	}
 	return transfer, nil
@@ -215,26 +262,84 @@ func (r SQLiteTransferRepository) Update(ctx context.Context, customerID, transf
 		return
 	}
 
-	dbEntity := sqlTransfer{}
-	err = dbEntity.UnmarshalFromDomainTransfer(customerID, *entity)
-	if err != nil {
-		return
-	}
-
-	const query = `
-	UPDATE transfer SET
-		date = :date,
-		status = :status,
-		description = :description
-	WHERE customer_id = :customer_id AND id = :id
-`
-	_, err = tx.NamedExec(query, dbEntity)
+	err = r.updateTransfer(ctx, tx, customerID, *entity)
 
 	return
 }
 
-func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID, id string) {
+func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID, transferID string) (*domain.Transfer, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	transfer, err := r.findByID(ctx, tx, customerID, transferID)
+	if err != nil {
+		return nil, nil
+	}
+	transfer.Status = CANCELLED_STATE
+
+	if err := r.updateTransfer(ctx, tx, customerID, *transfer); err != nil {
+		return nil, err
+	}
+
+	negotiations, err := r.ListNegotiations(ctx, customerID, string(transfer.Id))
+	if err != nil {
+		return nil, err
+	}
+	for _, negotiation := range negotiations {
+		negotiation.Status = CANCELLED_STATE
+		if err := r.updateNegotiation(ctx, tx, customerID, negotiation); err != nil {
+			return nil, err
+		}
+	}
+
+	return transfer, nil
+}
+
+func (r SQLiteTransferRepository) CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	negotiation, err := r.findNegotiationByID(ctx, tx, customerID, negotiationID)
+	if err != nil {
+		return nil, err
+	}
+	negotiation.Status = CANCELLED_STATE
+	if err := r.updateNegotiation(ctx, tx, customerID, *negotiation); err != nil {
+		return nil, err
+	}
+	return negotiation, nil
+}
+
+func (r SQLiteTransferRepository) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
+}
+
+func (r SQLiteTransferRepository) ConfirmNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+	panic("implement me")
+}
+
+func (r SQLiteTransferRepository) updateNegotiation(ctx context.Context, tx *sqlx.Tx, customerID string, negotiation domain.TransferNegotiation) error {
+
+	const query = `
+	UPDATE transfer_negotiation SET
+		date = :date,
+		status = :status
+	WHERE customer_id = :customer_id AND organization_did = :organization_did
+`
+
+	dbEntity := sqlNegotiation{}
+	err := dbEntity.UnmarshalFromDomainNegotiation(customerID, negotiation)
+	if err != nil {
+		return err
+	}
+	_, err = tx.NamedExecContext(ctx, query, dbEntity)
+	if err != nil {
+		return fmt.Errorf("unable to update the negotiation: %w", err)
+	}
+	return nil
 }
 
 func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, date time.Time) (*domain.TransferNegotiation, error) {
@@ -247,13 +352,14 @@ func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, custome
 		OrganizationDID: organizationDID,
 		CustomerID:      customerID,
 		Date:            date,
+		Status:          REQUESTED_STATE,
 	}
 	const query = `INSERT INTO transfer_negotiation 
-		(transfer_id, organization_did, customer_id, date)
-		values(:transfer_id, :organization_did, :customer_id, :date)
+		(transfer_id, organization_did, customer_id, date, status)
+		values(:transfer_id, :organization_did, :customer_id, :date, :status)
 `
 
-	if _, err := tx.NamedExec(query, negotiation); err != nil {
+	if _, err := tx.NamedExecContext(ctx, query, negotiation); err != nil {
 		return nil, err
 	}
 	return negotiation.MarshalToDomainNegotiation()

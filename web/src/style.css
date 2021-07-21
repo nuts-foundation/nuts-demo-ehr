@@ -37,12 +37,20 @@ input:focus {
     @apply text-2xl mb-6
 }
 
+.btn {
+    @apply font-medium rounded-md px-3 py-2 border border-gray-300 shadow-sm;
+}
+
 .btn-primary {
-    @apply bg-blue-400 hover:bg-blue-500 text-white font-medium rounded-md px-3 py-2;
+    @apply bg-blue-400 hover:bg-blue-500 text-white
+}
+
+.btn-secondary {
+    @apply border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
 }
 
 .btn-submit {
-    @apply bg-blue-400 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-md px-3 py-2;
+    @apply bg-blue-400 hover:bg-blue-500 disabled:opacity-50 text-white;
 
 }
 

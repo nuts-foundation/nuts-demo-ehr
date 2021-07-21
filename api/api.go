@@ -3,8 +3,9 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"net/http"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"

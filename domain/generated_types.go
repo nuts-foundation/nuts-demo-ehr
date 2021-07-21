@@ -201,7 +201,7 @@ type Transfer struct {
 // Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 type TransferStatus string
 
-// A negotiation with a specific care organization to transfer a patient.
+// A negotiation with a specific care organization to transfer a patient. If the organization could be resolved on the Nuts Network, it is returned as well (in that case the 'organization' property is filled).
 type TransferNegotiation struct {
 
 	// A care organization available through the Nuts Network to exchange information.
@@ -215,6 +215,9 @@ type TransferNegotiation struct {
 
 	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	TransferID ObjectID `json:"transferID"`
 }
 
 // Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).

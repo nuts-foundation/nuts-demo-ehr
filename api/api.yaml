@@ -223,6 +223,25 @@ paths:
         404:
           description: Transfer not found
 
+  /private/transfer/{transferID}/cancel:
+    parameters:
+      - name: transferID
+        in: path
+        description: ID of the transfer dossier.
+        required: true
+        schema:
+          type: string
+    put:
+      description: Cancel a transfer and all its negotiations.
+      operationId: cancelTransfer
+      responses:
+        200:
+          description: Transfer cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+
   /private/transfer/{transferID}/negotiation:
     parameters:
       - name: transferID
@@ -537,10 +556,13 @@ components:
         A negotiation with a specific care organization to transfer a patient. If the organization could be resolved on the Nuts Network,
         it is returned as well (in that case the 'organization' property is filled).
       required:
+        - transferID
         - organizationDID
         - status
         - transferDate
       properties:
+        transferID:
+          $ref: '#/components/schemas/ObjectID'
         organizationDID:
           description: Decentralized Identifier of the organization to which transfer of a patient is requested.
           type: string
@@ -549,7 +571,7 @@ components:
         status:
           description: Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
           type: string
-          enum: [requested, accepted, in-progress, completed, on-hold]
+          enum: [ requested, accepted, in-progress, completed, on-hold ]
         transferDate:
           description: Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
           type: string
@@ -607,7 +629,7 @@ components:
                 - Completed: the patient transfer is completed and marked as such by the receiving care organization.
                 - Cancelled: the transfer is cancelled by the sending care organization.
               type: string
-              enum: [created, requested, assigned, completed, cancelled]
+              enum: [ created, requested, assigned, completed, cancelled ]
     AcceptTransferRequest:
       description: >
         API request to accept the transfer of a patient, to a care organization that accepted transfer.
@@ -646,7 +668,7 @@ components:
       bearerFormat: JWT
 
 security:
-  - bearerAuth: [] # Apply Bearer Auth to all endpoints
+  - bearerAuth: [ ] # Apply Bearer Auth to all endpoints
 
 servers:
   - url: "/web"

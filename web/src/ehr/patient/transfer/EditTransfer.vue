@@ -1,18 +1,20 @@
 <template>
   <div>
+    <div class="mt-4" v-if="transfer">
+      <div class="bg-gray-50 font-bold">State</div>
+      <div>
+        {{ transfer.status }}
+      </div>
+    </div>
     <transfer-form v-if="transfer" :transfer="transfer"
                    @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
-
-    <div class="mt-4">
-      <button @click="updateTransfer" class="btn btn-primary">Update</button>
-    </div>
 
     <table class="mt-4 min-w-full divide-y divide-gray-200" v-if="transfer">
       <thead class="bg-gray-50">
       <tr>
-        <th>Organization</th>
+        <th>Organizations</th>
         <th>Date</th>
-        <th>Status</th>
+        <th colspan="2">Status</th>
       </tr>
       </thead>
       <tbody>
@@ -21,8 +23,13 @@
         <td v-else>{{ negotiation.organizationDID }}</td>
         <td>{{ negotiation.transferDate }}</td>
         <td>{{ negotiation.status }}</td>
+        <td class="space-x-2">
+          <span v-if="negotiation.status != 'cancelled' && negotiation.status != 'completed'"
+                @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer">cancel</span>
+          <!--          <span @click="updateNegotiation(negotiation)" class="hover:underline cursor-pointer">update</span>-->
+        </td>
       </tr>
-      <tr>
+      <tr v-if="showRequestNewOrganization()">
         <td colspan="3" v-if="requestedOrganization === null">
           <auto-complete
               :items="organizations"
@@ -41,11 +48,24 @@
           <button class="btn" @click="cancelOrganization">Cancel</button>
         </td>
       </tr>
+      <tr v-if="showRequestNewOrganization()">
+        <td colspan="3">
+          <p>Note: only care organizations that accept patient transfers over the Nuts Network can be selected.</p>
+        </td>
+      </tr>
       </tbody>
     </table>
-    <p>
-      Note: only care organizations that accept patient transfers over the Nuts Network can be selected.
-    </p>
+
+    <div class="mt-4 space-x-2">
+      <button v-if="showUpdateButton()" @click="updateTransfer" class="btn btn-primary">Update</button>
+      <button v-if="transfer && transfer.status != 'cancelled'" @click="cancelTransfer" class="btn">Cancel transfer
+      </button>
+      <button @click="$router.push({name: 'ehr.patient', params: {id: $route.params.id } })"
+              class="btn btn-secondary"
+      >
+        Back
+      </button>
+    </div>
 
     <table class="min-w-full divide-y divide-gray-200 mt-4" v-if="transfer">
       <thead class="bg-gray-50">
@@ -80,6 +100,28 @@ export default {
     }
   },
   methods: {
+    showRequestNewOrganization() {
+      switch (this.transfer.status) {
+        case 'cancelled':
+        case 'completed':
+        case 'assigned':
+          return false
+        default:
+          return true
+      }
+    },
+    showUpdateButton() {
+      if (!this.transfer) {
+        return false
+      }
+      switch (this.transfer.status) {
+        case 'cancelled':
+        case 'completed':
+          return false
+        default:
+          return true
+      }
+    },
     chooseOrganization(organization) {
       this.requestedOrganization = organization
     },
@@ -105,15 +147,30 @@ export default {
             this.fetchTransfer(this.transfer.id)
           })
     },
+    cancelNegotiation(negotiation) {
+    },
+    updateNegotiation(negotiation) {
+    },
+    cancelTransfer() {
+      const cancelRequest = {
+        transferID: this.transfer.id,
+      }
+      this.$api.cancelTransfer(cancelRequest)
+          .then(transfer => {
+            this.transfer = transfer
+            this.$status.status("Transfer cancelled")
+          })
+          .catch(error => this.$status.error(error))
+    },
     updateTransfer() {
-      const transfer = {
+      const updateRequest = {
         transferID: this.transfer.id,
         body: {
           description: this.transfer.description,
           transferDate: this.transfer.transferDate,
         }
       };
-      this.$api.updateTransfer(transfer)
+      this.$api.updateTransfer(updateRequest)
           .then(transfer => {
             this.transfer = transfer
             this.$status.status("Transfer updated")

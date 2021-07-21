@@ -341,6 +341,20 @@ function createApi(options) {
 
         });
     },
+    cancelTransfer(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'cancelTransfer');
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/cancel'
+        , {
+          method: 'PUT',
+          headers,
+          mode,
+        });
+    },
     listTransferNegotiations(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

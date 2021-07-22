@@ -331,6 +331,13 @@ paths:
 
   /private/patients:
     get:
+      parameters:
+        - name: name
+          in: query
+          description: Search patients by name
+          required: false
+          schema:
+            type: string
       operationId: getPatients
       responses:
         200:

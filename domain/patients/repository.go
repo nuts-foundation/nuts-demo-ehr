@@ -22,7 +22,7 @@ type Repository interface {
 	FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error)
 	Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error)
 	NewPatient(ctx context.Context, customerID string, patient domain.PatientProperties) (*domain.Patient, error)
-	All(ctx context.Context, customerID string) ([]domain.Patient, error)
+	All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error)
 }
 
 type Factory struct{}
@@ -151,7 +151,7 @@ func (r MemoryPatientRepository) NewPatient(ctx context.Context, customerID stri
 	return patient, nil
 }
 
-func (r MemoryPatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
+func (r MemoryPatientRepository) All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	result := make([]domain.Patient, len(r.patients[customerID]))

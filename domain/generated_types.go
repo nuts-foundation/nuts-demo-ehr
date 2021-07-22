@@ -265,6 +265,13 @@ type SearchOrganizationsParams struct {
 // UpdatePatientJSONBody defines parameters for UpdatePatient.
 type UpdatePatientJSONBody PatientProperties
 
+// GetPatientsParams defines parameters for GetPatients.
+type GetPatientsParams struct {
+
+	// Search patients by name
+	Name *string `json:"name,omitempty"`
+}
+
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
 

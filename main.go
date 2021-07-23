@@ -7,9 +7,11 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -85,7 +87,7 @@ func main() {
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
-	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, "http://localhost:4004/hapi-fhir-jpaserver/fhir")
+	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	if config.LoadTestPatients {
 		customers, err := customerRepository.All()
 		if err != nil {

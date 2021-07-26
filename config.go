@@ -28,6 +28,7 @@ const defaultConfigFile = "server.config.yaml"
 const defaultDBFile = "registry-admin.db"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
+const defaultFHIRServerAddress = "http://localhost:4004/hapi-fhir-jpaserver/fhir"
 const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {
@@ -35,6 +36,7 @@ func defaultConfig() Config {
 		HTTPPort:           defaultHTTPPort,
 		DBFile:             defaultDBFile,
 		NutsNodeAddress:    defaultNutsNodeAddress,
+		FHIRServerAddress:  defaultFHIRServerAddress,
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
 		DBConnectionString: ":memory:?cache=shared",
@@ -43,12 +45,13 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	Credentials     Credentials `koanf:"credentials"`
-	DBFile          string      `koanf:"dbfile"`
-	HTTPPort        int         `koanf:"port"`
-	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
-	CustomersFile   string      `koanf:"customersfile"`
-	Branding        Branding    `koanf:"branding"`
+	Credentials       Credentials `koanf:"credentials"`
+	DBFile            string      `koanf:"dbfile"`
+	HTTPPort          int         `koanf:"port"`
+	NutsNodeAddress   string      `koanf:"nutsnodeaddr"`
+	FHIRServerAddress string      `koanf:"fhirserveraddr"`
+	CustomersFile     string      `koanf:"customersfile"`
+	Branding          Branding    `koanf:"branding"`
 	// Database connection string, accepts all options for the sqlite3 driver
 	// https://github.com/mattn/go-sqlite3#connection-string
 	DBConnectionString string `koanf:"dbConnectionString"`

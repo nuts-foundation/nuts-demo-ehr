@@ -51,7 +51,7 @@ type ServerInterface interface {
 	UpdatePatient(ctx echo.Context, patientID string) error
 
 	// (GET /private/patients)
-	GetPatients(ctx echo.Context) error
+	GetPatients(ctx echo.Context, params GetPatientsParams) error
 
 	// (POST /private/patients)
 	NewPatient(ctx echo.Context) error
@@ -270,8 +270,17 @@ func (w *ServerInterfaceWrapper) GetPatients(ctx echo.Context) error {
 
 	ctx.Set(BearerAuthScopes, []string{""})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPatientsParams
+	// ------------- Optional query parameter "name" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "name", ctx.QueryParams(), &params.Name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter name: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetPatients(ctx)
+	err = w.Handler.GetPatients(ctx, params)
 	return err
 }
 

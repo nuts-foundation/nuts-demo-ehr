@@ -7,16 +7,19 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"time"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"io/fs"
-	"log"
-	"net/http"
-	"os"
-	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
@@ -83,7 +86,8 @@ func main() {
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
-	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	if config.LoadTestPatients {
 		customers, err := customerRepository.All()
 		if err != nil {

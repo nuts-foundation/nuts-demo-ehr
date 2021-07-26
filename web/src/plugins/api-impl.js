@@ -252,7 +252,10 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getPatients');
-      return fetch(endpoint + basePath + '/private/patients'
+      return fetch(endpoint + basePath + '/private/patients' + '?' + buildQuery({
+          'name': params['name'],
+        })
+
         , {
           method: 'GET',
           headers,

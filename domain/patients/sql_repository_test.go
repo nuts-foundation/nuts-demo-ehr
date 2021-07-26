@@ -49,7 +49,7 @@ func TestSQLitePatientRepository_All(t *testing.T) {
 		db.MustExec("INSERT INTO `patient` (`ssn`,`customer_id`, `id`, `first_name`, `surname`) VALUES('123','c1', 'p1', 'Fred', 'Klooydonk')")
 		db.MustExec("INSERT INTO `patient` (`ssn`,`customer_id`, `id`, `first_name`, `surname`) VALUES('456','c1', 'p2', 'Arie', 'de Eiker')")
 		sql.ExecuteTransactional(db, func(ctx context.Context) error {
-			result, err := repo.All(ctx, "c1")
+			result, err := repo.All(ctx, "c1", nil)
 			if !assert.NoError(t, err) {
 				return nil
 			}

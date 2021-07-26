@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"time"
+
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
@@ -234,7 +235,7 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 	return
 }
 
-func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
+func (r SQLitePatientRepository) All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err

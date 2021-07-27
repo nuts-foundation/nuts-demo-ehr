@@ -7,11 +7,9 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
@@ -35,7 +33,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	bolt "go.etcd.io/bbolt"
 )
 
 const assetPath = "web/dist"
@@ -64,12 +61,6 @@ func main() {
 	// config stuff
 	config := loadConfig()
 	config.Print(log.Writer())
-	// load bbolt db
-	db, err := bolt.Open(config.DBFile, 0600, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
 
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
@@ -89,11 +80,11 @@ func main() {
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	if config.LoadTestPatients {
-		customers, err := customerRepository.All()
+		allCustomers, err := customerRepository.All()
 		if err != nil {
 			log.Fatal(err)
 		}
-		for _, customer := range customers {
+		for _, customer := range allCustomers {
 			registerPatients(patientRepository, sqlDB, customer.Id)
 		}
 	}

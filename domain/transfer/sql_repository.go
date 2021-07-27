@@ -33,10 +33,11 @@ type sqlNegotiation struct {
 
 func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*domain.TransferNegotiation, error) {
 	return &domain.TransferNegotiation{
-		OrganizationDID: dbNegotiation.OrganizationDID,
-		Status:          domain.TransferNegotiationStatus(dbNegotiation.Status),
-		TransferDate:    openapi_types.Date{Time: dbNegotiation.Date},
-		TransferID:      domain.ObjectID(dbNegotiation.TransferID),
+		Id:                        domain.ObjectID(dbNegotiation.OrganizationDID),
+		OrganizationDID:           dbNegotiation.OrganizationDID,
+		TransferNegotiationStatus: domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(dbNegotiation.Status)},
+		TransferDate:              openapi_types.Date{Time: dbNegotiation.Date},
+		TransferID:                domain.ObjectID(dbNegotiation.TransferID),
 	}, nil
 }
 
@@ -295,6 +296,28 @@ func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID, transf
 	}
 
 	return transfer, nil
+}
+
+func (r SQLiteTransferRepository) UpdateNegotiationState(ctx context.Context, customerID, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	negotiation, err := r.findNegotiationByID(ctx, tx, customerID, negotiationID)
+	if err != nil {
+		return nil, err
+	}
+	wrongStateErrStr := "could not update status: invalid state transition from: %s to: %s"
+	switch negotiation.Status {
+	case CANCELLED_STATE:
+	case COMPLETED_STATE:
+		return nil, fmt.Errorf(wrongStateErrStr, negotiation.Status, newState)
+	}
+	negotiation.Status = newState
+	if err = r.updateNegotiation(ctx, tx, customerID, *negotiation); err != nil {
+		return nil, err
+	}
+	return negotiation, nil
 }
 
 func (r SQLiteTransferRepository) CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

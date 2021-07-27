@@ -9,7 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	transfer2 "github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	domainTransfer "github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 )
 
 type GetPatientTransfersParams = domain.GetPatientTransfersParams
@@ -64,7 +64,11 @@ func (w Wrapper) CancelTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
-func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string, organizationDID string) error {
+func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) error {
+	request := domain.CreateTransferNegotiationRequest{}
+	if err := ctx.Bind(&request); err != nil {
+		return err
+	}
 	var negotiation *domain.TransferNegotiation
 	_, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(), transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
@@ -78,15 +82,15 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string, o
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
-		negotiation, err = w.TransferRepository.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, organizationDID, transfer.TransferDate.Time)
+		negotiation, err = w.TransferRepository.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, request.OrganizationDID, transfer.TransferDate.Time)
 		if err != nil {
 			return nil, err
 		}
 		// Send FHIR task notification
-		task := transfer2.EOverdrachtTask{
+		task := domainTransfer.EOverdrachtTask{
 			SenderNutsDID:   *senderDID,
-			ReceiverNutsDID: organizationDID,
-			Status:          domain.TransferNegotiationStatusRequested,
+			ReceiverNutsDID: request.OrganizationDID,
+			Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusRequested},
 		}
 		err = w.FHIRGateway.CreateTask(task)
 		if err != nil {
@@ -103,8 +107,12 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string, o
 	return ctx.JSON(http.StatusOK, *negotiation)
 }
 
-func (w Wrapper) AssignTransferNegotiation(ctx echo.Context, transferID string, organizationDID string) error {
+func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
 	var negotiation *domain.TransferNegotiation
+	request := domain.AssignTransferRequest{}
+	if err := ctx.Bind(&request); err != nil {
+		return err
+	}
 	_, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(), transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusRequested {
@@ -116,18 +124,18 @@ func (w Wrapper) AssignTransferNegotiation(ctx echo.Context, transferID string, 
 		}
 		// Make sure the negotiation is accepted by the receiving care organization
 		var err error
-		negotiation, err = w.findNegotiation(ctx.Request().Context(), transferID, organizationDID, err)
+		negotiation, err = w.findNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, string(request.NegotiationID))
 		if err != nil {
 			return nil, err
 		}
-		if negotiation.Status != domain.TransferNegotiationStatusAccepted {
+		if negotiation.Status != domain.TransferNegotiationStatusStatusAccepted {
 			return nil, errors.New("can't assign transfer to care organization when it hasn't accepted the transfer")
 		}
 		// All is fine, update task
-		task := transfer2.EOverdrachtTask{
+		task := domainTransfer.EOverdrachtTask{
 			SenderNutsDID:   *senderDID,
-			ReceiverNutsDID: organizationDID,
-			Status:          domain.TransferNegotiationStatusInProgress,
+			ReceiverNutsDID: negotiation.OrganizationDID,
+			Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusInProgress},
 		}
 		err = w.FHIRGateway.CreateTask(task)
 		if err != nil {
@@ -155,18 +163,31 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationDID, err)
 			continue
 		}
-		negotiations[i].Organization = organization
+		negotiations[i].Organization = *organization
 	}
 	return ctx.JSON(http.StatusOK, negotiations)
 }
 
-func (w Wrapper) findNegotiation(ctx context.Context, transferID string, organizationDID string, err error) (*domain.TransferNegotiation, error) {
-	negotiations, err := w.TransferRepository.ListNegotiations(ctx, transferID, transferID)
+func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID string, negotiationID string) error {
+	request := domain.TransferNegotiationStatus{}
+	if err := ctx.Bind(&request); err != nil {
+		return err
+	}
+	negotiation, err := w.TransferRepository.UpdateNegotiationState(ctx.Request().Context(), w.getCustomerID(), negotiationID, request.Status)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(http.StatusOK, negotiation)
+}
+
+func (w Wrapper) findNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
+	negotiations, err := w.TransferRepository.ListNegotiations(ctx, customerID, transferID)
 	if err != nil {
 		return nil, err
 	}
 	for _, curr := range negotiations {
-		if curr.OrganizationDID == organizationDID {
+		if string(curr.Id) == negotiationID {
 			return &curr, nil
 		}
 	}

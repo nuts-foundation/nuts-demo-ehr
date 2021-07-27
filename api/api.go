@@ -146,3 +146,5 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	}
 	return ctx.JSON(http.StatusOK, customers)
 }
+
+

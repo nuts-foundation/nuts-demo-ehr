@@ -35,21 +35,23 @@ const (
 	TransferStatusRequested TransferStatus = "requested"
 )
 
-// Defines values for TransferNegotiationStatus.
+// Defines values for TransferNegotiationStatusStatus.
 const (
-	TransferNegotiationStatusAccepted TransferNegotiationStatus = "accepted"
+	TransferNegotiationStatusStatusAccepted TransferNegotiationStatusStatus = "accepted"
 
-	TransferNegotiationStatusCompleted TransferNegotiationStatus = "completed"
+	TransferNegotiationStatusStatusCancelled TransferNegotiationStatusStatus = "cancelled"
 
-	TransferNegotiationStatusInProgress TransferNegotiationStatus = "in-progress"
+	TransferNegotiationStatusStatusCompleted TransferNegotiationStatusStatus = "completed"
 
-	TransferNegotiationStatusOnHold TransferNegotiationStatus = "on-hold"
+	TransferNegotiationStatusStatusInProgress TransferNegotiationStatusStatus = "in-progress"
 
-	TransferNegotiationStatusRequested TransferNegotiationStatus = "requested"
+	TransferNegotiationStatusStatusOnHold TransferNegotiationStatusStatus = "on-hold"
+
+	TransferNegotiationStatusStatusRequested TransferNegotiationStatusStatus = "requested"
 )
 
-// API request to accept the transfer of a patient, to a care organization that accepted transfer. negotiationID contains the ID of the negotiation that will complete the transfer.
-type AcceptTransferRequest struct {
+// Request used to assign a transfer to a specific negotiation indicated by the negotiationID.
+type AssignTransferRequest struct {
 
 	// An internal object UUID which can be used as unique identifier for entities.
 	NegotiationID ObjectID `json:"negotiationID"`
@@ -61,6 +63,16 @@ type CreateDossierRequest struct {
 
 	// An internal object UUID which can be used as unique identifier for entities.
 	PatientID ObjectID `json:"patientID"`
+}
+
+// An request object to create a new transfer negotiation.
+type CreateTransferNegotiationRequest struct {
+
+	// Decentralized Identifier of the organization to which transfer of a patient is requested.
+	OrganizationDID string `json:"organizationDID"`
+
+	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
+	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
 // CreateTransferRequest defines model for CreateTransferRequest.
@@ -201,17 +213,20 @@ type Transfer struct {
 // Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 type TransferStatus string
 
-// A negotiation with a specific care organization to transfer a patient. If the organization could be resolved on the Nuts Network, it is returned as well (in that case the 'organization' property is filled).
+// TransferNegotiation defines model for TransferNegotiation.
 type TransferNegotiation struct {
+	// Embedded struct due to allOf(#/components/schemas/TransferNegotiationStatus)
+	TransferNegotiationStatus `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id ObjectID `json:"id"`
 
 	// A care organization available through the Nuts Network to exchange information.
-	Organization *Organization `json:"organization,omitempty"`
+	Organization Organization `json:"organization"`
 
 	// Decentralized Identifier of the organization to which transfer of a patient is requested.
 	OrganizationDID string `json:"organizationDID"`
-
-	// Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
-	Status TransferNegotiationStatus `json:"status"`
 
 	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
@@ -220,8 +235,15 @@ type TransferNegotiation struct {
 	TransferID ObjectID `json:"transferID"`
 }
 
+// A valid transfer negotiation state.
+type TransferNegotiationStatus struct {
+
+	// Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
+	Status TransferNegotiationStatusStatus `json:"status"`
+}
+
 // Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
-type TransferNegotiationStatus string
+type TransferNegotiationStatusStatus string
 
 // Properties of a transfer. These values can be updated over time.
 type TransferProperties struct {
@@ -288,8 +310,11 @@ type CreateTransferJSONBody CreateTransferRequest
 // UpdateTransferJSONBody defines parameters for UpdateTransfer.
 type UpdateTransferJSONBody TransferProperties
 
-// AssignTransferNegotiationJSONBody defines parameters for AssignTransferNegotiation.
-type AssignTransferNegotiationJSONBody AcceptTransferRequest
+// StartTransferNegotiationJSONBody defines parameters for StartTransferNegotiation.
+type StartTransferNegotiationJSONBody CreateTransferNegotiationRequest
+
+// UpdateTransferNegotiationStatusJSONBody defines parameters for UpdateTransferNegotiationStatus.
+type UpdateTransferNegotiationStatusJSONBody TransferNegotiationStatus
 
 // SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.
 type SetCustomerJSONRequestBody SetCustomerJSONBody
@@ -315,5 +340,8 @@ type CreateTransferJSONRequestBody CreateTransferJSONBody
 // UpdateTransferJSONRequestBody defines body for UpdateTransfer for application/json ContentType.
 type UpdateTransferJSONRequestBody UpdateTransferJSONBody
 
-// AssignTransferNegotiationJSONRequestBody defines body for AssignTransferNegotiation for application/json ContentType.
-type AssignTransferNegotiationJSONRequestBody AssignTransferNegotiationJSONBody
+// StartTransferNegotiationJSONRequestBody defines body for StartTransferNegotiation for application/json ContentType.
+type StartTransferNegotiationJSONRequestBody StartTransferNegotiationJSONBody
+
+// UpdateTransferNegotiationStatusJSONRequestBody defines body for UpdateTransferNegotiationStatus for application/json ContentType.
+type UpdateTransferNegotiationStatusJSONRequestBody UpdateTransferNegotiationStatusJSONBody

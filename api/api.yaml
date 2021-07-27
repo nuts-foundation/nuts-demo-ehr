@@ -222,16 +222,7 @@ paths:
                 $ref: '#/components/schemas/Transfer'
         404:
           description: Transfer not found
-
-  /private/transfer/{transferID}/cancel:
-    parameters:
-      - name: transferID
-        in: path
-        description: ID of the transfer dossier.
-        required: true
-        schema:
-          type: string
-    put:
+    delete:
       description: Cancel a transfer and all its negotiations.
       operationId: cancelTransfer
       responses:
@@ -242,6 +233,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Transfer'
 
+  /private/transfer/{transferID}/assign:
+    parameters:
+      - name: transferID
+        in: path
+        description: ID of the transfer dossier.
+        required: true
+        schema:
+          type: string
+    put:
+      description: >
+        Assign the transfer of a patient to a care organization that accepted the transfer negotiation.
+        Calling this operation will update the state of the negotiation to "inProgress" and the transfer to "assigned".
+      operationId: assignTransfer
+      responses:
+        200:
+          description: Transfer accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignTransferRequest'
+        404:
+          description: Transfer or negotiation not found
+        400:
+          description: Invalid request.
   /private/transfer/{transferID}/negotiation:
     parameters:
       - name: transferID
@@ -262,25 +277,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TransferNegotiation'
-  /private/transfer/{transferID}/negotiation/{organizationDID}:
-    parameters:
-      - name: transferID
-        in: path
-        description: ID of the transfer dossier.
-        required: true
-        schema:
-          type: string
-      - name: organizationDID
-        in: path
-        description: ID of the transfer negotation.
-        required: true
-        schema:
-          type: string
     post:
       description: >
         Start a negotiation with a care organization for this transfer.
         Calling this operation will update the state of the transfer to "requested".
       operationId: startTransferNegotiation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferNegotiationRequest'
       responses:
         200:
           description: Negotiation started.
@@ -292,7 +299,7 @@ paths:
           description: Patient or transfer not found
         400:
           description: Invalid request.
-  /private/transfer/{transferID}/negotiation/{organizationDID}/assign:
+  /private/transfer/{transferID}/negotiation/{negotiationID}:
     parameters:
       - name: transferID
         in: path
@@ -300,35 +307,33 @@ paths:
         required: true
         schema:
           type: string
-      - name: organizationDID
+      - name: negotiationID
         in: path
-        description: ID of the transfer negotation.
+        description: ID of the transfer negotiation.
         required: true
         schema:
           type: string
-    post:
+    put:
       description: >
-        Assign the transfer of a patient to a care organization that accepted the transfer negotiation.
-        Calling this operation will update the state of the negotiation to "inProgress" and the transfer to "assigned".
-      operationId: assignTransferNegotiation
+        Update this negotiation status.
+      operationId: updateTransferNegotiationStatus
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AcceptTransferRequest'
+              $ref: '#/components/schemas/TransferNegotiationStatus'
       responses:
         200:
-          description: Transfer accepted.
+          description: Negotiation status updated.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Transfer'
+                $ref: '#/components/schemas/TransferNegotiation'
         404:
-          description: Patient, transfer or negotiation not found
+          description: transfer or negotiation not found.
         400:
-          description: Invalid request.
-
+          description: Invalid request. State transition might be illigal.
   /private/patients:
     get:
       parameters:
@@ -558,31 +563,54 @@ components:
         did:
           description: Decentralized Identifier which uniquely identifies the care organization on the Nuts Network.
           type: string
-    TransferNegotiation:
-      description: >
-        A negotiation with a specific care organization to transfer a patient. If the organization could be resolved on the Nuts Network,
-        it is returned as well (in that case the 'organization' property is filled).
+    CreateTransferNegotiationRequest:
+      description: An request object to create a new transfer negotiation.
+      type: object
       required:
-        - transferID
         - organizationDID
-        - status
         - transferDate
       properties:
-        transferID:
-          $ref: '#/components/schemas/ObjectID'
         organizationDID:
           description: Decentralized Identifier of the organization to which transfer of a patient is requested.
           type: string
-        organization:
-          $ref: '#/components/schemas/Organization'
-        status:
-          description: Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
-          type: string
-          enum: [ requested, accepted, in-progress, completed, on-hold ]
         transferDate:
           description: Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
           type: string
           format: date
+    TransferNegotiationStatus:
+      description: A valid transfer negotiation state.
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          description: Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
+          type: string
+          enum: [ requested, accepted, in-progress, completed, on-hold, cancelled ]
+    TransferNegotiation:
+      allOf:
+        - $ref: '#/components/schemas/TransferNegotiationStatus'
+        - type: object
+          required:
+            - id
+            - transferID
+            - organizationDID
+            - organization
+            - transferDate
+          properties:
+            id:
+              $ref: '#/components/schemas/ObjectID'
+            transferID:
+              $ref: '#/components/schemas/ObjectID'
+            organizationDID:
+              description: Decentralized Identifier of the organization to which transfer of a patient is requested.
+              type: string
+            organization:
+              $ref: '#/components/schemas/Organization'
+            transferDate:
+              description: Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
+              type: string
+              format: date
     TransferProperties:
       description: >
         Properties of a transfer. These values can be updated over time.
@@ -637,6 +665,14 @@ components:
                 - Cancelled: the transfer is cancelled by the sending care organization.
               type: string
               enum: [ created, requested, assigned, completed, cancelled ]
+    AssignTransferRequest:
+      description: >
+        Request used to assign a transfer to a specific negotiation indicated by the negotiationID.
+      required:
+        - negotiationID
+      properties:
+        negotiationID:
+          $ref: '#/components/schemas/ObjectID'
     AcceptTransferRequest:
       description: >
         API request to accept the transfer of a patient, to a care organization that accepted transfer.

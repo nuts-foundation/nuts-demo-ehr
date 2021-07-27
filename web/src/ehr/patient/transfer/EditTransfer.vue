@@ -139,7 +139,9 @@ export default {
     startNegotiation() {
       const negotiation = {
         transferID: this.transfer.id,
-        organizationDID: this.requestedOrganization.did
+        body: {
+          organizationDID: this.requestedOrganization.did
+        }
       };
       this.$api.startTransferNegotiation(negotiation)
           .then(() => {
@@ -148,6 +150,12 @@ export default {
           })
     },
     cancelNegotiation(negotiation) {
+      this.$api.updateTransferNegotiationStatus({
+        transferID: negotiation.transferID,
+        negotiationID: negotiation.id,
+        body: {status: 'cancelled'}
+      })
+          .then(() => this.fetchTransferNegotiations(this.transfer.id))
     },
     updateNegotiation(negotiation) {
     },
@@ -158,6 +166,9 @@ export default {
       this.$api.cancelTransfer(cancelRequest)
           .then(transfer => {
             this.transfer = transfer
+            return this.fetchTransferNegotiations(this.transfer.id)
+          })
+          .then(() => {
             this.$status.status("Transfer cancelled")
           })
           .catch(error => this.$status.error(error))
@@ -181,7 +192,11 @@ export default {
     fetchTransfer(id) {
       this.$api.getTransfer({transferID: id})
           .then(transfer => this.transfer = transfer)
-          .then(() => this.$api.listTransferNegotiations({transferID: id}))
+          .then(() => this.fetchTransferNegotiations(id))
+          .catch(error => this.$status.error(error))
+    },
+    fetchTransferNegotiations(transferID) {
+      return this.$api.listTransferNegotiations({transferID: transferID})
           .then(negotiations => this.negotiations = negotiations)
           .catch(error => this.$status.error(error))
     }

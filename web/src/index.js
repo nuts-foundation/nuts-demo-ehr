@@ -9,12 +9,15 @@ import IRMAAuthentication from './components/auth/IRMAAuthentication.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
+import StatusReporter from './plugins/StatusReporter.js'
 import Patients from './ehr/patient/Patients.vue'
 import Patient from './ehr/patient/Patient.vue'
+import PatientOverview from './ehr/patient/PatientOverview.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
-import TransferDossier from "./ehr/patient/dossier/Transfer.vue"
+import NewTransfer from "./ehr/patient/transfer/NewTransfer.vue"
+import EditTransfer from "./ehr/patient/transfer/EditTransfer.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 
@@ -64,23 +67,37 @@ const routes = [
       {
         path: 'patient/:id',
         name: 'ehr.patient',
-        component: Patient
+        component: Patient,
+        redirect: {name: 'ehr.patient.overview'},
+        children: [
+          {
+            path: 'overview',
+            name: 'ehr.patient.overview',
+            component: PatientOverview
+          },
+          {
+            path: 'edit',
+            name: 'ehr.patient.edit',
+            component: EditPatient
+          },
+          {
+            path: 'dossier/new',
+            name: 'ehr.patient.dossier.new',
+            component: NewDossier
+          },
+          {
+            path: 'transfer',
+            name: 'ehr.patient.transfer.new',
+            component: NewTransfer
+          },
+          {
+            path: 'transfer/:transferID/edit',
+            name: 'ehr.patient.transfer.edit',
+            component: EditTransfer
+          },
+        ],
       },
-      {
-        path: 'patient/:id/edit',
-        name: 'ehr.patient.edit',
-        component: EditPatient
-      },
-      {
-        path: 'patient/:id/dossier/new',
-        name: 'ehr.patient.dossier.new',
-        component: NewDossier
-      },
-      {
-        path: 'patient/:id/transfer',
-        name: 'ehr.patient.transfer',
-        component: TransferDossier
-      },
+
       {
         path: 'settings',
         name: 'ehr.settings',
@@ -114,5 +131,6 @@ router.beforeEach((to, from) => {
 })
 
 app.use(router)
+app.use(StatusReporter)
 app.use(Api, {forbiddenRoute: {name: 'logout'}})
 app.mount('#app')

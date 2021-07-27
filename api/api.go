@@ -3,9 +3,13 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"net/http"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
@@ -27,12 +31,14 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 }
 
 type Wrapper struct {
-	Auth               *Auth
-	Client             client.HTTPClient
-	CustomerRepository customers.Repository
-	PatientRepository  patients.Repository
-	TransferRepository transfer.Repository
-	FHIRGateway        fhir.Gateway
+	Auth                 *Auth
+	Client               client.HTTPClient
+	CustomerRepository   customers.Repository
+	PatientRepository    patients.Repository
+	DossierRepository    dossier.Repository
+	TransferRepository   transfer.Repository
+	FHIRGateway          fhir.Gateway
+	OrganizationRegistry registry.OrganizationRegistry
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -140,3 +146,5 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	}
 	return ctx.JSON(http.StatusOK, customers)
 }
+
+

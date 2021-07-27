@@ -9,9 +9,16 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
-func (w Wrapper) GetPatients(ctx echo.Context) error {
+// GetPatientsParams defines parameters for GetPatients.
+type GetPatientsParams struct {
+
+	// Search patients by name
+	Name *string `json:"name,omitempty"`
+}
+
+func (w Wrapper) GetPatients(ctx echo.Context, params GetPatientsParams) error {
 	customerID := w.getCustomerID()
-	patients, err := w.PatientRepository.All(ctx.Request().Context(), customerID)
+	patients, err := w.PatientRepository.All(ctx.Request().Context(), customerID, params.Name)
 	if err != nil {
 		return err
 	}

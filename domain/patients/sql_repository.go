@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
+
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
@@ -22,6 +22,8 @@ type sqlPatient struct {
 
 	// Date of birth. Can include time if known.
 	Dob sql.NullTime `db:"date_of_birth"`
+
+	AvatarURL sql.NullString `db:"avatar_url"`
 
 	// Primary email address.
 	Email sql.NullString `db:"email"`
@@ -75,6 +77,12 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 		ssn = &tmp
 	}
 
+	var avatarURL *string
+	if dbPatient.AvatarURL.Valid {
+		tmp := dbPatient.AvatarURL.String
+		avatarURL = &tmp
+	}
+
 	return &domain.Patient{
 		ObjectID: domain.ObjectID(dbPatient.ID),
 		PatientProperties: domain.PatientProperties{
@@ -86,14 +94,16 @@ func (dbPatient sqlPatient) MarshalToDomainPatient() (*domain.Patient, error) {
 			Gender:    gender,
 			Zipcode:   dbPatient.Zipcode,
 		},
+		AvatarUrl: avatarURL,
 	}, nil
 }
 
 func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patient domain.Patient) error {
 	var (
-		email string
-		ssn   string
-		dob   time.Time
+		email     string
+		ssn       string
+		dob       time.Time
+		avatarURL string
 	)
 	if patient.Email != nil {
 		tmp := *patient.Email
@@ -105,12 +115,16 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 	if patient.Dob != nil {
 		dob = patient.Dob.Time
 	}
+	if patient.AvatarUrl != nil {
+		avatarURL = *patient.AvatarUrl
+	}
 	*dbPatient = sqlPatient{
 		ID:         string(patient.ObjectID),
 		SSN:        sql.NullString{String: ssn, Valid: ssn != ""},
 		CustomerID: customerID,
 		Dob:        sql.NullTime{Time: dob.UTC(), Valid: !dob.IsZero()},
 		Email:      sql.NullString{String: email, Valid: email != ""},
+		AvatarURL:  sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 		FirstName:  patient.FirstName,
 		Surname:    patient.Surname,
 		Gender:     string(patient.Gender),
@@ -119,15 +133,8 @@ func (dbPatient *sqlPatient) UnmarshalFromDomainPatient(customerID string, patie
 	return nil
 }
 
-// sqlContextGetter is an interface provided both by transaction and standard db connection
-type sqlContextGetter interface {
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-}
-
 type SQLitePatientRepository struct {
 	factory Factory
-	db      *sqlx.DB
 }
 
 const schema = `
@@ -141,6 +148,7 @@ const schema = `
 		surname varchar(100) NOT NULL,
 		gender varchar(10) NOT NULL DEFAULT 'unknown',
 		zipcode varchar(10) NOT NULL DEFAULT '',
+	    avatar_url varchar(100),
 		PRIMARY KEY (customer_id, id),
 		UNIQUE(customer_id, ssn)
 	);
@@ -151,33 +159,28 @@ func NewSQLitePatientRepository(factory Factory, db *sqlx.DB) *SQLitePatientRepo
 		panic("missing db")
 	}
 
-	db.MustExec(schema)
+	tx, _ := db.Beginx()
+	tx.MustExec(schema)
+	if err := tx.Commit(); err != nil {
+		panic(err)
+	}
 
-	return &SQLitePatientRepository{factory: factory, db: db}
+	return &SQLitePatientRepository{factory: factory}
 }
 
 func (r SQLitePatientRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error) {
-	return r.getPatient(ctx, r.db, customerID, id)
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.getPatient(ctx, tx, customerID, id)
 }
 
 func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (patient *domain.Patient, err error) {
-	tx, err := r.db.Beginx()
+	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w, unable to start transaction", err)
+		return nil, err
 	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
-			log.Debug(err)
-			tx.Rollback()
-			patient = nil
-		}
-		if err != nil {
-			patient = nil
-		}
-	}()
 
 	patient, err = r.getPatient(ctx, tx, customerID, id)
 	if err != nil {
@@ -210,7 +213,7 @@ func (r SQLitePatientRepository) Update(ctx context.Context, customerID, id stri
 }
 
 func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (patient *domain.Patient, err error) {
-	patient, err = r.factory.NewUUIDPatient(patientProperties)
+	patient, err = r.factory.NewPatientWithAvatar(patientProperties)
 	if err != nil {
 		return nil, err
 	}
@@ -219,35 +222,27 @@ func (r SQLitePatientRepository) NewPatient(ctx context.Context, customerID stri
 	if err != nil {
 		return nil, err
 	}
-	tx, err := r.db.Beginx()
+	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w, unable to start transaction", err)
+		return nil, err
 	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
-			tx.Rollback()
-			patient = nil
-		}
-		if err != nil {
-			patient = nil
-		}
-	}()
 	const query = `INSERT INTO patient 
-		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode)
-		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode)
+		(id, ssn, customer_id, date_of_birth, email, first_name, surname, gender, zipcode, avatar_url)
+		values(:id, :ssn, :customer_id, :date_of_birth, :email, :first_name, :surname, :gender, :zipcode, :avatar_url)
 `
 
 	_, err = tx.NamedExec(query, dbPatient)
 	return
 }
 
-func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]domain.Patient, error) {
+func (r SQLitePatientRepository) All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
 	query := "SELECT * FROM `patient` WHERE customer_id = ? ORDER BY id ASC"
 	dbPatients := []sqlPatient{}
-	err := r.db.SelectContext(ctx, &dbPatients, query, customerID)
+	err = tx.SelectContext(ctx, &dbPatients, query, customerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return []domain.Patient{}, nil
 	} else if err != nil {
@@ -266,10 +261,10 @@ func (r SQLitePatientRepository) All(ctx context.Context, customerID string) ([]
 	return result, nil
 }
 
-func (r SQLitePatientRepository) getPatient(ctx context.Context, db sqlContextGetter, customerID, patientID string) (*domain.Patient, error) {
+func (r SQLitePatientRepository) getPatient(ctx context.Context, tx *sqlx.Tx, customerID, patientID string) (*domain.Patient, error) {
 	query := "SELECT * FROM `patient` WHERE customer_id = ? AND id = ? LIMIT 1"
 	dbPatient := &sqlPatient{}
-	err := db.GetContext(ctx, dbPatient, query, customerID, patientID)
+	err := tx.GetContext(ctx, dbPatient, query, customerID, patientID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {

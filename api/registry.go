@@ -10,13 +10,10 @@ import (
 type SearchOrganizationsParams = domain.SearchOrganizationsParams
 
 func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error {
-	results := []domain.Organization{
-		{
-			City: "Hengelo",
-			Did:  "did:nuts:123",
-			Name: "Hengelzorg BV",
-		},
+	organizations, err := w.OrganizationRegistry.Search(ctx.Request().Context(), params.Query)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
-	return ctx.JSON(http.StatusOK, results)
-
+	// TODO: Filter on params.didServiceType
+	return ctx.JSON(http.StatusOK, organizations)
 }

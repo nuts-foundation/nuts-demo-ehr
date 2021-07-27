@@ -15,11 +15,11 @@
             </select>
           </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn-submit grid justify-items-center" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
+          <button class="w-full btn btn-submit grid justify-items-center" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
             <div>Login with IRMA</div>
             <img class="block my-3" v-bind:src="irmaLogo">
           </button>
-          <button class="w-full btn-submit grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
+          <button class="w-full btn btn-submit grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
             Login with password
           </button>
         </div>

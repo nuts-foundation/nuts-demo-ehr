@@ -13,6 +13,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/sql"
+
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -27,7 +33,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	bolt "go.etcd.io/bbolt"
 )
 
 const assetPath = "web/dist"
@@ -56,12 +61,6 @@ func main() {
 	// config stuff
 	config := loadConfig()
 	config.Print(log.Writer())
-	// load bbolt db
-	db, err := bolt.Open(config.DBFile, 0600, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
 
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
@@ -75,26 +74,32 @@ func main() {
 	}
 
 	// Initialize services
-	repository := customers.NewJsonFileRepository(config.CustomersFile)
+	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
-	patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	sqlDB.SetMaxOpenConns(1)
+	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	if config.LoadTestPatients {
-		customers, err := repository.All()
+		allCustomers, err := customerRepository.All()
 		if err != nil {
 			log.Fatal(err)
 		}
-		for _, customer := range customers {
-			registerPatients(patientRepository, customer.Id)
+		for _, customer := range allCustomers {
+			registerPatients(patientRepository, sqlDB, customer.Id)
 		}
 	}
-	auth := api.NewAuth(config.sessionKey, nodeClient, repository, passwd)
+	auth := api.NewAuth(config.sessionKey, nodeClient, customerRepository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		Auth:               auth,
-		Client:             nodeClient,
-		CustomerRepository: repository,
-		PatientRepository:  patientRepository,
+		Auth:                 auth,
+		Client:               nodeClient,
+		CustomerRepository:   customerRepository,
+		PatientRepository:    patientRepository,
+		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
+		TransferRepository:   transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
+		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
+		FHIRGateway:          &fhir.StubGateway{},
 	}
 	e := echo.New()
 	e.HideBanner = true
@@ -111,6 +116,7 @@ func main() {
 	e.Use(middleware.LoggerWithConfig(loggerConfig))
 	// JWT checking for correct claims
 	e.Use(auth.JWTHandler)
+	e.Use(sql.Transactional(sqlDB))
 	e.Logger.SetLevel(log2.DEBUG)
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		if !ctx.Response().Committed {
@@ -132,7 +138,7 @@ func main() {
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
 }
 
-func registerPatients(repository patients.Repository, customerID string) {
+func registerPatients(repository patients.Repository, db *sqlx.DB, customerID string) {
 	pdate := func(value time.Time) *openapi_types.Date {
 		val := openapi_types.Date{value}
 		return &val
@@ -165,11 +171,24 @@ func registerPatients(repository patients.Repository, customerID string) {
 			Gender:    domain.PatientPropertiesGenderMale,
 			Zipcode:   "1234ZZ",
 		},
+		{
+			Ssn:       pstring("1234567893"),
+			Dob:       pdate(time.Date(2001, 2, 27, 0, 0, 0, 0, time.UTC)),
+			FirstName: "Anne",
+			Surname:   "von Oben",
+			Gender:    domain.PatientPropertiesGenderOther,
+			Zipcode:   "7777AX",
+		},
 	}
-	for _, prop := range props {
-		if _, err := repository.NewPatient(context.Background(), customerID, prop); err != nil {
-			log.Fatalf("unable to register test patient: %v", err)
+	if err := sql.ExecuteTransactional(db, func(ctx context.Context) error {
+		for _, prop := range props {
+			if _, err := repository.NewPatient(ctx, customerID, prop); err != nil {
+				return fmt.Errorf("unable to register test patient: %w", err)
+			}
 		}
+		return nil
+	}); err != nil {
+		log.Fatal(err)
 	}
 }
 

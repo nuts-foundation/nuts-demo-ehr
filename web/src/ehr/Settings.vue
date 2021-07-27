@@ -38,9 +38,7 @@ export default {
     fetchData() {
       this.$api.getCustomer()
           .then(responseData => this.customer = responseData)
-          .catch(reason => {
-            console.error("failure", reason)
-          })
+          .catch(error => this.$status.report(error))
     }
   }
 }

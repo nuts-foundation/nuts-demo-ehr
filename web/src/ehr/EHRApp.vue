@@ -19,8 +19,10 @@
         <router-link
             :to="{name: 'ehr.settings'}"
             class="menu-link">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+               stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
           </svg>
           Settings
         </router-link>
@@ -37,6 +39,8 @@
     <main class="relative w-full p-5">
       <!-- Main content -->
       <div class="max-w-4xl mx-auto my-8">
+        <status-reporter type="error" :message="errorMessage.value"></status-reporter>
+        <status-reporter type="info" :message="statusMessage.value"></status-reporter>
         <router-view @statusUpdate="updateStatus"></router-view>
       </div>
       <status-bar :statusMessage="eventMessage"></status-bar>
@@ -45,19 +49,32 @@
 </template>
 
 <script>
-import StatusBar from "../components/StatusBar.vue";
+import StatusBar from "../components/StatusBar.vue"
+import StatusReporter from "../components/StatusReporter.vue"
 
 export default {
-  components: {StatusBar},
+  components: {StatusBar, StatusReporter},
   data() {
     return {
-      eventMessage: ''
+      eventMessage: '',
     }
   },
   methods: {
     updateStatus(status) {
       this.eventMessage = status
+    },
+  },
+  computed: {
+    errorMessage() {
+      return this.$status.errorMessage
+    },
+    statusMessage() {
+      return this.$status.statusMessage
     }
+  },
+  beforeRouteUpdate(to, from, next) {
+    this.$status.clearError()
+    next()
   }
 }
 </script>

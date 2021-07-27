@@ -1,6 +1,5 @@
 <template>
   <h1 class="text-2xl">New Patient</h1>
-  <p v-if="apiError" class="p-3 bg-red-100 rounded-md">Error: {{ apiError }}</p>
   <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
     <b>Please correct the following error(s):</b>
     <ul>
@@ -27,7 +26,6 @@ export default {
   components: {PatientForm},
   data() {
     return {
-      apiError: '',
       formErrors: [],
       patient: {
         ObjectID: '',
@@ -53,7 +51,6 @@ export default {
     checkForm(e) {
       // reset the errors
       this.formErrors.length = 0
-      this.apiError = ''
 
       return this.updatePatient()
 
@@ -66,12 +63,12 @@ export default {
             this.$emit("statusUpdate", "Patient updated")
             this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
           })
-          .catch(error => this.apiError = error)
+          .catch(error => this.$status.error(error))
     },
     fetchPatient() {
       this.$api.getPatient({patientID: this.$route.params.id})
           .then(patient => this.patient = patient)
-          .catch(error => this.apiError = error)
+          .catch(error => this.$status.error(error))
     }
   },
 

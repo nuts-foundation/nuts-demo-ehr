@@ -169,11 +169,31 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getDossier');
-      return fetch(endpoint + basePath + '/private/dossier'
+      return fetch(endpoint + basePath + '/private/dossier' + '?' + buildQuery({
+          'patientID': params['patientID'],
+        })
+
         , {
           method: 'GET',
           headers,
           mode,
+        });
+    },
+    createDossier(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createDossier');
+      return fetch(endpoint + basePath + '/private/dossier'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
         });
     },
     searchOrganizations(parameters) {
@@ -232,7 +252,10 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getPatients');
-      return fetch(endpoint + basePath + '/private/patients'
+      return fetch(endpoint + basePath + '/private/patients' + '?' + buildQuery({
+          'name': params['name'],
+        })
+
         , {
           method: 'GET',
           headers,
@@ -290,6 +313,20 @@ function createApi(options) {
 
         });
     },
+    cancelTransfer(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'cancelTransfer');
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + ''
+        , {
+          method: 'DELETE',
+          headers,
+          mode,
+        });
+    },
     getTransfer(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
@@ -300,6 +337,37 @@ function createApi(options) {
       return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + ''
         , {
           method: 'GET',
+          headers,
+          mode,
+        });
+    },
+    updateTransfer(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'updateTransfer');
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + ''
+        , {
+          method: 'PUT',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
+    assignTransfer(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'assignTransfer');
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/assign'
+        , {
+          method: 'PUT',
           headers,
           mode,
         });
@@ -321,28 +389,31 @@ function createApi(options) {
     startTransferNegotiation(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
+        'content-type': 'application/json',
 
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'startTransferNegotiation');
-      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/negotiation/' + params['organizationDID'] + ''
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/negotiation'
         , {
           method: 'POST',
           headers,
           mode,
+          body: JSON.stringify(params['body']),
+
         });
     },
-    assignTransferNegotiation(parameters) {
+    updateTransferNegotiationStatus(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
         'content-type': 'application/json',
 
       };
       handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'assignTransferNegotiation');
-      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/negotiation/' + params['organizationDID'] + '/assign'
+          , headers, params, 'updateTransferNegotiationStatus');
+      return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/negotiation/' + params['negotiationID'] + ''
         , {
-          method: 'POST',
+          method: 'PUT',
           headers,
           mode,
           body: JSON.stringify(params['body']),

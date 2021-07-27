@@ -2,6 +2,8 @@ package task
 
 import (
 	"context"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 type TaskState string
@@ -11,7 +13,7 @@ type TaskState string
 // RequestedState : placer has made the registration available
 const RequestedState = TaskState("requested")
 
-// ReceivedState : filler has received the request and is juding the request
+// ReceivedState : filler has received the request and is judging the request
 const ReceivedState = TaskState("received")
 
 // AcceptedState : filler accepts the registration, and can provide the care asked for
@@ -32,10 +34,21 @@ const CancelledState = TaskState("cancelled")
 // CompletedState : filler received the nursing handoff
 const CompletedState = TaskState("completed")
 
+// Coding systems:
 const SnomedCodingSystem = "http://snomed.info/sct"
+const LoincCodingSystem = "http://loinc.org"
+
+// Codes:
 const SnomedTransferCode = "308292007"
+const TransferDisplay = "Overdracht van zorg"
+const LoincAdvanceNoticeCode = "57830-2"
+const SnomedAlternaticeDateCode = "146851000146105"
+const SnomedNursingHandoffCode = "371535009"
+
 
 
 type Repository interface {
-	Create(ctx context.Context, patientID, customerID string) ()
+	Create(ctx context.Context, task domain.Task) (*domain.Task, error)
 }
+
+type Factory struct {}

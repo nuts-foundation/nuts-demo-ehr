@@ -39,6 +39,7 @@ type Wrapper struct {
 	TransferRepository   transfer.Repository
 	FHIRGateway          fhir.Gateway
 	OrganizationRegistry registry.OrganizationRegistry
+	TransferService      transfer.Service
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -146,5 +147,3 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 	}
 	return ctx.JSON(http.StatusOK, customers)
 }
-
-

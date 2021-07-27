@@ -47,7 +47,7 @@ type Repository interface {
 
 	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
 
-	UpdateNegotiationState(ctx context.Context, cutomerID, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error)
+	UpdateNegotiationState(ctx context.Context, customerID, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error)
 
 	// ListNegotiations returns a list of negotiations for the indicated transfer
 	ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error)

@@ -16,6 +16,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
@@ -79,6 +80,10 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
+	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
+	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
+	transferService := transfer.NewTransferService(taskRepository, transferRepository)
+
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()
 		if err != nil {
@@ -97,8 +102,9 @@ func main() {
 		CustomerRepository:   customerRepository,
 		PatientRepository:    patientRepository,
 		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
-		TransferRepository:   transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB),
+		TransferRepository:   transferRepository,
 		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
+		TransferService:      transferService,
 		FHIRGateway:          &fhir.StubGateway{},
 	}
 	e := echo.New()

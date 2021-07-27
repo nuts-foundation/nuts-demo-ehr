@@ -397,6 +397,21 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Organization"
+
+  /private/network/inbox:
+    head:
+      description: Returns info about the current state of the inbox (message count).
+      operationId: getInboxInfo
+      responses:
+        200:
+          description: Inbox info returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InboxInfo"
+
   /private/dossier:
     get:
       description: Get list of dossiers for a patient

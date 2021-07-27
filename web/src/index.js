@@ -18,6 +18,7 @@ import EditPatient from "./ehr/patient/EditPatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
 import NewTransfer from "./ehr/patient/transfer/NewTransfer.vue"
 import EditTransfer from "./ehr/patient/transfer/EditTransfer.vue"
+import Inbox from "./ehr/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 
@@ -97,7 +98,11 @@ const routes = [
           },
         ],
       },
-
+      {
+        path: 'inbox',
+        name: 'ehr.inbox',
+        component: Inbox,
+      },
       {
         path: 'settings',
         name: 'ehr.settings',

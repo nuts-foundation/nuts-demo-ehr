@@ -178,14 +178,14 @@ func (r SQLiteTransferRepository) updateTransfer(ctx context.Context, tx *sqlx.T
 }
 
 func (r SQLiteTransferRepository) findNegotiationByID(ctx context.Context, tx *sqlx.Tx, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
-	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? id = ?`
+	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? AND organization_did = ?`
 
 	dbNegotiation := sqlNegotiation{}
-	err := tx.SelectContext(ctx, &dbNegotiation, query, customerID, negotiationID)
+	err := tx.GetContext(ctx, &dbNegotiation, query, customerID, negotiationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to find negotiation by id: %w", err)
 	}
 
 	return dbNegotiation.MarshalToDomainNegotiation()

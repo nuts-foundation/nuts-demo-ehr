@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	jwt2 "github.com/dgrijalva/jwt-go"
+	jwt2 "github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -25,14 +25,13 @@ const SessionID = "sid"
 
 type Auth struct {
 	// sessions maps session identifiers to base64 encoded VPs
-	sessions     map[string]Session
+	sessions map[string]Session
 	// mux is used to secure access to internal state of this struct to prevent racy behaviour
-	mux          sync.Mutex
-	nodeClient   client.HTTPClient
-	customers    customers.Repository
-	password     string
-	sessionKey   *ecdsa.PrivateKey
-
+	mux        sync.Mutex
+	nodeClient client.HTTPClient
+	customers  customers.Repository
+	password   string
+	sessionKey *ecdsa.PrivateKey
 }
 
 type Session struct {
@@ -49,7 +48,7 @@ type JWTCustomClaims struct {
 
 func NewAuth(key *ecdsa.PrivateKey, nodeClient client.HTTPClient, customers customers.Repository, passwd string) *Auth {
 	return &Auth{
-		sessionKey:   key,
+		sessionKey: key,
 		nodeClient: nodeClient,
 		customers:  customers,
 		sessions:   map[string]Session{},

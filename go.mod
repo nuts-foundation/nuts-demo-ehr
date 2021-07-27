@@ -12,6 +12,7 @@ require (
 	github.com/labstack/gommon v0.3.0
 	github.com/lestrrat-go/jwx v1.2.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/nuts-foundation/go-did v0.1.1 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0

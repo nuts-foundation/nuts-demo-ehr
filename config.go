@@ -4,7 +4,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
@@ -57,7 +59,10 @@ type Config struct {
 	DBConnectionString string `koanf:"dbConnectionString"`
 	// Load a set of test patients on startup. Should be disabled for permanent data stores.
 	LoadTestPatients bool `koanf:"loadTestPatients"`
-	sessionKey       *ecdsa.PrivateKey
+	// If set, this key wil be used to sign JWTs. If not set, a new one is generated on each start up.
+	// Developer tip: set the sessionPemKey so the session keeps valid after a server reboot.
+	SessionPemKey string `koanf:"sessionPemKey"`
+	sessionKey    *ecdsa.PrivateKey
 }
 
 type Credentials struct {
@@ -79,6 +84,13 @@ func generateSessionKey() (*ecdsa.PrivateKey, error) {
 		logrus.Printf("failed to generate private key: %s", err)
 		return nil, err
 	}
+	keyBytes, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+	block := pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}
+	pem.Encode(log.Writer(), &block)
+
 	return key, nil
 }
 
@@ -87,6 +99,10 @@ func (c Config) Print(writer io.Writer) error {
 		return err
 	}
 	var pr Config = c
+	if pr.SessionPemKey != "" {
+		// Don't print the private key.
+		pr.SessionPemKey = "Redacted"
+	}
 	data, _ := json.MarshalIndent(pr, "", "  ")
 	if _, err := fmt.Println(writer, string(data)); err != nil {
 		return err
@@ -117,16 +133,29 @@ func loadConfig() Config {
 	_ = k.Load(envProvider(), nil)
 
 	config := defaultConfig()
-	var err error
-	sessionKey, err := generateSessionKey()
-	if err != nil {
-		log.Fatalf("unable to generate session key: %v", err)
-	}
-	config.sessionKey = sessionKey
 
 	// Unmarshal values of the config file into the config struct, potentially replacing default values
 	if err := k.Unmarshal("", &config); err != nil {
 		log.Fatalf("error while unmarshalling config: %v", err)
+	}
+
+	if len(config.SessionPemKey) > 0 {
+		log.Print("sessionPemKey set, trying to parse it...")
+		block, _ := pem.Decode([]byte(config.SessionPemKey))
+		if block == nil || block.Type != "EC PRIVATE KEY" {
+			log.Fatalf("unable to parse sessionPemKey as PEM")
+		}
+		key, err := x509.ParseECPrivateKey(block.Bytes)
+		if err != nil {
+			log.Fatalf("unable to parse sessionPemKey as EC Private key: %v", err)
+		}
+		config.sessionKey = key
+	} else {
+		sessionKey, err := generateSessionKey()
+		if err != nil {
+			log.Fatalf("unable to generate session key: %v", err)
+		}
+		config.sessionKey = sessionKey
 	}
 
 	return config

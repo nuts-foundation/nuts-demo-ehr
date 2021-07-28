@@ -9,3 +9,11 @@ import (
 func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, domain.InboxInfo{MessageCount: 10})
 }
+
+func (w Wrapper) GetInbox(ctx echo.Context) error {
+	entries, err := w.InboxRepository.List(ctx.Request().Context())
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, entries)
+}

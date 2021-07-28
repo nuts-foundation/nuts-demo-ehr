@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"io/fs"
 	"log"
 	"net/http"
@@ -105,6 +106,7 @@ func main() {
 		TransferRepository:   transferRepository,
 		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
 		TransferService:      transferService,
+		InboxRepository:      inbox.NewFHIRRepository(config.FHIRServerAddress),
 		FHIRGateway:          &fhir.StubGateway{},
 	}
 	e := echo.New()

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -40,6 +41,7 @@ type Wrapper struct {
 	FHIRGateway          fhir.Gateway
 	OrganizationRegistry registry.OrganizationRegistry
 	TransferService      transfer.Service
+	InboxRepository      inbox.Repository
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {

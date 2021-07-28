@@ -196,6 +196,20 @@ function createApi(options) {
 
         });
     },
+    getInbox(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getInbox');
+      return fetch(endpoint + basePath + '/private/network/inbox'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     getInboxInfo(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

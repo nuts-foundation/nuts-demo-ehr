@@ -125,6 +125,13 @@ type IRMAAuthenticationRequest struct {
 	CustomerID string `json:"customerID"`
 }
 
+// InboxEntry defines model for InboxEntry.
+type InboxEntry struct {
+
+	// Descriptive title.
+	Title string `json:"title"`
+}
+
 // InboxInfo defines model for InboxInfo.
 type InboxInfo struct {
 

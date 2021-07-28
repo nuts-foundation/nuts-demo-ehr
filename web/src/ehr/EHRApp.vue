@@ -19,7 +19,7 @@
         <router-link
             :to="{name: 'ehr.inbox'}"
             class="menu-link">
-          <inbox-badge message-count="2"/>
+          <inbox-badge :inbox="inboxInfo"/>
           Inbox
         </router-link>
         <router-link
@@ -63,6 +63,7 @@ export default {
   components: {StatusBar, StatusReporter, InboxBadge},
   data() {
     return {
+      inboxInfo: null,
       eventMessage: '',
     }
   },
@@ -70,6 +71,14 @@ export default {
     updateStatus(status) {
       this.eventMessage = status
     },
+    fetchData() {
+      this.$api.getInboxInfo()
+        .then((response) => this.inboxInfo = response)
+        .catch(error => this.$status.error(error))
+    },
+  },
+  created() {
+    this.fetchData()
   },
   computed: {
     errorMessage() {

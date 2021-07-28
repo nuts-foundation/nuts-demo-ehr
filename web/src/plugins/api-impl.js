@@ -196,6 +196,20 @@ function createApi(options) {
 
         });
     },
+    getInboxInfo(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getInboxInfo');
+      return fetch(endpoint + basePath + '/private/network/inbox/info'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     searchOrganizations(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

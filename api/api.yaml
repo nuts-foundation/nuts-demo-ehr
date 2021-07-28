@@ -398,8 +398,8 @@ paths:
                 items:
                   $ref: "#/components/schemas/Organization"
 
-  /private/network/inbox:
-    head:
+  /private/network/inbox/info:
+    get:
       description: Returns info about the current state of the inbox (message count).
       operationId: getInboxInfo
       responses:
@@ -723,6 +723,13 @@ components:
           $ref: '#/components/schemas/ObjectID'
         name:
           type: string
+    InboxInfo:
+      required:
+        - messageCount
+      properties:
+        messageCount:
+          description: Number of new messages in the inbox.
+          type: integer
   securitySchemes:
     bearerAuth:
       type: http

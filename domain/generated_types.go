@@ -125,6 +125,13 @@ type IRMAAuthenticationRequest struct {
 	CustomerID string `json:"customerID"`
 }
 
+// InboxInfo defines model for InboxInfo.
+type InboxInfo struct {
+
+	// Number of new messages in the inbox.
+	MessageCount int `json:"messageCount"`
+}
+
 // An internal object UUID which can be used as unique identifier for entities.
 type ObjectID string
 

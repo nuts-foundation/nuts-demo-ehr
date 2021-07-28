@@ -41,6 +41,9 @@ type ServerInterface interface {
 	// (POST /private/dossier)
 	CreateDossier(ctx echo.Context) error
 
+	// (GET /private/network/inbox/info)
+	GetInboxInfo(ctx echo.Context) error
+
 	// (GET /private/network/organizations)
 	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
 
@@ -201,6 +204,17 @@ func (w *ServerInterfaceWrapper) CreateDossier(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CreateDossier(ctx)
+	return err
+}
+
+// GetInboxInfo converts echo context to params.
+func (w *ServerInterfaceWrapper) GetInboxInfo(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetInboxInfo(ctx)
 	return err
 }
 
@@ -500,6 +514,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.GET(baseURL+"/private/dossier", wrapper.GetDossier)
 	router.POST(baseURL+"/private/dossier", wrapper.CreateDossier)
+	router.GET(baseURL+"/private/network/inbox/info", wrapper.GetInboxInfo)
 	router.GET(baseURL+"/private/network/organizations", wrapper.SearchOrganizations)
 	router.GET(baseURL+"/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/private/patient/:patientID", wrapper.UpdatePatient)

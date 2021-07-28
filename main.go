@@ -13,8 +13,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/api"
+	"github.com/nuts-foundation/nuts-demo-ehr/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
@@ -22,18 +27,13 @@ import (
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	log2 "github.com/labstack/gommon/log"
-	"github.com/nuts-foundation/nuts-demo-ehr/api"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 )
 
 const assetPath = "web/dist"

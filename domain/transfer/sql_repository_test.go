@@ -81,7 +81,7 @@ func TestSQLiteTransferRepository_CreateNegotiation(t *testing.T) {
 		now := time.Now().UTC().Round(time.Minute)
 		sql.ExecuteTransactional(db, func(ctx context.Context) error {
 			transfer, _ := repo.Create(ctx, "c1", "14", "foo", now)
-			negotiation, err := repo.CreateNegotiation(ctx, "c1", string(transfer.Id), "foo", now)
+			negotiation, err := repo.CreateNegotiation(ctx, "c1", string(transfer.Id), "foo", now, "")
 			assert.NoError(t, err)
 			assert.NotNil(t, negotiation)
 			return nil

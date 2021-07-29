@@ -29,6 +29,7 @@ type sqlNegotiation struct {
 	CustomerID      string    `db:"customer_id"`
 	Date            time.Time `db:"date"`
 	Status          string    `db:"status"`
+	TaskID          string    `db:"task_id"`
 }
 
 func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*domain.TransferNegotiation, error) {
@@ -38,6 +39,7 @@ func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*domain.Transf
 		TransferNegotiationStatus: domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(dbNegotiation.Status)},
 		TransferDate:              openapi_types.Date{Time: dbNegotiation.Date},
 		TransferID:                domain.ObjectID(dbNegotiation.TransferID),
+		TaskID:                    dbNegotiation.TaskID,
 	}, nil
 }
 
@@ -48,6 +50,7 @@ func (dbNegotiation *sqlNegotiation) UnmarshalFromDomainNegotiation(customerID s
 		CustomerID:      customerID,
 		Date:            negotiation.TransferDate.Time,
 		Status:          string(negotiation.Status),
+		TaskID:          negotiation.TaskID,
 	}
 	return nil
 }
@@ -117,6 +120,7 @@ const negotiationSchema = `
 		customer_id varchar(100) NOT NULL,
 		date DATETIME DEFAULT NULL,
 		status char(10) NOT NULL DEFAULT 'requested',
+		task_id char(36) NOT NULL,
 		PRIMARY KEY (organization_did, transfer_id),
 		FOREIGN KEY (transfer_id) REFERENCES transfer(id)
 	);
@@ -365,7 +369,7 @@ func (r SQLiteTransferRepository) updateNegotiation(ctx context.Context, tx *sql
 	return nil
 }
 
-func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, date time.Time) (*domain.TransferNegotiation, error) {
+func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time, taskID string) (*domain.TransferNegotiation, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
@@ -374,12 +378,13 @@ func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, custome
 		TransferID:      transferID,
 		OrganizationDID: organizationDID,
 		CustomerID:      customerID,
-		Date:            date,
+		Date:            transferDate,
 		Status:          REQUESTED_STATE,
+		TaskID:          taskID,
 	}
 	const query = `INSERT INTO transfer_negotiation 
-		(transfer_id, organization_did, customer_id, date, status)
-		values(:transfer_id, :organization_did, :customer_id, :date, :status)
+		(transfer_id, organization_did, customer_id, date, status, task_id)
+		values(:transfer_id, :organization_did, :customer_id, :date, :status, :task_id)
 `
 
 	if _, err := tx.NamedExecContext(ctx, query, negotiation); err != nil {

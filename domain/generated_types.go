@@ -228,6 +228,9 @@ type TransferNegotiation struct {
 	// Decentralized Identifier of the organization to which transfer of a patient is requested.
 	OrganizationDID string `json:"organizationDID"`
 
+	// The id of the FHIR Task resource which tracks this negotiation.
+	TaskID string `json:"taskID"`
+
 	// Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
 

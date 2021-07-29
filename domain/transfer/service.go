@@ -44,23 +44,23 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time)
-		if err != nil {
-			return nil, err
-		}
 		taskProperties := domain.TaskProperties{
-			Status:               string(negotiation.Status),
 			RequesterID:          customerID,
 			OwnerID:              organizationDID,
 		}
 
-		_, err = s.taskRepo.Create(ctx, taskProperties)
+		transferTask, err := s.taskRepo.Create(ctx, taskProperties)
+		if err != nil {
+			return nil, err
+		}
+
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		// Update transfer.Status = requested
-		transfer.Status = domain.TransferStatusRequested
+		//transfer.Status = domain.TransferStatusRequested
 		return &transfer, nil
 	})
 	return negotiation, err

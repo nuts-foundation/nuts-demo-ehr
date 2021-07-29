@@ -596,6 +596,7 @@ components:
             - transferID
             - organizationDID
             - organization
+            - taskID
             - transferDate
           properties:
             id:
@@ -604,6 +605,9 @@ components:
               $ref: '#/components/schemas/ObjectID'
             organizationDID:
               description: Decentralized Identifier of the organization to which transfer of a patient is requested.
+              type: string
+            taskID:
+              description: The id of the FHIR Task resource which tracks this negotiation.
               type: string
             organization:
               $ref: '#/components/schemas/Organization'

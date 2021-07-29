@@ -1,9 +1,7 @@
 package inbox
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/tidwall/gjson"
 	"testing"
 )
 
@@ -188,11 +186,4 @@ func Test_getInboxEntries(t *testing.T) {
 		return
 	}
 	assert.Equal(t, "Overdracht van zorg", entries[0].Title)
-}
-
-func Test(t *testing.T) {
-	r := gjson.Parse(tasks)
-	//v := r.Get("entry.#.resource.code.coding.#(code==308292007)")
-	v := r.Get("entry.#.resource.code.coding")
-	fmt.Printf("%v\n", v)
 }

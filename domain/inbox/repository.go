@@ -3,6 +3,7 @@ package inbox
 import (
 	"context"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
@@ -30,10 +31,15 @@ func (f fhirRepository) List(ctx context.Context) ([]domain.InboxEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	parsedData := gjson.Parse(string(data))
-	var result []domain.InboxEntry
-	for _, entry := range parsedData.Get("$.entry[].resource.id").Array() {
-		result = append(result, domain.InboxEntry{Title: entry.String()})
-	}
+	result := getInboxEntries(string(data))
 	return result, nil
+}
+
+func getInboxEntries(taskJSON string) []domain.InboxEntry {
+	var result []domain.InboxEntry
+	transferResources := fhir.FilterResources(gjson.Parse(taskJSON).Get("entry.#.resource").Array(), fhir.SnomedCodingSystem, fhir.SnomedTransferCode)
+	for _, resource := range transferResources {
+		result = append(result, domain.InboxEntry{Title: resource.Get("code.coding.0.display").String()})
+	}
+	return result
 }

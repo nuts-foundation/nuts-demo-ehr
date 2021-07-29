@@ -3,12 +3,16 @@ package task
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 type TaskState string
 
 // The following states:
+
+// CreatedState : Task created, not yet announced to filler
+const CreatedState = TaskState("created")
 
 // RequestedState : placer has made the registration available
 const RequestedState = TaskState("requested")
@@ -34,21 +38,15 @@ const CancelledState = TaskState("cancelled")
 // CompletedState : filler received the nursing handoff
 const CompletedState = TaskState("completed")
 
-// Coding systems:
-const SnomedCodingSystem = "http://snomed.info/sct"
-const LoincCodingSystem = "http://loinc.org"
-
-// Codes:
-const SnomedTransferCode = "308292007"
-const TransferDisplay = "Overdracht van zorg"
-const LoincAdvanceNoticeCode = "57830-2"
-const SnomedAlternaticeDateCode = "146851000146105"
-const SnomedNursingHandoffCode = "371535009"
-
-
-
 type Repository interface {
-	Create(ctx context.Context, task domain.Task) (*domain.Task, error)
+	Create(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error)
 }
 
-type Factory struct {}
+type Factory struct{}
+
+func (Factory) New(taskProperties domain.TaskProperties) *domain.Task {
+	return &domain.Task{
+		ID:             uuid.New().String(),
+		TaskProperties: taskProperties,
+	}
+}

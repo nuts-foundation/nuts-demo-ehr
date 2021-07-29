@@ -2,7 +2,7 @@ package transfer
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -35,12 +35,35 @@ func NewTransferService(taskRespository task.Repository, transferRepository Repo
 }
 
 func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
-	_, err := s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transferDate)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating negotiation: %w", err)
-	}
-	// TODO: create a Task and save this to the FHIR repository.
-	return nil, nil
+	var negotiation *domain.TransferNegotiation
+	_, err := s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
+		// Validate transfer
+		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
+			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
+		}
+		// Create negotiation and share it to the other party
+		// TODO: Share transaction to this repository call as well
+		var err error
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time)
+		if err != nil {
+			return nil, err
+		}
+		taskProperties := domain.TaskProperties{
+			Status:               string(negotiation.Status),
+			RequesterID:          customerID,
+			OwnerID:              organizationDID,
+		}
+
+		_, err = s.taskRepo.Create(ctx, taskProperties)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update transfer.Status = requested
+		transfer.Status = domain.TransferStatusRequested
+		return &transfer, nil
+	})
+	return negotiation, err
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

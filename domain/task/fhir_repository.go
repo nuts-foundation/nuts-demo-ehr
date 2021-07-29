@@ -9,9 +9,22 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/tidwall/gjson"
 )
+
+// Coding systems:
+const SnomedCodingSystem = "http://snomed.info/sct"
+const LoincCodingSystem = "http://loinc.org"
+const NutsCodingSystem = "http://nuts.nl"
+
+// Codes:
+const SnomedTransferCode = "308292007"
+const TransferDisplay = "Overdracht van zorg"
+const LoincAdvanceNoticeCode = "57830-2"
+const SnomedAlternaticeDateCode = "146851000146105"
+const SnomedNursingHandoffCode = "371535009"
 
 type fhirTask struct {
 	data gjson.Result
@@ -19,7 +32,11 @@ type fhirTask struct {
 
 func (task *fhirTask) UnmarshalFromDomainTask(domainTask domain.Task) error {
 	fhirData := map[string]interface{}{
-		"status": domainTask.Status,
+		"resourceType": "Task",
+		"id":           domainTask.ID,
+		"status":       domainTask.Status,
+		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
+		// has patient in care to protect the identity of the patient during the negotiation phase.
 		"for": map[string]string{
 			"reference": fmt.Sprintf("Patient/%s", domainTask.PatientID),
 		},
@@ -30,8 +47,17 @@ func (task *fhirTask) UnmarshalFromDomainTask(domainTask domain.Task) error {
 				"display": TransferDisplay,
 			}},
 		},
-		"owner": map[string]string{
-			"reference": fmt.Sprintf("Organization/%s", domainTask.OwnerID),
+		"requester": map[string]interface{}{
+			"identifier": map[string]interface{}{
+				"value":  fmt.Sprintf("%s", domainTask.RequesterID),
+				"system": NutsCodingSystem,
+			},
+		},
+		"owner": map[string]interface{}{
+			"identifier": map[string]interface{}{
+				"value":  fmt.Sprintf("%s", domainTask.OwnerID),
+				"system": NutsCodingSystem,
+			},
 		},
 	}
 	jsonData, err := json.Marshal(fhirData)
@@ -52,10 +78,13 @@ func (task fhirTask) MarshalToTask() (*domain.Task, error) {
 		return nil, fmt.Errorf("unexpecting coding: %s", codeValue)
 	}
 	return &domain.Task{
-		ID:                   task.data.Get("id").String(),
-		Status:               task.data.Get("status").String(),
-		PatientID:            strings.Split(task.data.Get("for.reference").String(), "/")[1],
-		OwnerID:              strings.Split(task.data.Get("owner.reference").String(), "/")[1],
+		ID: task.data.Get("id").String(),
+		TaskProperties: domain.TaskProperties{
+			Status:      task.data.Get("status").String(),
+			OwnerID:     task.data.Get("owner.identifier.value").String(),
+			RequesterID: task.data.Get("requester.identifier.value").String(),
+			PatientID:   strings.Split(task.data.Get("for.reference").String(), "/")[1],
+		},
 		FHIRAdvanceNoticeID:  nil,
 		FHIRNursingHandoffID: nil,
 		AlternativeDate:      nil,
@@ -78,9 +107,10 @@ func NewFHIRTaskRepository(factory Factory, url string) *fhirTaskRepository {
 	}
 }
 
-func (r fhirTaskRepository) Create(ctx context.Context, task domain.Task) (*domain.Task, error) {
+func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error) {
 	fTask := fhirTask{}
-	if err := fTask.UnmarshalFromDomainTask(task); err != nil {
+	newTask := r.factory.New(taskProperties)
+	if err := fTask.UnmarshalFromDomainTask(*newTask); err != nil {
 		return nil, err
 	}
 
@@ -91,11 +121,14 @@ func (r fhirTaskRepository) Create(ctx context.Context, task domain.Task) (*doma
 	}
 	if resp.StatusCode != http.StatusCreated {
 		body, ioErr := io.ReadAll(resp.Body)
-		if err != nil {
+		if ioErr != nil {
 			return nil, fmt.Errorf("unable to create new patient. Unable to read error response: ioerr: %s", ioErr)
 		}
 		return nil, fmt.Errorf("unable to create new patient: %s", body)
+	} else {
+		body, _ := io.ReadAll(resp.Body)
+		log.Debug(body)
 	}
 
-	return &task, nil
+	return newTask, nil
 }

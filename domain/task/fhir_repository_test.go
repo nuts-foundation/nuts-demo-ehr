@@ -7,7 +7,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func Test_fhirTask_MarshalToTask(t *testing.T) {
+func Test_fhirTask_Marshalling(t *testing.T) {
 	gsonData := gjson.Parse(`
 {
 	"resourceType": "Task",
@@ -22,8 +22,19 @@ func Test_fhirTask_MarshalToTask(t *testing.T) {
 	"for": {
 		"reference": "Patient/999"
 	},
+	"requester": {
+		"identifier": {
+			"system": "http://nuts.nl",
+			"value": "did:nuts:7d032f65-a638-44e7-a7eb-d69b6d7b8c81",
+		},
+		"display": "Princes Amalia Ziekenhuis"
+	},
 	"owner": {
-		"reference": "Organization/1832473e-2fe0-452d-abe9-3cdb9879522f",
+		"identifier": {
+			"system": "http://nuts.nl",
+			"value": "did:nuts:1832473e-2fe0-452d-abe9-3cdb9879522f"
+		},
+		"display": "VVT Instelling de Regenboog"
 	},
 }`)
 	fTask := fhirTask{data: gsonData}
@@ -31,8 +42,22 @@ func Test_fhirTask_MarshalToTask(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Equal(t, "1832473e-2fe0-452d-abe9-3cdb9879522f", task.OwnerID)
+	assert.Equal(t, "did:nuts:1832473e-2fe0-452d-abe9-3cdb9879522f", task.OwnerID, "expected correct ownerID")
+	assert.Equal(t, "did:nuts:7d032f65-a638-44e7-a7eb-d69b6d7b8c81", task.RequesterID, "expected correct requesterID")
 	assert.Equal(t, "123-22", task.ID)
 	assert.Equal(t, "requested", task.Status)
-	assert.Equal(t, "999", task.PatientID)
+	assert.Equal(t, "999", task.PatientID, "expected correct patientID")
+
+	newFHIRTask := fhirTask{}
+	err = newFHIRTask.UnmarshalFromDomainTask(*task)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	task2, err := newFHIRTask.MarshalToTask()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	assert.Equal(t, task, task2, "task should be the same after double marshalling")
 }

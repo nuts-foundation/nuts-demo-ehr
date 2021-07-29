@@ -69,38 +69,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	var negotiation *domain.TransferNegotiation
-	_, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(), transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
-		// Validate transfer
-		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
-			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
-		}
-		senderDID := w.getCustomerDID()
-		if senderDID == nil {
-			return nil, errors.New("transferring care organization isn't registered on Nuts Network")
-		}
-		// Create negotiation and share it to the other party
-		// TODO: Share transaction to this repository call as well
-		var err error
-		negotiation, err = w.TransferRepository.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, request.OrganizationDID, transfer.TransferDate.Time)
-		if err != nil {
-			return nil, err
-		}
-		// Send FHIR task notification
-		task := domainTransfer.EOverdrachtTask{
-			SenderNutsDID:   *senderDID,
-			ReceiverNutsDID: request.OrganizationDID,
-			Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusRequested},
-		}
-		err = w.FHIRGateway.CreateTask(task)
-		if err != nil {
-			return nil, err
-		}
-
-		// Update transfer.Status = requested
-		transfer.Status = domain.TransferStatusRequested
-		return &transfer, nil
-	})
+	negotiation, err := w.TransferService.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(), transferID, request.OrganizationDID, request.TransferDate.Time)
 	if err != nil {
 		return err
 	}

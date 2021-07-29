@@ -37,9 +37,9 @@ func (task *fhirTask) UnmarshalFromDomainTask(domainTask domain.Task) error {
 		"status":       domainTask.Status,
 		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
 		// has patient in care to protect the identity of the patient during the negotiation phase.
-		"for": map[string]string{
-			"reference": fmt.Sprintf("Patient/%s", domainTask.PatientID),
-		},
+		//"for": map[string]string{
+		//	"reference": fmt.Sprintf("Patient/%s", domainTask.PatientID),
+		//},
 		"code": map[string]interface{}{
 			"coding": []map[string]interface{}{{
 				"system":  SnomedCodingSystem,
@@ -114,8 +114,14 @@ func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.Ta
 		return nil, err
 	}
 
+	// Use a PUT method here so we can provide client generated resource IDs.
 	client := http.Client{}
-	resp, err := client.Post(r.url+"/Task", "application/json", bytes.NewBuffer([]byte(fTask.data.Raw)))
+	req, err := http.NewRequest(http.MethodPut, r.url+"/Task/"+newTask.ID, bytes.NewBuffer([]byte(fTask.data.Raw)))
+	if err != nil {
+		return nil, fmt.Errorf("unable to buid PUT request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

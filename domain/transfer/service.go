@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 )
 
@@ -28,15 +29,20 @@ type Service interface {
 type service struct {
 	transferRepo Repository
 	taskRepo     task.Repository
+	customerRepo customers.Repository
 }
 
-func NewTransferService(taskRespository task.Repository, transferRepository Repository) *service {
-	return &service{taskRepo: taskRespository, transferRepo: transferRepository}
+func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository) *service {
+	return &service{taskRepo: taskRespository, transferRepo: transferRepository, customerRepo: customerRepository}
 }
 
 func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil || customer.Did == nil{
+		return nil, err
+	}
 	var negotiation *domain.TransferNegotiation
-	_, err := s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
+	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
@@ -45,8 +51,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		// TODO: Share transaction to this repository call as well
 		var err error
 		taskProperties := domain.TaskProperties{
-			RequesterID:          customerID,
-			OwnerID:              organizationDID,
+			RequesterID: *customer.Did,
+			OwnerID:     organizationDID,
 		}
 
 		transferTask, err := s.taskRepo.Create(ctx, taskProperties)

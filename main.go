@@ -82,7 +82,7 @@ func main() {
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
 	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
-	transferService := transfer.NewTransferService(taskRepository, transferRepository)
+	transferService := transfer.NewTransferService(taskRepository, transferRepository, customerRepository)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

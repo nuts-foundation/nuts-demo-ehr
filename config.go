@@ -30,7 +30,7 @@ const defaultConfigFile = "server.config.yaml"
 const defaultDBFile = "registry-admin.db"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
-const defaultFHIRServerAddress = "http://localhost:4004/hapi-fhir-jpaserver/fhir"
+const defaultFHIRServerAddress = "http://localhost:4003/hapi-fhir-jpaserver/fhir"
 const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {

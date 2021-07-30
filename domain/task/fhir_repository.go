@@ -48,9 +48,11 @@ func (task *fhirTask) UnmarshalFromDomainTask(domainTask domain.Task) error {
 			}},
 		},
 		"requester": map[string]interface{}{
-			"identifier": map[string]interface{}{
-				"value":  fmt.Sprintf("%s", domainTask.RequesterID),
-				"system": NutsCodingSystem,
+			"agent": map[string]interface{}{
+				"identifier": map[string]interface{}{
+					"value":  fmt.Sprintf("%s", domainTask.RequesterID),
+					"system": NutsCodingSystem,
+				},
 			},
 		},
 		"owner": map[string]interface{}{

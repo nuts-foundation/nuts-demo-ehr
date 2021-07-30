@@ -79,13 +79,17 @@ func (task fhirTask) MarshalToTask() (*domain.Task, error) {
 	if codeValue := task.data.Get(codeQuery).String(); codeValue != SnomedTransferCode {
 		return nil, fmt.Errorf("unexpecting coding: %s", codeValue)
 	}
+	patientID := ""
+	if parts := strings.Split(task.data.Get("for.reference").String(), "/"); len(parts) > 1 {
+		patientID = parts[1]
+	}
 	return &domain.Task{
 		ID: task.data.Get("id").String(),
 		TaskProperties: domain.TaskProperties{
 			Status:      task.data.Get("status").String(),
 			OwnerID:     task.data.Get("owner.identifier.value").String(),
-			RequesterID: task.data.Get("requester.identifier.value").String(),
-			PatientID:   strings.Split(task.data.Get("for.reference").String(), "/")[1],
+			RequesterID: task.data.Get("requester.agent.identifier.value").String(),
+			PatientID:   patientID,
 		},
 		FHIRAdvanceNoticeID:  nil,
 		FHIRNursingHandoffID: nil,

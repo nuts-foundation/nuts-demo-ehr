@@ -19,15 +19,14 @@ func Test_fhirTask_Marshalling(t *testing.T) {
 			"code": "308292007"
 		}],
 	},
-	"for": {
-		"reference": "Patient/999"
-	},
 	"requester": {
-		"identifier": {
-			"system": "http://nuts.nl",
-			"value": "did:nuts:7d032f65-a638-44e7-a7eb-d69b6d7b8c81",
-		},
-		"display": "Princes Amalia Ziekenhuis"
+		"agent": {
+			"identifier": {
+				"system": "http://nuts.nl",
+				"value": "did:nuts:7d032f65-a638-44e7-a7eb-d69b6d7b8c81",
+			},
+			"display": "Princes Amalia Ziekenhuis"
+		}
 	},
 	"owner": {
 		"identifier": {
@@ -46,7 +45,7 @@ func Test_fhirTask_Marshalling(t *testing.T) {
 	assert.Equal(t, "did:nuts:7d032f65-a638-44e7-a7eb-d69b6d7b8c81", task.RequesterID, "expected correct requesterID")
 	assert.Equal(t, "123-22", task.ID)
 	assert.Equal(t, "requested", task.Status)
-	assert.Equal(t, "999", task.PatientID, "expected correct patientID")
+	//assert.Equal(t, "999", task.PatientID, "expected correct patientID")
 
 	newFHIRTask := fhirTask{}
 	err = newFHIRTask.UnmarshalFromDomainTask(*task)

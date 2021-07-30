@@ -33,7 +33,7 @@ type Repository interface {
 	// The status will be set to REQUESTED_STATE.
 	// It fails when their exists another domain.TransferNegotiation for this transfer with the same organisationDID and
 	// a status other than CANCELLED_STATE.
-	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time, taskID string) (*domain.TransferNegotiation, error)
 
 	// ProposeAlternateDate updates the date on the domain.TransferNegotiation indicated by the negotiationID.
 	// It updates the status to ON_HOLD_STATE
@@ -47,7 +47,7 @@ type Repository interface {
 
 	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
 
-	UpdateNegotiationState(ctx context.Context, cutomerID, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error)
+	UpdateNegotiationState(ctx context.Context, customerID, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error)
 
 	// ListNegotiations returns a list of negotiations for the indicated transfer
 	ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error)

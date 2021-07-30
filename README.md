@@ -63,10 +63,10 @@ When running in Docker without a config file mounted at `/app/server.config.yaml
 The simplest way of starting up an out of the box FHIR backend is using the smart-on-fhir hapi server by running the following docker command:
 
 ```shell
-docker run -p 4004:8080 smartonfhir/hapi-5:r4-synthea
+docker run -p 4003:8080 smartonfhir/hapi-5:r3-synthea
 ```
 
-This gives you a FHIR R4 server with a generated patient population.
+This gives you a FHIR STU3 server with a generated patient population.
 For other versions see the Smart on Health [docker repository](https://hub.docker.com/r/smartonfhir/hapi-5/tags?page=1&ordering=last_updated)
 
 This server is part of a larger development kit which can be found [here](https://github.com/smart-on-fhir/smart-dev-sandbox#start-the-dev-sandbox).
@@ -75,7 +75,7 @@ This server is part of a larger development kit which can be found [here](https:
 The address of the FHIR endpoint can be configured in the `server.config.yaml` file.
 The default value is set to:
 ```yaml
-fhirserveraddr: "http://localhost:4004/hapi-fhir-jpaserver/fhir" 
+fhirserveraddr: "http://localhost:4003/hapi-fhir-jpaserver/fhir" 
 ```
 
 ### Nuts-node

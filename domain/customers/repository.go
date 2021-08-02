@@ -12,6 +12,7 @@ import (
 
 type Repository interface {
 	FindByID(id string) (*domain.Customer, error)
+	FindByDID(did string) (*domain.Customer, error)
 	All() ([]domain.Customer, error)
 }
 
@@ -51,6 +52,24 @@ func (db *jsonFileRepo) FindByID(id string) (*domain.Customer, error) {
 
 	for _, r := range db.records {
 		if r.Id == id {
+			// Hazardous to return a pointer, but this is a demo.
+			return &r, nil
+		}
+	}
+
+	// Not found
+	return nil, nil
+}
+
+func (db *jsonFileRepo) FindByDID(did string) (*domain.Customer, error) {
+	if len(db.records) == 0 {
+		if err := db.readAll(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, r := range db.records {
+		if r.Did != nil && *r.Did == did {
 			// Hazardous to return a pointer, but this is a demo.
 			return &r, nil
 		}

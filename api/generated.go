@@ -29,6 +29,9 @@ type ServerInterface interface {
 	// (GET /customers)
 	ListCustomers(ctx echo.Context) error
 
+	// (POST /external/transfer/notify)
+	NotifyTransferUpdate(ctx echo.Context, params NotifyTransferUpdateParams) error
+
 	// (GET /private)
 	CheckSession(ctx echo.Context) error
 
@@ -154,6 +157,26 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.ListCustomers(ctx)
+	return err
+}
+
+// NotifyTransferUpdate converts echo context to params.
+func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params NotifyTransferUpdateParams
+	// ------------- Required query parameter "receiverDID" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "receiverDID", ctx.QueryParams(), &params.ReceiverDID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter receiverDID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.NotifyTransferUpdate(ctx, params)
 	return err
 }
 
@@ -524,6 +547,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
+	router.POST(baseURL+"/external/transfer/notify", wrapper.NotifyTransferUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.GET(baseURL+"/private/dossier", wrapper.GetDossier)

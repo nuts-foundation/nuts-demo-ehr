@@ -281,6 +281,13 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
+// NotifyTransferUpdateParams defines parameters for NotifyTransferUpdate.
+type NotifyTransferUpdateParams struct {
+
+	// DID of the receiving care organization.
+	ReceiverDID string `json:"receiverDID"`
+}
+
 // GetDossierParams defines parameters for GetDossier.
 type GetDossierParams struct {
 

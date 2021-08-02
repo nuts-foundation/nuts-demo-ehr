@@ -181,7 +181,7 @@ const tasks = `
 }`
 
 func Test_getInboxEntries(t *testing.T) {
-	entries := getInboxEntries(tasks)
+	entries, _ := getInboxEntries(tasks)
 	if !assert.Len(t, entries, 1) {
 		return
 	}

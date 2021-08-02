@@ -9,7 +9,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 
 	"github.com/labstack/echo/v4"
@@ -38,10 +37,9 @@ type Wrapper struct {
 	PatientRepository    patients.Repository
 	DossierRepository    dossier.Repository
 	TransferRepository   transfer.Repository
-	FHIRGateway          fhir.Gateway
 	OrganizationRegistry registry.OrganizationRegistry
 	TransferService      transfer.Service
-	InboxRepository      inbox.Repository
+	Inbox                *inbox.Service
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {

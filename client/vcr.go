@@ -7,14 +7,14 @@ import (
 	"net/http"
 )
 
-func (client HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
-	return client.searchVCR(ctx, []vcr.KeyValuePair{
+func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
+	return c.searchVCR(ctx, []vcr.KeyValuePair{
 		{Key: "subject", Value: organizationDID},
 	})
 }
 
-func (client HTTPClient) searchVCR(ctx context.Context, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {
-	response, err := client.vcr().Search(ctx, organizationConcept, vcr.SearchJSONRequestBody{Params: params})
+func (c HTTPClient) searchVCR(ctx context.Context, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {
+	response, err := c.vcr().Search(ctx, organizationConcept, vcr.SearchJSONRequestBody{Params: params})
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func (client HTTPClient) searchVCR(ctx context.Context, params []vcr.KeyValuePai
 	return result, nil
 }
 
-func (client HTTPClient) vcr() vcr.ClientInterface {
-	response, err := vcr.NewClientWithResponses(client.getNodeURL())
+func (c HTTPClient) vcr() vcr.ClientInterface {
+	response, err := vcr.NewClientWithResponses(c.getNodeURL())
 	if err != nil {
 		panic(err)
 	}

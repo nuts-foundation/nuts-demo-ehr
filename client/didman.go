@@ -8,8 +8,8 @@ import (
 
 const organizationConcept = "organization"
 
-func (client HTTPClient) SearchOrganizations(ctx context.Context, query string, didServiceType *string) ([]didman.OrganizationSearchResult, error) {
-	response, err := client.didman().SearchOrganizations(ctx, &didman.SearchOrganizationsParams{
+func (c HTTPClient) SearchOrganizations(ctx context.Context, query string, didServiceType *string) ([]didman.OrganizationSearchResult, error) {
+	response, err := c.didman().SearchOrganizations(ctx, &didman.SearchOrganizationsParams{
 		Query:          query,
 		DidServiceType: didServiceType,
 	})
@@ -27,8 +27,8 @@ func (client HTTPClient) SearchOrganizations(ctx context.Context, query string, 
 	return *searchResponse.JSON200, nil
 }
 
-func (client HTTPClient) didman() didman.ClientInterface {
-	response, err := didman.NewClientWithResponses(client.getNodeURL())
+func (c HTTPClient) didman() didman.ClientInterface {
+	response, err := didman.NewClientWithResponses(c.getNodeURL())
 	if err != nil {
 		panic(err)
 	}

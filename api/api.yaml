@@ -462,6 +462,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dossier"
 
+  /external/transfer/notify:
+    post:
+      parameters:
+        - name: receiverDID
+          in: query
+          description: DID of the receiving care organization.
+          required: true
+          schema:
+            type: string
+      description: >
+        Notify the local XIS of an eOverdracht FHIR task update. Must be called by the transfer sending XIS,
+        after which the local XIS can retrieve the updated tasks from the sending XIS.
+      operationId: notifyTransferUpdate
+      responses:
+        204:
+          description: Notification processed successfully.
+
 components:
   schemas:
     Customer:

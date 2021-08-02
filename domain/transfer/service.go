@@ -3,6 +3,8 @@ package transfer
 import (
 	"context"
 	"errors"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -30,15 +32,22 @@ type service struct {
 	transferRepo Repository
 	taskRepo     task.Repository
 	customerRepo customers.Repository
+	registry     registry.OrganizationRegistry
+	notifier     Notifier
 }
 
 func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository) *service {
-	return &service{taskRepo: taskRespository, transferRepo: transferRepository, customerRepo: customerRepository}
+	return &service{
+		taskRepo: taskRespository,
+		transferRepo: transferRepository,
+		customerRepo: customerRepository,
+		notifier: fireAndForgetNotifier{},
+	}
 }
 
 func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil{
+	if err != nil || customer.Did == nil {
 		return nil, err
 	}
 	var negotiation *domain.TransferNegotiation
@@ -55,6 +64,12 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			OwnerID:     organizationDID,
 		}
 
+		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
+		notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
+		if err != nil {
+			return nil, err
+		}
+
 		transferTask, err := s.taskRepo.Create(ctx, taskProperties)
 		if err != nil {
 			return nil, err
@@ -63,6 +78,11 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
 			return nil, err
+		}
+
+		if err = s.notifier.Notify(notificationEndpoint); err != nil {
+			// TODO: What to do here? Should we maybe rollback?
+			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
 		}
 
 		// Update transfer.Status = requested

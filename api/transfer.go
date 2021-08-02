@@ -9,7 +9,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	domainTransfer "github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 )
 
 type GetPatientTransfersParams = domain.GetPatientTransfersParams
@@ -100,13 +99,13 @@ func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
 		if negotiation.Status != domain.TransferNegotiationStatusStatusAccepted {
 			return nil, errors.New("can't assign transfer to care organization when it hasn't accepted the transfer")
 		}
-		// All is fine, update task
-		task := domainTransfer.EOverdrachtTask{
-			SenderNutsDID:   *senderDID,
-			ReceiverNutsDID: negotiation.OrganizationDID,
-			Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusInProgress},
-		}
-		err = w.FHIRGateway.CreateTask(task)
+		// TODO: All is fine, update task
+		//task := domainTransfer.EOverdrachtTask{
+		//	SenderNutsDID:   *senderDID,
+		//	ReceiverNutsDID: negotiation.OrganizationDID,
+		//	Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusInProgress},
+		//}
+		//err = w.FHIRGateway.CreateTask(task)
 		if err != nil {
 			return nil, err
 		}
@@ -148,6 +147,24 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	}
 
 	return ctx.JSON(http.StatusOK, negotiation)
+}
+
+func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, params domain.NotifyTransferUpdateParams) error {
+	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
+	customer, err := w.CustomerRepository.FindByDID(params.ReceiverDID)
+	if err != nil {
+		return err
+	}
+	if customer == nil {
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", params.ReceiverDID)
+		return ctx.NoContent(http.StatusNotFound)
+	}
+	// TODO: Retrieve sender of notification from access token, instead of equalling it to the receiving XIS
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, params.ReceiverDID)
+	if err != nil {
+		return err
+	}
+	return ctx.NoContent(http.StatusNoContent)
 }
 
 func (w Wrapper) findNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*domain.TransferNegotiation, error) {

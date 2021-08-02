@@ -19,7 +19,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
@@ -106,8 +105,7 @@ func main() {
 		TransferRepository:   transferRepository,
 		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
 		TransferService:      transferService,
-		InboxRepository:      inbox.NewFHIRRepository(config.FHIRServerAddress),
-		FHIRGateway:          &fhir.StubGateway{},
+		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB)),
 	}
 	e := echo.New()
 	e.HideBanner = true

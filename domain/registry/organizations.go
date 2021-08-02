@@ -8,7 +8,7 @@ import (
 )
 
 type OrganizationRegistry interface {
-	Search(ctx context.Context, query string) ([]domain.Organization, error)
+	Search(ctx context.Context, query string, didServiceType *string) ([]domain.Organization, error)
 	Get(ctx context.Context, organizationDID string) (*domain.Organization, error)
 }
 
@@ -22,14 +22,14 @@ type remoteOrganizationRegistry struct {
 	client *client.HTTPClient
 }
 
-func (r remoteOrganizationRegistry) Search(ctx context.Context, query string) ([]domain.Organization, error) {
-	organizations, err := r.client.SearchOrganizations(ctx, query)
+func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, didServiceType *string) ([]domain.Organization, error) {
+	organizations, err := r.client.SearchOrganizations(ctx, query, didServiceType)
 	if err != nil {
 		return nil, err
 	}
 	results := make([]domain.Organization, len(organizations))
 	for i, curr := range organizations {
-		results[i] = organizationConceptToDomain(curr)
+		results[i] = organizationConceptToDomain(curr.Organization)
 	}
 	return results, nil
 }

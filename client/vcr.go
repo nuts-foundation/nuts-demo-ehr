@@ -7,15 +7,6 @@ import (
 	"net/http"
 )
 
-const organizationConcept = "organization"
-
-func (client HTTPClient) SearchOrganizations(ctx context.Context, query string) ([]map[string]interface{}, error) {
-	return client.searchVCR(ctx, []vcr.KeyValuePair{
-		{Key: "organization.name", Value: query},
-		{Key: "organization.city", Value: ""},
-	})
-}
-
 func (client HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
 	return client.searchVCR(ctx, []vcr.KeyValuePair{
 		{Key: "subject", Value: organizationDID},

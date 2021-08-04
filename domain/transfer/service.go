@@ -3,9 +3,10 @@ package transfer
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -36,11 +37,12 @@ type service struct {
 	notifier     Notifier
 }
 
-func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository) *service {
+func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
 		taskRepo: taskRespository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
+		registry: organizationRegistry,
 		notifier: fireAndForgetNotifier{},
 	}
 }

@@ -13,7 +13,7 @@ type CreateDossierRequest = domain.CreateDossierRequest
 
 func (w Wrapper) GetDossier(ctx echo.Context, params GetDossierParams) error {
 	if params.PatientID != "" {
-		dossiers, err := w.DossierRepository.AllByPatient(ctx.Request().Context(), w.getCustomerID(), params.PatientID)
+		dossiers, err := w.DossierRepository.AllByPatient(ctx.Request().Context(), w.getCustomerID(ctx), params.PatientID)
 		if err != nil {
 			return err
 		}
@@ -28,7 +28,7 @@ func (w Wrapper) CreateDossier(ctx echo.Context) error {
 		return err
 	}
 	logrus.Infof("Creating dossier (name=%s, patientID=%s)", request.Name, request.PatientID)
-	dossier, err := w.DossierRepository.Create(ctx.Request().Context(), w.getCustomerID(), request.Name, string(request.PatientID))
+	dossier, err := w.DossierRepository.Create(ctx.Request().Context(), w.getCustomerID(ctx), request.Name, string(request.PatientID))
 	if err != nil {
 		return err
 	}

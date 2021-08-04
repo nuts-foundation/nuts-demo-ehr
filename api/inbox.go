@@ -13,7 +13,7 @@ func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetInbox(ctx echo.Context) error {
-	customerID := w.getCustomerID()
+	customerID := w.getCustomerID(ctx)
 	entries, err := w.Inbox.List(ctx.Request().Context(), customerID)
 	if err != nil {
 		return err

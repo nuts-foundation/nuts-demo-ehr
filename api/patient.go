@@ -17,7 +17,7 @@ type GetPatientsParams struct {
 }
 
 func (w Wrapper) GetPatients(ctx echo.Context, params GetPatientsParams) error {
-	customerID := w.getCustomerID()
+	customerID := w.getCustomerID(ctx)
 	patients, err := w.PatientRepository.All(ctx.Request().Context(), customerID, params.Name)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 		return err
 	}
 
-	patient, err := w.PatientRepository.NewPatient(ctx.Request().Context(), w.getCustomerID(), patientProperties)
+	patient, err := w.PatientRepository.NewPatient(ctx.Request().Context(), w.getCustomerID(ctx), patientProperties)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 	if err := ctx.Bind(&patientProps); err != nil {
 		return err
 	}
-	patient, err := w.PatientRepository.Update(ctx.Request().Context(), w.getCustomerID(), patientID, func(c domain.Patient) (*domain.Patient, error) {
+	patient, err := w.PatientRepository.Update(ctx.Request().Context(), w.getCustomerID(ctx), patientID, func(c domain.Patient) (*domain.Patient, error) {
 		c.PatientProperties = patientProps
 		return &c, nil
 	})
@@ -66,7 +66,7 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 }
 
 func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
-	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), w.getCustomerID(), patientID)
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), w.getCustomerID(ctx), patientID)
 	if err != nil {
 		return err
 	}
@@ -77,17 +77,28 @@ func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 
 }
 
-func (w Wrapper) getCustomerID() string {
-	var customerID string
-	// TODO: Determine customer ID from auth token
-	customers, _ := w.CustomerRepository.All()
-	if len(customers) > 0 {
-		customerID = customers[0].Id
+func (w Wrapper) getCustomerID(ctx echo.Context) string {
+	cid, ok := ctx.Get(CustomerID).(string)
+	if !ok {
+		return ""
 	}
-	return customerID
+	customer, _ := w.CustomerRepository.FindByID(cid)
+	if customer.Id != cid {
+		return ""
+	}
+
+	return customer.Id
 }
 
-func (w Wrapper) getCustomerDID() *string {
-	customer, _ := w.CustomerRepository.FindByID(w.getCustomerID())
+func (w Wrapper) getCustomerDID(ctx echo.Context) *string {
+	cid, ok := ctx.Get(CustomerID).(string)
+	if !ok {
+		return nil
+	}
+	customer, _ := w.CustomerRepository.FindByID(cid)
+	if customer.Id != cid {
+		return nil
+	}
+
 	return customer.Did
 }

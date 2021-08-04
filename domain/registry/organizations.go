@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"strings"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/client/didman"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 type OrganizationRegistry interface {
@@ -32,7 +34,7 @@ func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, di
 	}
 	results := make([]domain.Organization, len(organizations))
 	for i, curr := range organizations {
-		results[i] = organizationConceptToDomain(curr.Organization)
+		results[i] = organizationSearchResultToDomain(curr)
 	}
 	return results, nil
 }
@@ -59,7 +61,7 @@ func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Conte
 	if err != nil {
 		return "", err
 	}
-	endpoint := endpoints[field]
+	endpoint := endpoints.ServiceEndpoint[field]
 	if endpoint == "" {
 		return "", fmt.Errorf("DID compound service does not contain the requested endpoint (did=%s,service=%s,name=%s)", organizationDID, serviceType, field)
 	}
@@ -81,5 +83,14 @@ func organizationConceptToDomain(concept map[string]interface{}) domain.Organiza
 		Did:  concept["subject"].(string),
 		City: inner["city"].(string),
 		Name: inner["name"].(string),
+	}
+}
+
+func organizationSearchResultToDomain(result didman.OrganizationSearchResult) domain.Organization {
+	org := result.Organization
+	return domain.Organization{
+		Did:  result.DIDDocument.ID.String(),
+		City: org["city"].(string),
+		Name: org["name"].(string),
 	}
 }

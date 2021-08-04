@@ -5,13 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/go-did/did"
-	"github.com/nuts-foundation/nuts-demo-ehr/client/vdr"
 	"net/http"
 	"net/url"
+
+	"github.com/nuts-foundation/go-did/did"
+	"github.com/nuts-foundation/nuts-demo-ehr/client/vdr"
 )
 
-func (c HTTPClient) GetCompoundService(ctx context.Context, holderDID string, didServiceType string) (map[string]string, error) {
+type CompoundService struct {
+	ID              string
+	Type            string
+	ServiceEndpoint map[string]string
+}
+
+func (c HTTPClient) GetCompoundService(ctx context.Context, holderDID string, didServiceType string) (*CompoundService, error) {
 	// TODO: Find out how this complex methods can be moved to Nuts Node
 	result, err := c.resolveDIDDocument(ctx, holderDID)
 	if err != nil {
@@ -20,11 +27,36 @@ func (c HTTPClient) GetCompoundService(ctx context.Context, holderDID string, di
 
 	for _, service := range result.Service {
 		if service.Type == didServiceType {
-			result := make(map[string]string, 0)
-			if err := service.UnmarshalServiceEndpoint(&result); err != nil {
-				return nil, fmt.Errorf("DID document service is not a compound service (service=%s): %w", service.ID, err)
+			compoundService := &CompoundService{}
+			if err := service.UnmarshalServiceEndpoint(&compoundService.ServiceEndpoint); err == nil {
+				compoundService.ID = service.ID.String()
+				compoundService.Type = service.Type
+				return compoundService, nil
 			}
-			return result, nil
+			var serviceRef string
+			if err := service.UnmarshalServiceEndpoint(&serviceRef); err != nil {
+				return nil, fmt.Errorf("DID document service is neither a compound service nor a reference (service=%s)", service.ID)
+				//continue
+			}
+			parsedRef, err := did.ParseDIDURL(serviceRef)
+			if err != nil {
+				return nil, fmt.Errorf("reference id is not a valid DID URL: %w", err)
+			}
+			refDID := "did:" + parsedRef.Method + ":" + parsedRef.ID
+			query, err := url.ParseQuery(parsedRef.Query)
+			if err != nil {
+				// ignore ill formatted query params and try the next candidate
+				continue
+			}
+			refType := query.Get("type")
+			if refType == "" {
+				continue
+			}
+
+			if refDID == holderDID {
+				continue
+			}
+			return c.GetCompoundService(ctx, refDID, refType)
 		}
 	}
 	return nil, fmt.Errorf("DID document doesn't contain specified service (did=%s,service-type=%s)", holderDID, didServiceType)
@@ -65,11 +97,13 @@ func (c HTTPClient) resolveDIDDocument(ctx context.Context, holderDID string) (d
 	if err != nil {
 		return did.Document{}, err
 	}
-	result := did.Document{}
-	if err := json.Unmarshal(data, &result); err != nil {
+	responseStruct := struct {
+		Document did.Document
+	}{}
+	if err := json.Unmarshal(data, &responseStruct); err != nil {
 		return did.Document{}, err
 	}
-	return result, nil
+	return responseStruct.Document, nil
 }
 
 func (c HTTPClient) vdr() vdr.ClientInterface {

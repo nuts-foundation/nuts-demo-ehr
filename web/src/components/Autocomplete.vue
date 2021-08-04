@@ -14,6 +14,9 @@ https://www.w3.org/TR/wai-aria-practices-1.2/examples/combobox/combobox-autocomp
              aria-autocomplete="list"
              @focusin="focus"
              @focusout="focusLost"
+             @keyup.down="highlightNext"
+             @keyup.up="highlightPrev"
+             @keyup.enter="selectHighlighted"
       >
       <svg class="button"
            @click="expanded = !expanded"
@@ -26,11 +29,13 @@ https://www.w3.org/TR/wai-aria-practices-1.2/examples/combobox/combobox-autocomp
     <ul v-if="expanded"
         tabindex="-1"
         role="listbox">
-      <li v-for="item in items"
+      <li v-for="(item, idx) in items"
           @click="select(item)"
           role="option"
       >
-        <slot :item="item"></slot>
+        <div :class="{'bg-gray-100': highlighted === idx}">
+          <slot :item="item" ></slot>
+        </div>
       </li>
       <li v-if="!items.length">
         No results
@@ -46,6 +51,7 @@ export default {
     return {
       expanded: false,
       selected: null,
+      highlighted: null,
     }
   },
   methods: {
@@ -54,6 +60,7 @@ export default {
       this.expanded = false
     },
     updateSearch(val) {
+      this.highlighted = null
       this.expanded = val !== ""
       this.$emit('search', val)
     },
@@ -62,9 +69,32 @@ export default {
     },
     focusLost(event) {
       const target = event.relatedTarget
-      if (target === null || !("role" in target.attributes) || target.attributes.role.value != "listbox") {
+      // Find out if the event took place in the listbox or else on the page. If it was the listbox keep it expanded, otherwise contract.
+      if (target === null || !("role" in target.attributes) || target.attributes.role.value !== "listbox") {
         this.expanded = false
       }
+    },
+    // The next 3 methods are for keyboard navigation: up, down, enter.
+    highlightPrev() {
+      if (this.items.length === 0) return
+      if (this.highlighted == null || this.highlighted === 0) {
+        this.highlighted = this.items.length - 1
+      } else {
+        this.highlighted = this.highlighted - 1 % this.items.length
+      }
+    },
+    highlightNext() {
+      if (this.items.length === 0) return
+      if (this.highlighted == null) {
+        this.highlighted = 0
+      } else {
+        this.highlighted = (this.highlighted + 1) % this.items.length
+      }
+      console.log("highlight next", this.highlighted)
+    },
+    selectHighlighted() {
+      if (this.items.length === 0) return
+      this.select(this.items[this.highlighted])
     }
   },
   props: {

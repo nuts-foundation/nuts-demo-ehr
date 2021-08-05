@@ -284,8 +284,8 @@ type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 // NotifyTransferUpdateParams defines parameters for NotifyTransferUpdate.
 type NotifyTransferUpdateParams struct {
 
-	// DID of the receiving care organization.
-	ReceiverDID string `json:"receiverDID"`
+	// Nuts DID of the task-owner organisation, aka the filler.
+	TaskOwnerDID string `json:"taskOwnerDID"`
 }
 
 // GetDossierParams defines parameters for GetDossier.

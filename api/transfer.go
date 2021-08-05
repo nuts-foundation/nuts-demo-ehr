@@ -151,16 +151,16 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, params domain.NotifyTransferUpdateParams) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
-	customer, err := w.CustomerRepository.FindByDID(params.ReceiverDID)
+	customer, err := w.CustomerRepository.FindByDID(params.TaskOwnerDID)
 	if err != nil {
 		return err
 	}
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", params.ReceiverDID)
-		return ctx.NoContent(http.StatusNotFound)
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", params.TaskOwnerDID)
+		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
 	// TODO: Retrieve sender of notification from access token, instead of equalling it to the receiving XIS
-	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, params.ReceiverDID)
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, params.TaskOwnerDID)
 	if err != nil {
 		return err
 	}

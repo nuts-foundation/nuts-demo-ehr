@@ -465,15 +465,15 @@ paths:
   /external/transfer/notify:
     post:
       parameters:
-        - name: receiverDID
+        - name: taskOwnerDID
           in: query
-          description: DID of the receiving care organization.
+          description: Nuts DID of the task-owner organisation, aka the filler.
           required: true
           schema:
             type: string
       description: >
-        Notify the local XIS of an eOverdracht FHIR task update. Must be called by the transfer sending XIS,
-        after which the local XIS can retrieve the updated tasks from the sending XIS.
+        Call this endpoint to notify the app of an update for one of its customers, indicating that an eOverdracht FHIR task was update or created.
+        The customer is identified by the taskOwnerDID parameter.
       operationId: notifyTransferUpdate
       responses:
         204:

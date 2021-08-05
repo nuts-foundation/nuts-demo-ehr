@@ -168,11 +168,11 @@ func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params NotifyTransferUpdateParams
-	// ------------- Required query parameter "receiverDID" -------------
+	// ------------- Required query parameter "taskOwnerDID" -------------
 
-	err = runtime.BindQueryParameter("form", true, true, "receiverDID", ctx.QueryParams(), &params.ReceiverDID)
+	err = runtime.BindQueryParameter("form", true, true, "taskOwnerDID", ctx.QueryParams(), &params.TaskOwnerDID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter receiverDID: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter taskOwnerDID: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshalled arguments

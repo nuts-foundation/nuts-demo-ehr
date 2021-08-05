@@ -105,9 +105,9 @@ func main() {
 		PatientRepository:    patientRepository,
 		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
 		TransferRepository:   transferRepository,
-		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
+		OrganizationRegistry: orgRegistry,
 		TransferService:      transferService,
-		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB)),
+		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry),
 	}
 	e := echo.New()
 	e.HideBanner = true

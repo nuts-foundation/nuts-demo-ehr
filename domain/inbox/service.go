@@ -3,6 +3,7 @@ package inbox
 import (
 	"context"
 	"fmt"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -12,11 +13,12 @@ import (
 type Service struct {
 	customerRepository customers.Repository
 	repository         Repository
-	registry           registry.OrganizationRegistry
+	orgRegistry           registry.OrganizationRegistry
+
 }
 
-func NewService(customerRepository customers.Repository, repository Repository) *Service {
-	return &Service{customerRepository: customerRepository, repository: repository}
+func NewService(customerRepository customers.Repository, repository Repository, organizationRegistry registry.OrganizationRegistry) *Service {
+	return &Service{customerRepository: customerRepository, repository: repository, orgRegistry: organizationRegistry}
 }
 
 func (s Service) RegisterNotification(ctx context.Context, customerID, senderDID string) error {
@@ -33,7 +35,7 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 		if remoteFHIRServers[not.SenderDID] != "" {
 			continue
 		}
-		fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, not.SenderDID, "eOverdracht-sender", "fhir")
+		fhirServer, err := s.orgRegistry.GetCompoundServiceEndpoint(ctx, not.SenderDID, "eOverdracht-sender", "fhir")
 		if err != nil {
 			return nil, err
 		}

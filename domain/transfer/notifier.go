@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // Notifier defines the API for notifying a remote care organization that an eOverdracht FHIR task has been updated,
 type Notifier interface {
 	// Notify sends a notification to the given endpoint.
-	Notify(endpoint string) error
+	Notify(endpoint, taskOwnerDID string) error
 }
 
 // fireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
@@ -19,9 +20,10 @@ type fireAndForgetNotifier struct {
 
 }
 
-func (f fireAndForgetNotifier) Notify(endpoint string) error {
+func (f fireAndForgetNotifier) Notify(endpoint, taskOwnerDID string) error {
 	client := http.Client{}
-	response, err := client.Post(endpoint, "", bytes.NewReader([]byte{}))
+	notificationURL := fmt.Sprintf("%s?taskOwnerDID=%s", endpoint, url.QueryEscape(taskOwnerDID))
+	response, err := client.Post(notificationURL, "", bytes.NewReader([]byte{}))
 	if response != nil {
 		// We try to be a nice client by always reading the HTTP response
 		_, _ = io.Copy(io.Discard, response.Body)

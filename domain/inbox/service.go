@@ -43,7 +43,11 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 
 	var results []domain.InboxEntry
 	for senderDID, fhirServer := range remoteFHIRServers {
-		entries, err := getInboxEntries(fhir.NewClient(fhirServer))
+		sendingOrg, err := s.orgRegistry.Get(ctx, senderDID)
+		if err != nil {
+			return nil, fmt.Errorf("error while looking up sender for inbox entry (did=%s): %w", senderDID, err)
+		}
+		entries, err := getInboxEntries(fhir.NewClient(fhirServer), *sendingOrg)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
@@ -52,7 +56,7 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 	return results, nil
 }
 
-func getInboxEntries(client fhir.Client) ([]domain.InboxEntry, error) {
+func getInboxEntries(client fhir.Client, sender domain.Organization) ([]domain.InboxEntry, error) {
 	tasks, err := client.GetResources("/Task")
 	if err != nil {
 		return nil, err
@@ -60,7 +64,11 @@ func getInboxEntries(client fhir.Client) ([]domain.InboxEntry, error) {
 	transferResources := fhir.FilterResources(tasks, fhir.SnomedCodingSystem, fhir.SnomedTransferCode)
 	var results []domain.InboxEntry
 	for _, resource := range transferResources {
-		results = append(results, domain.InboxEntry{Title: resource.Get("code.coding.0.display").String()})
+		results = append(results, domain.InboxEntry{
+			Title:  resource.Get("code.coding.0.display").String(),
+			Sender: sender,
+			Date:   resource.Get("meta.lastUpdated").String(),
+		})
 	}
 	return results, nil
 }

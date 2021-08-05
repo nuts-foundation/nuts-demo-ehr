@@ -5,11 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/client/didman"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
+
+const cacheMaxAge = 10 * time.Second
 
 type OrganizationRegistry interface {
 	Search(ctx context.Context, query string, didServiceType *string) ([]domain.Organization, error)
@@ -19,12 +23,21 @@ type OrganizationRegistry interface {
 
 func NewOrganizationRegistry(client *client.HTTPClient) OrganizationRegistry {
 	return &remoteOrganizationRegistry{
-		client: client,
+		client:   client,
+		cache:    map[string]entry{},
+		cacheMux: &sync.Mutex{},
 	}
 }
 
 type remoteOrganizationRegistry struct {
-	client *client.HTTPClient
+	client   *client.HTTPClient
+	cache    map[string]entry
+	cacheMux *sync.Mutex
+}
+
+type entry struct {
+	organization domain.Organization
+	writeTime    time.Time
 }
 
 func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, didServiceType *string) ([]domain.Organization, error) {
@@ -36,23 +49,51 @@ func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, di
 	for i, curr := range organizations {
 		results[i] = organizationSearchResultToDomain(curr)
 	}
+	// Update cache
+	{
+		r.cacheMux.Lock()
+		defer r.cacheMux.Unlock()
+		for _, result := range results {
+			r.cache[result.Did] = entry{
+				organization: result,
+				writeTime:    time.Now(),
+			}
+		}
+	}
 	return results, nil
 }
 
 func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID string) (*domain.Organization, error) {
-	// TODO: Load from cache (use LRU cache)
-	results, err := r.client.GetOrganization(ctx, organizationDID)
+	// From cache
+	{
+		r.cacheMux.Lock()
+		defer r.cacheMux.Unlock()
+		if cached, ok := r.cache[organizationDID]; ok && time.Now().Before(cached.writeTime.Add(cacheMaxAge)) {
+			return &cached.organization, nil
+		}
+	}
+
+	raw, err := r.client.GetOrganization(ctx, organizationDID)
 	if err != nil {
 		return nil, err
 	}
-	if len(results) == 0 {
+	if len(raw) == 0 {
 		return nil, errors.New("organization not found")
 	}
-	if len(results) > 1 {
+	if len(raw) > 1 {
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
-	result := organizationConceptToDomain(results[0])
+	result := organizationConceptToDomain(raw[0])
+	// Write to cache
+	{
+		r.cacheMux.Lock()
+		defer r.cacheMux.Unlock()
+		r.cache[organizationDID] = entry{
+			organization: result,
+			writeTime:    time.Now(),
+		}
+	}
 	return &result, nil
 }
 

@@ -128,6 +128,12 @@ type IRMAAuthenticationRequest struct {
 // InboxEntry defines model for InboxEntry.
 type InboxEntry struct {
 
+	// Date/time of the entry.
+	Date string `json:"date"`
+
+	// A care organization available through the Nuts Network to exchange information.
+	Sender Organization `json:"sender"`
+
 	// Descriptive title.
 	Title string `json:"title"`
 }

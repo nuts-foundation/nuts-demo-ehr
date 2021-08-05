@@ -763,10 +763,19 @@ components:
     InboxEntry:
       required:
         - title
+        - sender
+        - date
       properties:
         title:
           description: Descriptive title.
           type: string
+        sender:
+          $ref: "#/components/schemas/Organization"
+        date:
+          description: Date/time of the entry.
+          type: string
+          format: datetime
+
   securitySchemes:
     bearerAuth:
       type: http

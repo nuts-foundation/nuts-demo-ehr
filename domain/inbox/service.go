@@ -13,8 +13,7 @@ import (
 type Service struct {
 	customerRepository customers.Repository
 	repository         Repository
-	orgRegistry           registry.OrganizationRegistry
-
+	orgRegistry        registry.OrganizationRegistry
 }
 
 func NewService(customerRepository customers.Repository, repository Repository, organizationRegistry registry.OrganizationRegistry) *Service {
@@ -43,10 +42,10 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 	}
 
 	var results []domain.InboxEntry
-	for senderDID, _ := range remoteFHIRServers {
-		entries, err := getInboxEntries(fhir.NewClient(senderDID))
+	for senderDID, fhirServer := range remoteFHIRServers {
+		entries, err := getInboxEntries(fhir.NewClient(fhirServer))
 		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve tasks from XIS (url=%s): %w", senderDID, err)
+			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
 		results = append(results, entries...)
 	}

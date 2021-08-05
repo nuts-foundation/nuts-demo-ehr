@@ -160,7 +160,11 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, params domain.NotifyTran
 		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
 	// TODO: Retrieve sender of notification from access token, instead of equalling it to the receiving XIS
-	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, params.TaskOwnerDID)
+	sender := ctx.Request().Header.Get("X-Sender")
+	if sender == "" {
+		return errors.New("missing X-Sender header in notification")
+	}
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, sender)
 	if err != nil {
 		return err
 	}

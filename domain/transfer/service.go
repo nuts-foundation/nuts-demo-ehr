@@ -97,7 +97,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return negotiation, commitErr
 		}
 
-		if err = s.notifier.Notify(notificationEndpoint, organizationDID); err != nil {
+		if err = s.notifier.Notify(notificationEndpoint, *customer.Did, organizationDID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
 		}

@@ -11,19 +11,24 @@ import (
 // Notifier defines the API for notifying a remote care organization that an eOverdracht FHIR task has been updated,
 type Notifier interface {
 	// Notify sends a notification to the given endpoint.
-	Notify(endpoint, taskOwnerDID string) error
+	Notify(endpoint, sender, taskOwnerDID string) error
 }
 
 // fireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
 // It just sends the notification and assumes the receiver is available.
 type fireAndForgetNotifier struct {
-
 }
 
-func (f fireAndForgetNotifier) Notify(endpoint, taskOwnerDID string) error {
+func (f fireAndForgetNotifier) Notify(endpoint, sender, taskOwnerDID string) error {
 	client := http.Client{}
 	notificationURL := fmt.Sprintf("%s?taskOwnerDID=%s", endpoint, url.QueryEscape(taskOwnerDID))
-	response, err := client.Post(notificationURL, "", bytes.NewReader([]byte{}))
+	req, err := http.NewRequest("POST", notificationURL, bytes.NewReader([]byte{}))
+	if err != nil {
+		return err
+	}
+	// TODO: The X-Sender header has to be replaced with the access token when the OAuth2 flow has been implemented.
+	req.Header.Add("X-Sender", sender)
+	response, err := client.Do(req)
 	if response != nil {
 		// We try to be a nice client by always reading the HTTP response
 		_, _ = io.Copy(io.Discard, response.Body)
@@ -36,4 +41,3 @@ func (f fireAndForgetNotifier) Notify(endpoint, taskOwnerDID string) error {
 	}
 	return nil
 }
-

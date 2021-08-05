@@ -92,8 +92,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 	})
 	if err == nil {
 		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
-		tx, _ := sqlUtil.GetTransaction(ctx)
-		if commitErr := tx.Commit(); commitErr != nil {
+		tm, _ := sqlUtil.GetTransactionManager(ctx)
+		if commitErr := tm.Commit(); commitErr != nil {
 			return negotiation, commitErr
 		}
 

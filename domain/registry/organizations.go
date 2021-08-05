@@ -49,28 +49,14 @@ func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, di
 	for i, curr := range organizations {
 		results[i] = organizationSearchResultToDomain(curr)
 	}
-	// Update cache
-	{
-		r.cacheMux.Lock()
-		defer r.cacheMux.Unlock()
-		for _, result := range results {
-			r.cache[result.Did] = entry{
-				organization: result,
-				writeTime:    time.Now(),
-			}
-		}
-	}
+	r.toCache(results...)
 	return results, nil
 }
 
 func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID string) (*domain.Organization, error) {
-	// From cache
-	{
-		r.cacheMux.Lock()
-		defer r.cacheMux.Unlock()
-		if cached, ok := r.cache[organizationDID]; ok && time.Now().Before(cached.writeTime.Add(cacheMaxAge)) {
-			return &cached.organization, nil
-		}
+	cached := r.fromCache(organizationDID)
+	if cached != nil {
+		return cached, nil
 	}
 
 	raw, err := r.client.GetOrganization(ctx, organizationDID)
@@ -85,15 +71,7 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
 	result := organizationConceptToDomain(raw[0])
-	// Write to cache
-	{
-		r.cacheMux.Lock()
-		defer r.cacheMux.Unlock()
-		r.cache[organizationDID] = entry{
-			organization: result,
-			writeTime:    time.Now(),
-		}
-	}
+	r.toCache(result)
 	return &result, nil
 }
 
@@ -134,4 +112,24 @@ func organizationSearchResultToDomain(result didman.OrganizationSearchResult) do
 		City: org["city"].(string),
 		Name: org["name"].(string),
 	}
+}
+
+func (r remoteOrganizationRegistry) toCache(organizations ...domain.Organization) {
+	r.cacheMux.Lock()
+	defer r.cacheMux.Unlock()
+	for _, organization := range organizations {
+		r.cache[organization.Did] = entry{
+			organization: organization,
+			writeTime:    time.Now(),
+		}
+	}
+}
+
+func (r remoteOrganizationRegistry) fromCache(organizationDID string) *domain.Organization {
+	r.cacheMux.Lock()
+	defer r.cacheMux.Unlock()
+	if cached, ok := r.cache[organizationDID]; ok && time.Now().Before(cached.writeTime.Add(cacheMaxAge)) {
+		return &cached.organization
+	}
+	return nil
 }

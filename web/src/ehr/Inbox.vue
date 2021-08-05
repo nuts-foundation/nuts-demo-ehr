@@ -21,7 +21,7 @@
           </svg>
         </td>
         <td>{{ item.title }}</td>
-        <td>{{ item.sender.name }}</td>
+        <td>{{ item.sender.name }}, {{ item.sender.city }}</td>
         <td>{{ item.date }}</td>
       </tr>
       </tbody>

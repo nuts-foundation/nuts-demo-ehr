@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -39,11 +40,11 @@ type service struct {
 
 func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
-		taskRepo: taskRespository,
+		taskRepo:     taskRespository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
-		registry: organizationRegistry,
-		notifier: fireAndForgetNotifier{},
+		registry:     organizationRegistry,
+		notifier:     fireAndForgetNotifier{},
 	}
 }
 
@@ -52,7 +53,10 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 	if err != nil || customer.Did == nil {
 		return nil, err
 	}
-	var negotiation *domain.TransferNegotiation
+	var (
+		negotiation          *domain.TransferNegotiation
+		notificationEndpoint string
+	)
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
@@ -67,7 +71,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		}
 
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
-		notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
+		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
 		if err != nil {
 			return nil, err
 		}
@@ -82,15 +86,22 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
-		if err = s.notifier.Notify(notificationEndpoint); err != nil {
-			// TODO: What to do here? Should we maybe rollback?
-			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
-		}
-
 		// Update transfer.Status = requested
 		//transfer.Status = domain.TransferStatusRequested
 		return &transfer, nil
 	})
+	if err == nil {
+		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
+		tx, _ := sqlUtil.GetTransaction(ctx)
+		if commitErr := tx.Commit(); commitErr != nil {
+			return negotiation, commitErr
+		}
+
+		if err = s.notifier.Notify(notificationEndpoint, organizationDID); err != nil {
+			// TODO: What to do here? Should we maybe rollback?
+			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
+		}
+	}
 	return negotiation, err
 }
 

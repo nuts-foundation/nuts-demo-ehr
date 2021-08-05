@@ -27,7 +27,6 @@ const defaultPrefix = "NUTS_"
 const defaultDelimiter = "."
 const configFileFlag = "configfile"
 const defaultConfigFile = "server.config.yaml"
-const defaultDBFile = "demo-ehr.db"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
 const defaultFHIRServerAddress = "http://localhost:4003/hapi-fhir-jpaserver/fhir"
@@ -36,19 +35,17 @@ const defaultCustomerFile = "customers.json"
 func defaultConfig() Config {
 	return Config{
 		HTTPPort:           defaultHTTPPort,
-		DBFile:             defaultDBFile,
 		NutsNodeAddress:    defaultNutsNodeAddress,
 		FHIRServerAddress:  defaultFHIRServerAddress,
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
-		DBConnectionString: ":memory:?cache=shared",
+		DBConnectionString: "demo-ehr.db?cache=shared",
 		LoadTestPatients:   false,
 	}
 }
 
 type Config struct {
 	Credentials       Credentials `koanf:"credentials"`
-	DBFile            string      `koanf:"dbfile"`
 	HTTPPort          int         `koanf:"port"`
 	NutsNodeAddress   string      `koanf:"nutsnodeaddr"`
 	FHIRServerAddress string      `koanf:"fhirserveraddr"`

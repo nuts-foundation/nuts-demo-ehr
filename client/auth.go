@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) {
+func (c HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 
@@ -22,7 +22,7 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 		ValidFrom:     &t,
 		Version:       "v3",
 	}
-	contractRespBody, err := client.auth().DrawUpContract(ctx, contractBody)
+	contractRespBody, err := c.auth().DrawUpContract(ctx, contractBody)
 	if err != nil {
 		return nil, err
 	}
@@ -38,26 +38,26 @@ func (client HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, er
 		Payload: contract.Message,
 	}
 
-	resp, err := client.auth().CreateSignSession(ctx, body)
+	resp, err := c.auth().CreateSignSession(ctx, body)
 	if err != nil {
 		return nil, err
 	}
 	return testAndReadResponse(http.StatusCreated, resp)
 }
 
-func (client HTTPClient) GetIrmaSessionResult(sessionToken string) ([]byte, error) {
+func (c HTTPClient) GetIrmaSessionResult(sessionToken string) ([]byte, error) {
 	// todo set user session
 
 	ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second)
-	resp, err := client.auth().GetSignSessionStatus(ctx, sessionToken)
+	resp, err := c.auth().GetSignSessionStatus(ctx, sessionToken)
 	if err != nil {
 		return nil, err
 	}
 	return testAndReadResponse(http.StatusOK, resp)
 }
 
-func (client HTTPClient) auth() auth.ClientInterface {
-	response, err := auth.NewClientWithResponses(client.getNodeURL())
+func (c HTTPClient) auth() auth.ClientInterface {
+	response, err := auth.NewClientWithResponses(c.getNodeURL())
 	if err != nil {
 		panic(err)
 	}

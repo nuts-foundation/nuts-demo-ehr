@@ -19,9 +19,9 @@ func Transactional(db *sqlx.DB) echo.MiddlewareFunc {
 
 			err := next(ctx)
 			if err != nil {
-				transactionManager.rollback()
+				transactionManager.Rollback()
 			} else {
-				return transactionManager.commit()
+				return transactionManager.Commit()
 			}
 			return err
 		}
@@ -41,7 +41,7 @@ func (tm *TransactionManager) getTransaction() (*sqlx.Tx, error) {
 	return tm.tx, err
 }
 
-func (tm *TransactionManager) rollback() {
+func (tm *TransactionManager) Rollback() {
 	if tm.tx != nil {
 		if rollbackErr := tm.tx.Rollback(); rollbackErr != nil {
 			logrus.Errorf("Error while rolling back transaction: %v", rollbackErr)
@@ -50,7 +50,7 @@ func (tm *TransactionManager) rollback() {
 	}
 }
 
-func (tm *TransactionManager) commit() error {
+func (tm *TransactionManager) Commit() error {
 	var err error
 	if tm.tx != nil {
 		if err = tm.tx.Commit(); err != nil {
@@ -65,17 +65,25 @@ func ExecuteTransactional(db *sqlx.DB, acceptor func(ctx context.Context) error)
 	tm := &TransactionManager{db: db}
 	ctx := context.WithValue(context.Background(), transactionManagerContextKey, tm)
 	if err := acceptor(ctx); err != nil {
-		tm.rollback()
+		tm.Rollback()
 		return err
 	} else {
-		return tm.commit()
+		return tm.Commit()
 	}
 }
 
-func GetTransaction(ctx context.Context) (*sqlx.Tx, error) {
+func GetTransactionManager(ctx context.Context) (*TransactionManager, error) {
 	tm, ok := ctx.Value(transactionManagerContextKey).(*TransactionManager)
 	if !ok {
 		return nil, errors.New("transaction manager not registered")
+	}
+	return tm, nil
+}
+
+func GetTransaction(ctx context.Context) (*sqlx.Tx, error) {
+	tm, err := GetTransactionManager(ctx)
+	if err != nil {
+		return nil, err
 	}
 	return tm.getTransaction()
 }

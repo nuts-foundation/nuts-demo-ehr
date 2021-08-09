@@ -12,10 +12,10 @@ type HTTPClient struct {
 	NutsNodeAddress string
 }
 
-func (client HTTPClient) getNodeURL() string {
-	url := client.NutsNodeAddress
+func (c HTTPClient) getNodeURL() string {
+	url := c.NutsNodeAddress
 	if !strings.Contains(url, "http") {
-		url = fmt.Sprintf("http://%v", client.NutsNodeAddress)
+		url = fmt.Sprintf("http://%v", c.NutsNodeAddress)
 	}
 	return url
 }

@@ -397,6 +397,34 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Organization"
+
+  /private/network/inbox:
+    get:
+      description: Returns the contents of the inbox.
+      operationId: getInbox
+      responses:
+        200:
+          description: Inbox returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InboxEntry"
+
+
+  /private/network/inbox/info:
+    get:
+      description: Returns info about the current state of the inbox (message count).
+      operationId: getInboxInfo
+      responses:
+        200:
+          description: Inbox info returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxInfo"
+
   /private/dossier:
     get:
       description: Get list of dossiers for a patient
@@ -433,6 +461,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Dossier"
+
+  /external/transfer/notify:
+    post:
+      parameters:
+        - name: taskOwnerDID
+          in: query
+          description: Nuts DID of the task-owner organisation, aka the filler.
+          required: true
+          schema:
+            type: string
+      description: >
+        Call this endpoint to notify the app of an update for one of its customers, indicating that an eOverdracht FHIR task was update or created.
+        The customer is identified by the taskOwnerDID parameter.
+      operationId: notifyTransferUpdate
+      responses:
+        204:
+          description: Notification processed successfully.
 
 components:
   schemas:
@@ -708,6 +753,29 @@ components:
           $ref: '#/components/schemas/ObjectID'
         name:
           type: string
+    InboxInfo:
+      required:
+        - messageCount
+      properties:
+        messageCount:
+          description: Number of new messages in the inbox.
+          type: integer
+    InboxEntry:
+      required:
+        - title
+        - sender
+        - date
+      properties:
+        title:
+          description: Descriptive title.
+          type: string
+        sender:
+          $ref: "#/components/schemas/Organization"
+        date:
+          description: Date/time of the entry.
+          type: string
+          format: datetime
+
   securitySchemes:
     bearerAuth:
       type: http

@@ -13,12 +13,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
@@ -82,7 +83,8 @@ func main() {
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
 	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
-	transferService := transfer.NewTransferService(taskRepository, transferRepository, customerRepository)
+	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
+	transferService := transfer.NewTransferService(taskRepository, transferRepository, customerRepository, orgRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()
@@ -103,9 +105,9 @@ func main() {
 		PatientRepository:    patientRepository,
 		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
 		TransferRepository:   transferRepository,
-		OrganizationRegistry: registry.NewOrganizationRegistry(&nodeClient),
+		OrganizationRegistry: orgRegistry,
 		TransferService:      transferService,
-		FHIRGateway:          &fhir.StubGateway{},
+		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry),
 	}
 	e := echo.New()
 	e.HideBanner = true

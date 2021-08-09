@@ -204,15 +204,14 @@ func (r SQLiteTransferRepository) FindByID(ctx context.Context, customerID, id s
 }
 
 func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerID, patientID string) ([]domain.Transfer, error) {
-	// TODO: filter on patient by dossier
-	const query = `SELECT * FROM transfer WHERE customer_id = ? ORDER BY id ASC`
+	const query = `SELECT transfer.* FROM transfer, dossier WHERE transfer.customer_id = ? AND dossier.id == transfer.dossier_id AND dossier.patient_id = ? ORDER BY id ASC`
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	dbTransfers := []sqlTransfer{}
-	err = tx.SelectContext(ctx, &dbTransfers, query, customerID)
+	err = tx.SelectContext(ctx, &dbTransfers, query, customerID, patientID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return []domain.Transfer{}, nil
 	} else if err != nil {

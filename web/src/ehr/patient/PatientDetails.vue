@@ -7,7 +7,11 @@
     </div>
     <div v-if="!!patient">
       <div class="flex">
-        <h1 v-if="patient.surname || patient.firstName" class="text-2xl mb-2 mr-4">{{ patient.surname }}, {{ patient.firstName }}</h1>
+        <router-link
+            :to="{name: 'ehr.patient.overview', params: {id: patient.ObjectID}}"
+            class="text-2xl mb-2 mr-4 hover:cursor-pointer hover:underline"
+            v-if="patient.surname || patient.firstName"
+        >{{ patient.surname }}, {{ patient.firstName }}</router-link>
         <h1 v-else class="text-2xl mb-2 mr-4">Unknown patient</h1>
         <button
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"

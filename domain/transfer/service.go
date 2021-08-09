@@ -5,6 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
+	"github.com/sirupsen/logrus"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
@@ -30,18 +34,29 @@ type service struct {
 	transferRepo Repository
 	taskRepo     task.Repository
 	customerRepo customers.Repository
+	registry     registry.OrganizationRegistry
+	notifier     Notifier
 }
 
-func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository) *service {
-	return &service{taskRepo: taskRespository, transferRepo: transferRepository, customerRepo: customerRepository}
+func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+	return &service{
+		taskRepo:     taskRespository,
+		transferRepo: transferRepository,
+		customerRepo: customerRepository,
+		registry:     organizationRegistry,
+		notifier:     fireAndForgetNotifier{},
+	}
 }
 
 func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil{
+	if err != nil || customer.Did == nil {
 		return nil, err
 	}
-	var negotiation *domain.TransferNegotiation
+	var (
+		negotiation          *domain.TransferNegotiation
+		notificationEndpoint string
+	)
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
@@ -53,6 +68,12 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		taskProperties := domain.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
+		}
+
+		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
+		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
+		if err != nil {
+			return nil, err
 		}
 
 		transferTask, err := s.taskRepo.Create(ctx, taskProperties)
@@ -69,6 +90,18 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		//transfer.Status = domain.TransferStatusRequested
 		return &transfer, nil
 	})
+	if err == nil {
+		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
+		tm, _ := sqlUtil.GetTransactionManager(ctx)
+		if commitErr := tm.Commit(); commitErr != nil {
+			return negotiation, commitErr
+		}
+
+		if err = s.notifier.Notify(notificationEndpoint, *customer.Did, organizationDID); err != nil {
+			// TODO: What to do here? Should we maybe rollback?
+			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
+		}
+	}
 	return negotiation, err
 }
 

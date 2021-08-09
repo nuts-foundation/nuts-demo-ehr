@@ -17,6 +17,12 @@
           Patients
         </router-link>
         <router-link
+            :to="{name: 'ehr.inbox'}"
+            class="menu-link">
+          <inbox-badge :inbox="inboxInfo"/>
+          Inbox
+        </router-link>
+        <router-link
             :to="{name: 'ehr.settings'}"
             class="menu-link">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
@@ -51,11 +57,13 @@
 <script>
 import StatusBar from "../components/StatusBar.vue"
 import StatusReporter from "../components/StatusReporter.vue"
+import InboxBadge from "../components/InboxBadge.vue"
 
 export default {
-  components: {StatusBar, StatusReporter},
+  components: {StatusBar, StatusReporter, InboxBadge},
   data() {
     return {
+      inboxInfo: null,
       eventMessage: '',
     }
   },
@@ -63,6 +71,14 @@ export default {
     updateStatus(status) {
       this.eventMessage = status
     },
+    fetchData() {
+      this.$api.getInboxInfo()
+        .then((response) => this.inboxInfo = response)
+        .catch(error => this.$status.error(error))
+    },
+  },
+  created() {
+    this.fetchData()
   },
   computed: {
     errorMessage() {

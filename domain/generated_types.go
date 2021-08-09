@@ -125,6 +125,26 @@ type IRMAAuthenticationRequest struct {
 	CustomerID string `json:"customerID"`
 }
 
+// InboxEntry defines model for InboxEntry.
+type InboxEntry struct {
+
+	// Date/time of the entry.
+	Date string `json:"date"`
+
+	// A care organization available through the Nuts Network to exchange information.
+	Sender Organization `json:"sender"`
+
+	// Descriptive title.
+	Title string `json:"title"`
+}
+
+// InboxInfo defines model for InboxInfo.
+type InboxInfo struct {
+
+	// Number of new messages in the inbox.
+	MessageCount int `json:"messageCount"`
+}
+
 // An internal object UUID which can be used as unique identifier for entities.
 type ObjectID string
 
@@ -266,6 +286,13 @@ type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
 
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
+
+// NotifyTransferUpdateParams defines parameters for NotifyTransferUpdate.
+type NotifyTransferUpdateParams struct {
+
+	// Nuts DID of the task-owner organisation, aka the filler.
+	TaskOwnerDID string `json:"taskOwnerDID"`
+}
 
 // GetDossierParams defines parameters for GetDossier.
 type GetDossierParams struct {

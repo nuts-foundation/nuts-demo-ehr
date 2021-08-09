@@ -49,6 +49,7 @@ oapi-codegen -generate types -package domain -o domain/generated_types.go api/ap
 oapi-codegen -generate client,types -package auth -o client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
 oapi-codegen -generate client,types -package vcr -o client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/v1.yaml
 oapi-codegen -generate client,types -package didman -o client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
+oapi-codegen -generate client,types -package vdr -o client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
 
 ```
 

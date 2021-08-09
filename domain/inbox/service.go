@@ -57,13 +57,17 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 }
 
 func getInboxEntries(client fhir.Client, sender domain.Organization) ([]domain.InboxEntry, error) {
-	tasks, err := client.GetResources("/Task")
+	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
+	// But we might need some persistence for that, which we don't have right now.
+	tasks, err := client.GetResources("/Task", map[string]string{
+		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
+	})
 	if err != nil {
 		return nil, err
 	}
-	transferResources := fhir.FilterResources(tasks, fhir.SnomedCodingSystem, fhir.SnomedTransferCode)
 	var results []domain.InboxEntry
-	for _, resource := range transferResources {
+	for _, resource := range tasks {
+		println(resource.String())
 		results = append(results, domain.InboxEntry{
 			Title:  resource.Get("code.coding.0.display").String(),
 			Sender: sender,

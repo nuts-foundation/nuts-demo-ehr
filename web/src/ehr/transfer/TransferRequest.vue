@@ -2,35 +2,33 @@
   <div>
     <h1 class="page-title">Transfer Request</h1>
 
-    <div class="mt-4" v-if="transfer">
+    <div class="mt-4" v-if="transferRequest">
       <div class="bg-gray-50 font-bold">Requesting Care Organization</div>
       <div>
-        {{ transfer.sender.name }}, {{ transfer.sender.city }}
+        {{ transferRequest.sender.name }}, {{ transferRequest.sender.city }}
       </div>
     </div>
 
-    <div class="mt-4" v-if="transfer">
+    <div class="mt-4" v-if="transferRequest">
       <div class="bg-gray-50 font-bold">Transfer date</div>
       <div>
-        {{ transfer.transferDate }}
+        {{ transferRequest.transferDate }}
       </div>
     </div>
 
-    <div class="mt-4" v-if="transfer">
+    <div class="mt-4" v-if="transferRequest">
       <div class="bg-gray-50 font-bold">Condition</div>
       <div>
-        {{ transfer.condition }}
+        {{ transferRequest.description }}
       </div>
     </div>
-
-
   </div>
 </template>
 <script>
 export default {
   data() {
     return {
-      items: [],
+      transferRequest: null,
     }
   },
   created() {
@@ -38,8 +36,8 @@ export default {
   },
   methods: {
     fetchData() {
-      this.$api.getInbox()
-          .then((response) => this.items = response)
+      this.$api.getTransferRequest({requestorDID: this.$route.params.requestorDID, fhirTaskID: this.$route.params.fhirTaskID})
+          .then((transferRequest) => this.transferRequest = transferRequest)
           .catch(error => this.$status.error(error))
     }
   }

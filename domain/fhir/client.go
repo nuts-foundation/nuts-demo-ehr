@@ -13,7 +13,7 @@ func NewClient(baseURL string) Client {
 
 type Client interface {
 	GetResources(path string, params map[string]string) ([]gjson.Result, error)
-	GetResource(path string) ([]gjson.Result, error)
+	GetResource(path string) (gjson.Result, error)
 }
 
 type httpClient struct {
@@ -28,9 +28,8 @@ func (h httpClient) GetResources(path string, params map[string]string) ([]gjson
 	return nil, err
 }
 
-func (h httpClient) GetResource(path string) ([]gjson.Result, error) {
-	resource, err := h.getResource(path, nil)
-	return resource.Array(), err
+func (h httpClient) GetResource(path string) (gjson.Result, error) {
+	return h.getResource(path, nil)
 }
 
 func (h httpClient) getResource(path string, params map[string]string) (gjson.Result, error) {

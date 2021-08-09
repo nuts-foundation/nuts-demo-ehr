@@ -42,7 +42,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	transferRequest, err := w.TransferService.GetTransferRequest(requestorDID, fhirTaskID)
+	transferRequest, err := w.TransferService.GetTransferRequest(ctx.Request().Context(), requestorDID, fhirTaskID)
 	if err != nil {
 		return err
 	}

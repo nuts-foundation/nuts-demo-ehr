@@ -13,7 +13,8 @@
       </thead>
       <tbody>
       <tr class="hover:bg-gray-100 cursor-pointer"
-          v-for="item in items">
+          v-for="item in items"
+          @click="$router.push({name: 'ehr.transferRequest.show', params: {requestorDID: item.sender.did, fhirTaskID: item.resourceID}})">
         <td>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

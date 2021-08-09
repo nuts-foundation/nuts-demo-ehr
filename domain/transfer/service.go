@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"net/http"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -33,7 +33,7 @@ type Service interface {
 	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
-	GetTransferRequest(requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 }
 
 type service struct {
@@ -117,11 +117,20 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}
 	// TODO: Read AdvanceNotification here instead of the transfer task
-	task, err := fhir.NewClient(fhirServer).GetResource("/Task/" + fhirTaskID)
+	resource, err := fhir.NewClient(fhirServer).GetResource("/Task/" + fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
 	}
-	
+	organization, err := s.registry.Get(ctx, requestorDID)
+	if err != nil {
+		return nil, err
+	}
+	transferDate, _ := time.Parse(time.RFC3339, resource.Get("meta.lastUpdated").String())
+	return &domain.TransferRequest{
+		Description:  "TODO",
+		Sender:       *organization,
+		TransferDate: openapi_types.Date{Time: transferDate},
+	}, nil
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

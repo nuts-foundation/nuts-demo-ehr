@@ -769,6 +769,10 @@ components:
           type: string
     TransferRequest:
       description: Incoming request from another care organization to transfer a patient.
+      required:
+        - sender
+        - transferDate
+        - description
       properties:
         sender:
           $ref: '#/components/schemas/Organization'
@@ -776,6 +780,9 @@ components:
           description: Requested transfer date.
           type: string
           format: date
+        description:
+          description: Descriptive text of the transfer request
+          type: string
 
     Dossier:
       required:

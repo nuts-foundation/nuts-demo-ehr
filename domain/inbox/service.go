@@ -3,6 +3,7 @@ package inbox
 import (
 	"context"
 	"fmt"
+	"github.com/tidwall/gjson"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -24,8 +25,8 @@ func (s Service) RegisterNotification(ctx context.Context, customerID, senderDID
 	return s.repository.registerNotification(ctx, customerID, senderDID)
 }
 
-func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEntry, error) {
-	notifications, err := s.repository.getAll(ctx, customerID)
+func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.InboxEntry, error) {
+	notifications, err := s.repository.getAll(ctx, customer.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 		if err != nil {
 			return nil, fmt.Errorf("error while looking up sender for inbox entry (did=%s): %w", senderDID, err)
 		}
-		entries, err := getInboxEntries(fhir.NewClient(fhirServer), *sendingOrg)
+		entries, err := getInboxEntries(fhir.NewClient(fhirServer), *sendingOrg, *customer.Did)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
@@ -56,7 +57,7 @@ func (s Service) List(ctx context.Context, customerID string) ([]domain.InboxEnt
 	return results, nil
 }
 
-func getInboxEntries(client fhir.Client, sender domain.Organization) ([]domain.InboxEntry, error) {
+func getInboxEntries(client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
 	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
 	// But we might need some persistence for that, which we don't have right now.
 	tasks, err := client.GetResources("/Task", map[string]string{
@@ -65,6 +66,12 @@ func getInboxEntries(client fhir.Client, sender domain.Organization) ([]domain.I
 	if err != nil {
 		return nil, err
 	}
+	// Filter on current customer's DID (which is the receiver).
+	// Should be done by the remote XIS, but it might return more than just tasks for this particular DID, so we do it client-side as well.
+	tasks = fhir.Filter(tasks, func(resource gjson.Result) bool {
+		return resource.Get("owner.identifier.value").String() == receiverDID
+	})
+
 	var results []domain.InboxEntry
 	for _, resource := range tasks {
 		results = append(results, domain.InboxEntry{

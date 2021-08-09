@@ -78,16 +78,23 @@ func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 }
 
 func (w Wrapper) getCustomerID(ctx echo.Context) string {
+	customer := w.getCustomer(ctx)
+	if customer == nil {
+		return ""
+	}
+	return customer.Id
+}
+
+func (w Wrapper) getCustomer(ctx echo.Context) *domain.Customer {
 	cid, ok := ctx.Get(CustomerID).(string)
 	if !ok {
-		return ""
+		return nil
 	}
 	customer, _ := w.CustomerRepository.FindByID(cid)
 	if customer.Id != cid {
-		return ""
+		return nil
 	}
-
-	return customer.Id
+	return customer
 }
 
 func (w Wrapper) getCustomerDID(ctx echo.Context) *string {

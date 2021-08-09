@@ -67,7 +67,6 @@ func getInboxEntries(client fhir.Client, sender domain.Organization) ([]domain.I
 	}
 	var results []domain.InboxEntry
 	for _, resource := range tasks {
-		println(resource.String())
 		results = append(results, domain.InboxEntry{
 			Title:  resource.Get("code.coding.0.display").String(),
 			Sender: sender,

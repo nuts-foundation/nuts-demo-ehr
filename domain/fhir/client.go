@@ -13,6 +13,7 @@ func NewClient(baseURL string) Client {
 
 type Client interface {
 	GetResources(path string, params map[string]string) ([]gjson.Result, error)
+	GetResource(path string) ([]gjson.Result, error)
 }
 
 type httpClient struct {
@@ -20,20 +21,34 @@ type httpClient struct {
 }
 
 func (h httpClient) GetResources(path string, params map[string]string) ([]gjson.Result, error) {
+	resource, err := h.getResource(path, params)
+	if err == nil {
+		return resource.Get("entry.#.resource").Array(), nil
+	}
+	return nil, err
+}
+
+func (h httpClient) GetResource(path string) ([]gjson.Result, error) {
+	resource, err := h.getResource(path, nil)
+	return resource.Array(), err
+}
+
+func (h httpClient) getResource(path string, params map[string]string) (gjson.Result, error) {
 	requestURI, err := h.buildRequestURI(path, params)
 	if err != nil {
-		return nil, err
+		return gjson.Result{}, err
 	}
 	client := http.Client{}
 	res, err := client.Get(requestURI)
 	if err != nil {
-		return nil, err
+		return gjson.Result{}, err
 	}
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return gjson.Result{}, err
 	}
-	return gjson.ParseBytes(data).Get("entry.#.resource").Array(), nil
+	parsed := gjson.ParseBytes(data)
+	return parsed, nil
 }
 
 func (h httpClient) buildRequestURI(path string, queryParams map[string]string) (string, error) {

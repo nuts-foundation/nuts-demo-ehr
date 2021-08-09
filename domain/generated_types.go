@@ -11,6 +11,11 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for InboxEntryType.
+const (
+	InboxEntryTypeTransferRequest InboxEntryType = "transferRequest"
+)
+
 // Defines values for PatientPropertiesGender.
 const (
 	PatientPropertiesGenderFemale PatientPropertiesGender = "female"
@@ -131,12 +136,21 @@ type InboxEntry struct {
 	// Date/time of the entry.
 	Date string `json:"date"`
 
+	// ID that should be used when retrieving the source document of the inbox entry, e.g. a transfer request.
+	ResourceID string `json:"resourceID"`
+
 	// A care organization available through the Nuts Network to exchange information.
 	Sender Organization `json:"sender"`
 
 	// Descriptive title.
 	Title string `json:"title"`
+
+	// Type of the entry
+	Type InboxEntryType `json:"type"`
 }
+
+// Type of the entry
+type InboxEntryType string
 
 // InboxInfo defines model for InboxInfo.
 type InboxInfo struct {
@@ -276,6 +290,16 @@ type TransferProperties struct {
 
 	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
 	TransferDate openapi_types.Date `json:"transferDate"`
+}
+
+// Incoming request from another care organization to transfer a patient.
+type TransferRequest struct {
+
+	// A care organization available through the Nuts Network to exchange information.
+	Sender *Organization `json:"sender,omitempty"`
+
+	// Requested transfer date.
+	TransferDate *openapi_types.Date `json:"transferDate,omitempty"`
 }
 
 // SetCustomerJSONBody defines parameters for SetCustomer.

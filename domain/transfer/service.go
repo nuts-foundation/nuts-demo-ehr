@@ -3,6 +3,9 @@ package transfer
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"net/http"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -28,6 +31,9 @@ type Service interface {
 	ConfirmNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
+
+	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
+	GetTransferRequest(requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 }
 
 type service struct {
@@ -103,6 +109,19 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		}
 	}
 	return negotiation, err
+}
+
+func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, "eOverdracht-sender", "fhir")
+	if err != nil {
+		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
+	}
+	// TODO: Read AdvanceNotification here instead of the transfer task
+	task, err := fhir.NewClient(fhirServer).GetResource("/Task/" + fhirTaskID)
+	if err != nil {
+		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
+	}
+	
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

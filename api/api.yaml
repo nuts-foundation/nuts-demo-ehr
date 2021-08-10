@@ -333,7 +333,33 @@ paths:
         404:
           description: transfer or negotiation not found.
         400:
-          description: Invalid request. State transition might be illigal.
+          description: Invalid request. State transition might be illegal.
+
+  /private/transfer-request/{requestorDID}/{fhirTaskID}:
+    parameters:
+      - name: requestorDID
+        in: path
+        description: DID of the care organizaton that requests the transfer.
+        required: true
+        schema:
+          type: string
+      - name: fhirTaskID
+        in: path
+        description: ID of the FHIR transfer task at the care organization that requests the transfer.
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getTransferRequest
+      description: Retrieves a transfer request from another care organization.
+      responses:
+        200:
+          description: Transfer request found and returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferRequest"
+
   /private/patients:
     get:
       parameters:
@@ -741,6 +767,23 @@ components:
           $ref: '#/components/schemas/ObjectID'
         name:
           type: string
+    TransferRequest:
+      description: Incoming request from another care organization to transfer a patient.
+      required:
+        - sender
+        - transferDate
+        - description
+      properties:
+        sender:
+          $ref: '#/components/schemas/Organization'
+        transferDate:
+          description: Requested transfer date.
+          type: string
+          format: date
+        description:
+          description: Descriptive text of the transfer request
+          type: string
+
     Dossier:
       required:
         - id
@@ -765,6 +808,8 @@ components:
         - title
         - sender
         - date
+        - type
+        - resourceID
       properties:
         title:
           description: Descriptive title.
@@ -775,6 +820,14 @@ components:
           description: Date/time of the entry.
           type: string
           format: datetime
+        type:
+          description: Type of the entry
+          type: string
+          enum:
+            - transferRequest
+        resourceID:
+          description: ID that should be used when retrieving the source document of the inbox entry, e.g. a transfer request.
+          type: string
 
   securitySchemes:
     bearerAuth:

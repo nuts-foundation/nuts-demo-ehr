@@ -3,6 +3,7 @@ package inbox
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -37,7 +38,8 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 		}
 		fhirServer, err := s.orgRegistry.GetCompoundServiceEndpoint(ctx, not.SenderDID, "eOverdracht-sender", "fhir")
 		if err != nil {
-			return nil, err
+			logrus.Errorf("Unable to retrieve FHIR tasks from remote FHIR server (server=%s,did=%s): %v", fhirServer, not.SenderDID, err)
+			continue
 		}
 		remoteFHIRServers[not.SenderDID] = fhirServer
 	}
@@ -75,9 +77,11 @@ func getInboxEntries(client fhir.Client, sender domain.Organization, receiverDID
 	var results []domain.InboxEntry
 	for _, resource := range tasks {
 		results = append(results, domain.InboxEntry{
-			Title:  resource.Get("code.coding.0.display").String(),
-			Sender: sender,
-			Date:   resource.Get("meta.lastUpdated").String(),
+			Date:       resource.Get("meta.lastUpdated").String(),
+			Sender:     sender,
+			Title:      resource.Get("code.coding.0.display").String(),
+			Type:       "transferRequest",
+			ResourceID: resource.Get("id").String(),
 		})
 	}
 	return results, nil

@@ -71,6 +71,9 @@ type ServerInterface interface {
 	// (POST /private/transfer)
 	CreateTransfer(ctx echo.Context) error
 
+	// (GET /private/transfer-request/{requestorDID}/{fhirTaskID})
+	GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error
+
 	// (DELETE /private/transfer/{transferID})
 	CancelTransfer(ctx echo.Context, transferID string) error
 
@@ -380,6 +383,32 @@ func (w *ServerInterfaceWrapper) CreateTransfer(ctx echo.Context) error {
 	return err
 }
 
+// GetTransferRequest converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTransferRequest(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "requestorDID" -------------
+	var requestorDID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "requestorDID", runtime.ParamLocationPath, ctx.Param("requestorDID"), &requestorDID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter requestorDID: %s", err))
+	}
+
+	// ------------- Path parameter "fhirTaskID" -------------
+	var fhirTaskID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "fhirTaskID", runtime.ParamLocationPath, ctx.Param("fhirTaskID"), &fhirTaskID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fhirTaskID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetTransferRequest(ctx, requestorDID, fhirTaskID)
+	return err
+}
+
 // CancelTransfer converts echo context to params.
 func (w *ServerInterfaceWrapper) CancelTransfer(ctx echo.Context) error {
 	var err error
@@ -561,6 +590,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/private/patients", wrapper.NewPatient)
 	router.GET(baseURL+"/private/transfer", wrapper.GetPatientTransfers)
 	router.POST(baseURL+"/private/transfer", wrapper.CreateTransfer)
+	router.GET(baseURL+"/private/transfer-request/:requestorDID/:fhirTaskID", wrapper.GetTransferRequest)
 	router.DELETE(baseURL+"/private/transfer/:transferID", wrapper.CancelTransfer)
 	router.GET(baseURL+"/private/transfer/:transferID", wrapper.GetTransfer)
 	router.PUT(baseURL+"/private/transfer/:transferID", wrapper.UpdateTransfer)

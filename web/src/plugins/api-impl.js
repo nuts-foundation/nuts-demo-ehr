@@ -134,6 +134,23 @@ function createApi(options) {
           mode,
         });
     },
+    notifyTransferUpdate(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'notifyTransferUpdate');
+      return fetch(endpoint + basePath + '/external/transfer/notify' + '?' + buildQuery({
+          'taskOwnerDID': params['taskOwnerDID'],
+        })
+
+        , {
+          method: 'POST',
+          headers,
+          mode,
+        });
+    },
     checkSession(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
@@ -339,6 +356,20 @@ function createApi(options) {
           mode,
           body: JSON.stringify(params['body']),
 
+        });
+    },
+    getTransferRequest(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getTransferRequest');
+      return fetch(endpoint + basePath + '/private/transfer-request/' + params['requestorDID'] + '/' + params['fhirTaskID'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
         });
     },
     cancelTransfer(parameters) {

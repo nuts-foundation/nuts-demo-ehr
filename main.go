@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	auth2 "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"io/fs"
 	"log"
 	"net/http"
@@ -80,11 +81,17 @@ func main() {
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+
+	authService, err := auth2.NewService(config.NutsNodeAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
 	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(taskRepository, transferRepository, customerRepository, orgRegistry)
+	transferService := transfer.NewTransferService(authService, taskRepository, transferRepository, customerRepository, orgRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

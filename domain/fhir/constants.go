@@ -1,6 +1,6 @@
 package fhir
 
-// Coding systems
+/* Coding systems */
 type CodingSystem string
 
 const (
@@ -9,13 +9,22 @@ const (
 	NutsCodingSystem                = "http://nuts.nl"
 )
 
-// Codes:
+/* Codes */
 type Code string
 
 const (
-	SnomedTransferCode Code = "308292007"
-	TransferDisplay = "Overdracht van zorg"
-	LoincAdvanceNoticeCode = "57830-2"
-	SnomedAlternaticeDateCode = "146851000146105"
-	SnomedNursingHandoffCode = "371535009"
+	SnomedTransferCode        Code = "308292007"
+	TransferDisplay                = "Overdracht van zorg"
+	LoincAdvanceNoticeCode         = "57830-2"
+	SnomedAlternaticeDateCode      = "146851000146105"
+	SnomedNursingHandoffCode       = "371535009"
 )
+
+/* Short-hand types */
+var LoincAdvanceNoticeType = CodeableConcept{
+	Coding: Coding{
+		System: LoincCodingSystem,
+		Code:   LoincAdvanceNoticeCode,
+	},
+	Text: "Aanmeldbericht",
+}

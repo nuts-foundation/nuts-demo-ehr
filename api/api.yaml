@@ -724,6 +724,7 @@ components:
             - id
             - dossierID
             - status
+            - fhirAdvanceNoticeComposition
           properties:
             id:
               $ref: '#/components/schemas/ObjectID'
@@ -740,6 +741,12 @@ components:
                 - Cancelled: the transfer is cancelled by the sending care organization.
               type: string
               enum: [ created, requested, assigned, completed, cancelled ]
+            fhirAdvanceNoticeComposition:
+              description: Reference to the FHIR composition resource that describes the advance notice, according to the Nictiz eOverdracht FHIR specification.
+              type: string
+            fhirNursingHandoffComposition:
+              description: Reference to the FHIR composition resource that describes the nursing handoff, according to the Nictiz eOverdracht FHIR specification.
+              type: string
     AssignTransferRequest:
       description: >
         Request used to assign a transfer to a specific negotiation indicated by the negotiationID.

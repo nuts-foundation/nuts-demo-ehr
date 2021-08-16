@@ -21,6 +21,9 @@ import (
 const ReceiverServiceName = "eOverdracht-receiver"
 
 type Service interface {
+	// Create creates a new transfer
+	Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
+
 	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
 	// ProposeAlternateDate updates the date on the domain.TransferNegotiation indicated by the negotiationID.
@@ -41,8 +44,8 @@ type Service interface {
 
 type service struct {
 	transferRepo Repository
-	taskRepo     fhir.Repository
 	auth         auth.Service
+	fhirRepo     fhir.Repository
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
 	notifier     Notifier
@@ -51,7 +54,7 @@ type service struct {
 func NewTransferService(authService auth.Service, fhirRepository fhir.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
 		auth:         authService,
-		taskRepo:     fhirRepository,
+		fhirRepo:     fhirRepository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
 		registry:     organizationRegistry,
@@ -79,10 +82,15 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
-
-		taskProperties := domain.TaskProperties{
+		taskProperties := fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
+			Input: []fhir.TaskInputOutput{
+				{
+					Type:           fhir.LoincAdvanceNoticeType,
+					ValueReference: fhir.Reference{Reference: transfer.FhirAdvanceNoticeComposition},
+				},
+			},
 		}
 
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
@@ -91,7 +99,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
-		transferTask, err := s.taskRepo.CreateTask(ctx, taskProperties)
+		transferTask, err := s.fhirRepo.CreateTask(ctx, taskProperties)
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +153,26 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		Sender:       *organization,
 		TransferDate: openapi_types.Date{Time: transferDate},
 	}, nil
+}
+
+func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
+	composition, err := s.fhirRepo.CreateComposition(ctx, map[string]interface{}{
+		"title": "Aanmeldbericht",
+		"type":  fhir.LoincAdvanceNoticeType,
+		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
+		// has patient in care to protect the identity of the patient during the negotiation phase.
+		//"subject":  fhir.Reference{Reference: "Patient/Anonymous"},
+		"author": fhir.Reference{Reference: fhir.Device{Manufacturer: "Nuts Demo EHR"}},
+		// TODO: sections
+	})
+	if err != nil {
+		return nil, err
+	}
+	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition.Reference)
+	if err != nil {
+		return nil, err
+	}
+	return transfer, nil
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

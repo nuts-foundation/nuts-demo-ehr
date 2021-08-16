@@ -1,4 +1,4 @@
-package task
+package fhir
 
 import (
 	"context"
@@ -10,21 +10,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/tidwall/gjson"
-
-	"github.com/go-resty/resty/v2"
 )
-
-// Coding systems:
-const SnomedCodingSystem = "http://snomed.info/sct"
-const LoincCodingSystem = "http://loinc.org"
-const NutsCodingSystem = "http://nuts.nl"
-
-// Codes:
-const SnomedTransferCode = "308292007"
-const TransferDisplay = "Overdracht van zorg"
-const LoincAdvanceNoticeCode = "57830-2"
-const SnomedAlternaticeDateCode = "146851000146105"
-const SnomedNursingHandoffCode = "371535009"
 
 type fhirTask struct {
 	data gjson.Result
@@ -76,7 +62,7 @@ func (task fhirTask) MarshalToTask() (*domain.Task, error) {
 		return nil, fmt.Errorf("invalid resource type. got: %s, expected Task", rType)
 	}
 	codeQuery := fmt.Sprintf("code.coding.#(system==%s).code", SnomedCodingSystem)
-	if codeValue := task.data.Get(codeQuery).String(); codeValue != SnomedTransferCode {
+	if codeValue := task.data.Get(codeQuery).String(); codeValue != string(SnomedTransferCode) {
 		return nil, fmt.Errorf("unexpecting coding: %s", codeValue)
 	}
 	patientID := ""
@@ -101,23 +87,23 @@ func newFHIRTaskFromJSON(data []byte) *fhirTask {
 	return &fhirTask{data: gjson.ParseBytes(data)}
 }
 
-type fhirTaskRepository struct {
-	rest    *resty.Client
-	factory Factory
+type fhirRepository struct {
+	rest        *resty.Client
+	taskFactory TaskFactory
 }
 
-func NewFHIRTaskRepository(factory Factory, url string) *fhirTaskRepository {
-	return &fhirTaskRepository{
+func NewFHIRRepository(url string) *fhirRepository {
+	return &fhirRepository{
 		rest: resty.New().
 			SetHostURL(url).
 			SetHeader("Content-Type", "application/json; charset=utf-8"),
-		factory: factory,
+		taskFactory: &TaskFactory{},
 	}
 }
 
-func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error) {
+func (r fhirRepository) CreateTask(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error) {
 	fTask := fhirTask{}
-	newTask := r.factory.New(taskProperties)
+	newTask := r.taskFactory.New(taskProperties)
 	if err := fTask.UnmarshalFromDomainTask(*newTask); err != nil {
 		return nil, err
 	}
@@ -128,7 +114,7 @@ func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.Ta
 		SetBody(fTask.data.Raw).
 		Put(fmt.Sprintf("/Task/%s", newTask.ID))
 	if err != nil {
-		return nil, fmt.Errorf("unable to buid PUT request: %w", err)
+		return nil, fmt.Errorf("unable to build PUT request: %w", err)
 	}
 
 	if response.StatusCode() != http.StatusCreated {

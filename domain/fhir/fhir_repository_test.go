@@ -1,4 +1,4 @@
-package task
+package fhir
 
 import (
 	"testing"

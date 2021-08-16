@@ -15,7 +15,6 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 )
 
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
@@ -42,17 +41,17 @@ type Service interface {
 
 type service struct {
 	transferRepo Repository
+	taskRepo     fhir.Repository
 	auth         auth.Service
-	taskRepo     task.Repository
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
 	notifier     Notifier
 }
 
-func NewTransferService(authService auth.Service, taskRepository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+func NewTransferService(authService auth.Service, fhirRepository fhir.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
 		auth:         authService,
-		taskRepo:     taskRepository,
+		taskRepo:     fhirRepository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
 		registry:     organizationRegistry,
@@ -92,7 +91,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
-		transferTask, err := s.taskRepo.Create(ctx, taskProperties)
+		transferTask, err := s.taskRepo.CreateTask(ctx, taskProperties)
 		if err != nil {
 			return nil, err
 		}

@@ -1,4 +1,4 @@
-package task
+package fhir
 
 import (
 	"context"
@@ -39,12 +39,12 @@ const CancelledState = TaskState("cancelled")
 const CompletedState = TaskState("completed")
 
 type Repository interface {
-	Create(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error)
+	CreateTask(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error)
 }
 
-type Factory struct{}
+type TaskFactory struct{}
 
-func (Factory) New(taskProperties domain.TaskProperties) *domain.Task {
+func (TaskFactory) New(taskProperties domain.TaskProperties) *domain.Task {
 	return &domain.Task{
 		ID:             uuid.New().String(),
 		TaskProperties: taskProperties,

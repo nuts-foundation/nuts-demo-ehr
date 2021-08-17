@@ -134,7 +134,7 @@ func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.Ta
 	if response.StatusCode() != http.StatusCreated {
 		return nil, fmt.Errorf("unable to create new patient: %s", response.Body())
 	} else {
-		log.Debug(response.String())
+		log.Warnf("Server response: %s", response.String())
 	}
 
 	return newTask, nil

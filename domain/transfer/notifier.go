@@ -3,6 +3,7 @@ package transfer
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/labstack/gommon/log"
 )
 
 // Notifier defines the API for notifying a remote care organization that an eOverdracht FHIR task has been updated,
@@ -28,6 +29,7 @@ func (f fireAndForgetNotifier) Notify(token, endpoint, taskOwnerDID string) erro
 	}
 
 	if !response.IsSuccess() {
+		log.Warnf("Server response: %s", response.String())
 		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (url=%s,status-code=%d)", endpoint, response.StatusCode())
 	}
 

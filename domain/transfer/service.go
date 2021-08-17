@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 )
+
+// ReceiverServiceName contains the name of the eOverdracht receiver compound-service
+const ReceiverServiceName = "eOverdracht-receiver"
 
 type Service interface {
 	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
@@ -38,15 +42,17 @@ type Service interface {
 
 type service struct {
 	transferRepo Repository
+	auth         auth.Service
 	taskRepo     task.Repository
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
 	notifier     Notifier
 }
 
-func NewTransferService(taskRespository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+func NewTransferService(authService auth.Service, taskRepository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
-		taskRepo:     taskRespository,
+		auth:         authService,
+		taskRepo:     taskRepository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
 		registry:     organizationRegistry,
@@ -59,25 +65,29 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 	if err != nil || customer.Did == nil {
 		return nil, err
 	}
+
 	var (
 		negotiation          *domain.TransferNegotiation
 		notificationEndpoint string
 	)
+
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
+
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
+
 		taskProperties := domain.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
 		}
 
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
-		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
+		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, ReceiverServiceName, "notification")
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +113,12 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return negotiation, commitErr
 		}
 
-		if err = s.notifier.Notify(notificationEndpoint, *customer.Did, organizationDID); err != nil {
+		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint, organizationDID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
 		}
@@ -112,7 +127,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 }
 
 func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, "eOverdracht-sender", "fhir")
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, ReceiverServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}

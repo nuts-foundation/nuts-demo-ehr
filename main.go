@@ -13,13 +13,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
@@ -80,11 +80,17 @@ func main() {
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
+
+	authService, err := auth_service.NewService(config.NutsNodeAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
 	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(taskRepository, transferRepository, customerRepository, orgRegistry)
+	transferService := transfer.NewTransferService(authService, taskRepository, transferRepository, customerRepository, orgRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

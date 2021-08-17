@@ -1,17 +1,17 @@
 package task
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/tidwall/gjson"
+
+	"github.com/go-resty/resty/v2"
 )
 
 // Coding systems:
@@ -102,13 +102,15 @@ func newFHIRTaskFromJSON(data []byte) *fhirTask {
 }
 
 type fhirTaskRepository struct {
-	url     string
+	rest    *resty.Client
 	factory Factory
 }
 
 func NewFHIRTaskRepository(factory Factory, url string) *fhirTaskRepository {
 	return &fhirTaskRepository{
-		url:     url,
+		rest: resty.New().
+			SetHostURL(url).
+			SetHeader("Content-Type", "application/json; charset=utf-8"),
 		factory: factory,
 	}
 }
@@ -120,26 +122,19 @@ func (r fhirTaskRepository) Create(ctx context.Context, taskProperties domain.Ta
 		return nil, err
 	}
 
-	// Use a PUT method here so we can provide client generated resource IDs.
-	client := http.Client{}
-	req, err := http.NewRequest(http.MethodPut, r.url+"/Task/"+newTask.ID, bytes.NewBuffer([]byte(fTask.data.Raw)))
+	// Use a PUT method here, so we can provide client generated resource IDs.
+	response, err := r.rest.R().
+		SetContext(ctx).
+		SetBody(fTask.data.Raw).
+		Put(fmt.Sprintf("/Task/%s", newTask.ID))
 	if err != nil {
 		return nil, fmt.Errorf("unable to buid PUT request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusCreated {
-		body, ioErr := io.ReadAll(resp.Body)
-		if ioErr != nil {
-			return nil, fmt.Errorf("unable to create new patient. Unable to read error response: ioerr: %s", ioErr)
-		}
-		return nil, fmt.Errorf("unable to create new patient: %s", body)
+
+	if response.StatusCode() != http.StatusCreated {
+		return nil, fmt.Errorf("unable to create new patient: %s", response.Body())
 	} else {
-		body, _ := io.ReadAll(resp.Body)
-		log.Debug(body)
+		log.Debug(response.String())
 	}
 
 	return newTask, nil

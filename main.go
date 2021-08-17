@@ -7,20 +7,19 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	auth2 "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
@@ -82,7 +81,7 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 
-	authService, err := auth2.NewService(config.NutsNodeAddress)
+	authService, err := auth_service.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
 	}

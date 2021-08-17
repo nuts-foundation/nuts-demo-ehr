@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/labstack/gommon/log"
 	"net/http"
 
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
@@ -44,6 +45,8 @@ func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, 
 
 	if response.StatusCode() != http.StatusOK {
 		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
+	} else {
+		log.Warnf("Server response: %s", string(response.Body))
 	}
 
 	return response.JSON200, nil

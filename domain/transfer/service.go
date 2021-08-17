@@ -139,7 +139,7 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}
 	// TODO: Read AdvanceNotification here instead of the transfer task
-	resource, err := fhir.NewClient(fhirServer).GetResource("/Task/" + fhirTaskID)
+	resource, err := fhir.NewClient(fhirServer).GetResource(ctx, "/Task/" + fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
 	}

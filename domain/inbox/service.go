@@ -50,7 +50,7 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 		if err != nil {
 			return nil, fmt.Errorf("error while looking up sender for inbox entry (did=%s): %w", senderDID, err)
 		}
-		entries, err := getInboxEntries(fhir.NewClient(fhirServer), *sendingOrg, *customer.Did)
+		entries, err := getInboxEntries(ctx, fhir.NewClient(fhirServer), *sendingOrg, *customer.Did)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
@@ -59,10 +59,10 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 	return results, nil
 }
 
-func getInboxEntries(client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
+func getInboxEntries(ctx context.Context, client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
 	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
 	// But we might need some persistence for that, which we don't have right now.
-	tasks, err := client.GetResources("/Task", map[string]string{
+	tasks, err := client.GetResources(ctx, "/Task", map[string]string{
 		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
 	})
 	if err != nil {

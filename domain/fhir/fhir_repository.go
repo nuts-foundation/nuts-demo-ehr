@@ -3,8 +3,10 @@ package fhir
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"strings"
+	"time"
 )
 
 type fhirTask struct {
@@ -35,14 +37,14 @@ func (task fhirTask) MarshalToTask() (*Task, error) {
 }
 
 type fhirRepository struct {
-	client      fhir.Client
+	client      Client
 	taskFactory TaskFactory
 }
 
-func NewFHIRRepository(fhirClient fhir.Client) *fhirRepository {
+func NewFHIRRepository(fhirClient Client) *fhirRepository {
 	return &fhirRepository{
 		client:      fhirClient,
-		taskFactory: &TaskFactory{},
+		taskFactory: TaskFactory{},
 	}
 }
 
@@ -74,7 +76,7 @@ func (r fhirRepository) CreateTask(ctx context.Context, taskProperties TaskPrope
 		"input":  taskProperties.Input,
 		"output": taskProperties.Output,
 	}
-	_, err := NewClient(r.url).WriteResource(ctx, "Task/"+task.ID, fhirData)
+	_, err := r.client.WriteResource(ctx, "Task/"+task.ID, fhirData)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +95,7 @@ func (r fhirRepository) CreateComposition(ctx context.Context, elements map[stri
 		fhirData[key] = value
 	}
 	reference := "Composition/" + id
-	_, err := NewClient(r.url).WriteResource(ctx, reference, fhirData)
+	_, err := r.client.WriteResource(ctx, reference, fhirData)
 	if err != nil {
 		return nil, err
 	}

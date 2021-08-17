@@ -18,6 +18,9 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 )
 
+// ReceiverServiceName contains the name of the eOverdracht receiver compound-service
+const ReceiverServiceName = "eOverdracht-receiver"
+
 type Service interface {
 	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
@@ -84,7 +87,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		}
 
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
-		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, "eOverdracht-receiver", "notification")
+		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, ReceiverServiceName, "notification")
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +113,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return negotiation, commitErr
 		}
 
-		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, "eOverdracht-receiver")
+		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +127,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 }
 
 func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, "eOverdracht-sender", "fhir")
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, ReceiverServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}

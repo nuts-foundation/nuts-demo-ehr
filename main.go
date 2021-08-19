@@ -7,10 +7,10 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -20,10 +20,12 @@ import (
 	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -64,6 +66,34 @@ func main() {
 	config := loadConfig()
 	config.Print(log.Writer())
 
+	switch cmd {
+	case "ehr":
+		startEHR(config)
+	case "proxy":
+		startProxy(config)
+	default:
+		log.Fatalf("invalid command: %s", cmd)
+	}
+}
+
+func startProxy(config Config) {
+	authService, err := auth_service.NewService(config.NutsNodeAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fhirURL, _ := url.Parse(config.FHIRServerAddress)
+	proxyServer := proxy.NewServer(authService, *fhirURL)
+
+	e := echo.New()
+	e.Use(proxyServer.Handler)
+
+	if err := e.Start(":1304"); err != nil {
+		panic(err)
+	}
+}
+
+func startEHR(config Config) {
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 

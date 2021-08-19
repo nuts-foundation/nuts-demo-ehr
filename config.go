@@ -23,9 +23,12 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var cmd string
+
 const defaultPrefix = "NUTS_"
 const defaultDelimiter = "."
 const configFileFlag = "configfile"
+const configCmdFlag = "proxy"
 const defaultConfigFile = "server.config.yaml"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
@@ -161,11 +164,17 @@ func loadConfig() Config {
 func loadFlagSet(args []string) *pflag.FlagSet {
 	f := pflag.NewFlagSet("config", pflag.ContinueOnError)
 	f.String(configFileFlag, defaultConfigFile, "Nuts config file")
+	f.StringVarP(&cmd, configCmdFlag, "", "ehr", "Which command to run ('ehr' or 'proxy')")
 	f.Usage = func() {
 		fmt.Println(f.FlagUsages())
 		os.Exit(0)
 	}
-	f.Parse(args)
+
+	err := f.Parse(args)
+	if err != nil {
+		panic(err)
+	}
+
 	return f
 }
 
@@ -174,7 +183,6 @@ func loadFlagSet(args []string) *pflag.FlagSet {
 // 2. environment vars,
 // 3. default location.
 func resolveConfigFile(flagset *pflag.FlagSet) string {
-
 	k := koanf.New(defaultDelimiter)
 
 	// load env flags, can't return error
@@ -184,6 +192,7 @@ func resolveConfigFile(flagset *pflag.FlagSet) string {
 	_ = k.Load(posflag.Provider(flagset, defaultDelimiter, k), nil)
 
 	configFile := k.String(configFileFlag)
+
 	return configFile
 }
 

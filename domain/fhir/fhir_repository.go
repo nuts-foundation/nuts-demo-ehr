@@ -2,39 +2,9 @@ package fhir
 
 import (
 	"context"
-	"fmt"
 	"github.com/google/uuid"
-	"github.com/tidwall/gjson"
-	"strings"
 	"time"
 )
-
-type fhirTask struct {
-	data gjson.Result
-}
-
-func (task fhirTask) MarshalToTask() (*Task, error) {
-	if rType := task.data.Get("resourceType").String(); rType != "Task" {
-		return nil, fmt.Errorf("invalid resource type. got: %s, expected Task", rType)
-	}
-	codeQuery := fmt.Sprintf("code.coding.#(system==%s).code", SnomedCodingSystem)
-	if codeValue := task.data.Get(codeQuery).String(); codeValue != string(SnomedTransferCode) {
-		return nil, fmt.Errorf("unexpecting coding: %s", codeValue)
-	}
-	patientID := ""
-	if parts := strings.Split(task.data.Get("for.reference").String(), "/"); len(parts) > 1 {
-		patientID = parts[1]
-	}
-	return &Task{
-		ID: task.data.Get("id").String(),
-		TaskProperties: TaskProperties{
-			Status:      task.data.Get("status").String(),
-			OwnerID:     task.data.Get("owner.identifier.value").String(),
-			RequesterID: task.data.Get("requester.agent.identifier.value").String(),
-			PatientID:   patientID,
-		},
-	}, nil
-}
 
 type fhirRepository struct {
 	client      Client
@@ -67,11 +37,11 @@ func (r fhirRepository) CreateTask(ctx context.Context, taskProperties TaskPrope
 		}},
 		"requester": Requester{Agent: Organization{Identifier: Identifier{
 			System: NutsCodingSystem,
-			Value:  fmt.Sprintf("%s", task.RequesterID),
+			Value:  task.RequesterID,
 		}}},
 		"owner": Organization{Identifier: Identifier{
 			System: NutsCodingSystem,
-			Value:  fmt.Sprintf("%s", task.OwnerID),
+			Value:  task.OwnerID,
 		}},
 		"input":  taskProperties.Input,
 		"output": taskProperties.Output,

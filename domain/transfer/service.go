@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/monarko/fhirgo/STU3/datatypes"
+	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -85,10 +88,10 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		taskProperties := fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
-			Input: []fhir.TaskInputOutput{
+			Input: []resources.TaskInputOutput{
 				{
-					Type:           fhir.LoincAdvanceNoticeType,
-					ValueReference: fhir.Reference{Reference: transfer.FhirAdvanceNoticeComposition},
+					Type:           &fhir.LoincAdvanceNoticeType,
+					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(transfer.FhirAdvanceNoticeComposition)},
 				},
 			},
 		}
@@ -139,7 +142,7 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}
 	// TODO: Read AdvanceNotification here instead of the transfer task
-	resource, err := fhir.NewClient(fhirServer).GetResource(ctx, "/Task/" + fhirTaskID)
+	resource, err := fhir.NewClient(fhirServer).GetResource(ctx, "/Task/"+fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
 	}
@@ -162,7 +165,17 @@ func (s service) Create(ctx context.Context, customerID string, dossierID string
 		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
 		// has patient in care to protect the identity of the patient during the negotiation phase.
 		//"subject":  fhir.Reference{Reference: "Patient/Anonymous"},
-		"author": fhir.Reference{Reference: fhir.Device{Manufacturer: "Nuts Demo EHR"}},
+		"author": eoverdracht.Practitioner{
+			// TODO: Derive from authenticated user?
+			Identifier: datatypes.Identifier{
+				System: &fhir.UZICodingSystem,
+				Value:  fhir.ToStringPtr("12345"),
+			},
+			Name: &datatypes.HumanName{
+				Family: fhir.ToStringPtr("Demo EHR"),
+				Given:  []datatypes.String{"Nuts"},
+			},
+		},
 		// TODO: sections
 	})
 	if err != nil {

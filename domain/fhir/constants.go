@@ -1,30 +1,33 @@
 package fhir
 
-/* Coding systems */
-type CodingSystem string
+import "github.com/monarko/fhirgo/STU3/datatypes"
 
-const (
-	SnomedCodingSystem CodingSystem = "http://snomed.info/sct"
-	LoincCodingSystem               = "http://loinc.org"
-	NutsCodingSystem                = "http://nuts.nl"
+/* Coding systems */
+
+var (
+	SnomedCodingSystem datatypes.URI = "http://snomed.info/sct"
+	LoincCodingSystem  datatypes.URI = "http://loinc.org"
+	NutsCodingSystem   datatypes.URI = "http://nuts.nl"
+	UZICodingSystem    datatypes.URI = "http://fhir.nl/fhir/NamingSystem/uzi-nr-pers"
 )
 
 /* Codes */
 type Code string
 
-const (
-	SnomedTransferCode        Code = "308292007"
-	TransferDisplay                = "Overdracht van zorg"
-	LoincAdvanceNoticeCode         = "57830-2"
-	SnomedAlternaticeDateCode      = "146851000146105"
-	SnomedNursingHandoffCode       = "371535009"
+var (
+	SnomedTransferCode        datatypes.Code = "308292007"
+	LoincAdvanceNoticeCode    datatypes.Code = "57830-2"
+	SnomedAlternaticeDateCode datatypes.Code = "146851000146105"
+	SnomedNursingHandoffCode  datatypes.Code = "371535009"
 )
 
+var TransferDisplay datatypes.String = "Overdracht van zorg"
+
 /* Short-hand types */
-var LoincAdvanceNoticeType = CodeableConcept{
-	Coding: Coding{
-		System: LoincCodingSystem,
-		Code:   LoincAdvanceNoticeCode,
-	},
-	Text: "Aanmeldbericht",
+var LoincAdvanceNoticeType = datatypes.CodeableConcept{
+	Coding: []datatypes.Coding{{
+		System: &LoincCodingSystem,
+		Code:   &LoincAdvanceNoticeCode,
+	}},
+	Text: ToStringPtr("Aanmeldbericht"),
 }

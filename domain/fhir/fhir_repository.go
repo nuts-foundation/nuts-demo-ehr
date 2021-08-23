@@ -3,6 +3,8 @@ package fhir
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/monarko/fhirgo/STU3/datatypes"
+	"github.com/monarko/fhirgo/STU3/resources"
 	"time"
 )
 
@@ -21,30 +23,39 @@ func NewFHIRRepository(fhirClient Client) *fhirRepository {
 func (r fhirRepository) CreateTask(ctx context.Context, taskProperties TaskProperties) (*Task, error) {
 	task := r.taskFactory.New(taskProperties)
 
-	fhirData := map[string]interface{}{
-		"resourceType": "Task",
-		"id":           task.ID,
-		"status":       task.Status,
+	fhirData := resources.Task{
+		Domain: resources.Domain{
+			Base: resources.Base{
+				ResourceType: "Task",
+				ID:           toIDPtr(task.ID),
+			},
+		},
+		Status: toCodePtr(task.Status),
+		Code: &datatypes.CodeableConcept{Coding: []datatypes.Coding{{
+			System:  &SnomedCodingSystem,
+			Code:    &SnomedTransferCode,
+			Display: &TransferDisplay,
+		}}},
+		Requester: &resources.TaskRequester{
+			Agent: &datatypes.Reference{
+				Identifier: &datatypes.Identifier{
+					System: &NutsCodingSystem,
+					Value:  ToStringPtr(task.RequesterID),
+				},
+			},
+		},
+		Owner: &datatypes.Reference{
+			Identifier: &datatypes.Identifier{
+				System: &NutsCodingSystem,
+				Value:  ToStringPtr(task.OwnerID),
+			}},
 		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
 		// has patient in care to protect the identity of the patient during the negotiation phase.
 		//"for": map[string]string{
 		//	"reference": fmt.Sprintf("Patient/%s", domainTask.PatientID),
 		//},
-		"code": CodeableConcept{Coding: Coding{
-			System:  SnomedCodingSystem,
-			Code:    SnomedTransferCode,
-			Display: TransferDisplay,
-		}},
-		"requester": Requester{Agent: Organization{Identifier: Identifier{
-			System: NutsCodingSystem,
-			Value:  task.RequesterID,
-		}}},
-		"owner": Organization{Identifier: Identifier{
-			System: NutsCodingSystem,
-			Value:  task.OwnerID,
-		}},
-		"input":  taskProperties.Input,
-		"output": taskProperties.Output,
+		Input:  taskProperties.Input,
+		Output: taskProperties.Output,
 	}
 	_, err := r.client.WriteResource(ctx, "Task/"+task.ID, fhirData)
 	if err != nil {

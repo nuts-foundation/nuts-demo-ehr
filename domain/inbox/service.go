@@ -62,7 +62,7 @@ func getInboxEntries(ctx context.Context, client fhir.Client, sender domain.Orga
 	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
 	// But we might need some persistence for that, which we don't have right now.
 	tasks := []resources.Task{}
-	err := client.GetResources(ctx, "/Task", map[string]string{
+	err := client.ReadMultiple(ctx, "/Task", map[string]string{
 		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
 	}, &tasks)
 	if err != nil {

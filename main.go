@@ -87,10 +87,9 @@ func main() {
 	}
 
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
-	fhirRepository := fhir.NewFHIRRepository(fhir.NewClient(config.FHIRServerAddress))
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(authService, fhirRepository, transferRepository, customerRepository, orgRegistry)
+	transferService := transfer.NewTransferService(authService, fhir.NewClient(config.FHIRServerAddress), transferRepository, customerRepository, orgRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

@@ -46,6 +46,13 @@ func ToCodePtr(str string) *datatypes.Code {
 	return &result
 }
 
+func FromCodePtr(str *datatypes.Code) string {
+	if str == nil {
+		return ""
+	}
+	return string(*str)
+}
+
 func FromIDPtr(str *datatypes.ID) string {
 	if str == nil {
 		return ""

@@ -21,9 +21,9 @@
                   d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
           </svg>
         </td>
-        <td>{{ item.title }}</td>
-        <td>{{ item.sender.name }}, {{ item.sender.city }}</td>
-        <td>{{ item.date }}</td>
+        <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.title }}</td>
+        <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.sender.name }}, {{ item.sender.city }}</td>
+        <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.date }}</td>
       </tr>
       </tbody>
     </table>

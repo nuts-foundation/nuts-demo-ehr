@@ -359,6 +359,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TransferRequest"
+    post:
+      operationId: acceptTransferRequest
+      description: >
+        Accepts the patient transfer from another care organization.
+        If the sending organization decides to assign the patient to the local organization,
+        the patient will automatically be registered in the local EHR.
+      responses:
+        204:
+          description: Transfer request has been accepted.
 
   /private/patients:
     get:
@@ -779,6 +788,7 @@ components:
       required:
         - sender
         - transferDate
+        - status
         - description
       properties:
         sender:
@@ -787,6 +797,9 @@ components:
           description: Requested transfer date.
           type: string
           format: date
+        status:
+          description: State of the transfer request. Maps to FHIR task state.
+          type: string
         description:
           description: Descriptive text of the transfer request
           type: string
@@ -817,6 +830,7 @@ components:
         - date
         - type
         - resourceID
+        - requiresAttention
       properties:
         title:
           description: Descriptive title.
@@ -835,6 +849,9 @@ components:
         resourceID:
           description: ID that should be used when retrieving the source document of the inbox entry, e.g. a transfer request.
           type: string
+        requiresAttention:
+          description: If true, this inbox entry requires attention of an end user (e.g. data has been changed by a remote system).
+          type: boolean
 
   securitySchemes:
     bearerAuth:

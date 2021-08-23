@@ -23,6 +23,9 @@ import (
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
 const ReceiverServiceName = "eOverdracht-receiver"
 
+// SenderServiceName contains the name of the eOverdracht sender compound-service
+const SenderServiceName = "eOverdracht-sender"
+
 type Service interface {
 	// Create creates a new transfer
 	Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
@@ -137,7 +140,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 }
 
 func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, ReceiverServiceName, "fhir")
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}

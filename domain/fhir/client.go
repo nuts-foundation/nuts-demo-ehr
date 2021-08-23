@@ -2,6 +2,7 @@ package fhir
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
@@ -18,8 +19,8 @@ func NewClient(baseURL string) Client {
 
 type Client interface {
 	WriteResource(ctx context.Context, resourcePath string, resource interface{}) (gjson.Result, error)
-	GetResources(ctx context.Context, path string, params map[string]string) ([]gjson.Result, error)
-	GetResource(ctx context.Context, path string) (gjson.Result, error)
+	GetResources(ctx context.Context, path string, params map[string]string, results interface{}) error
+	GetResource(ctx context.Context, path string, result interface{}) error
 }
 
 type httpClient struct {
@@ -40,16 +41,29 @@ func (h httpClient) WriteResource(ctx context.Context, resourcePath string, reso
 	return gjson.ParseBytes(resp.Body()), nil
 }
 
-func (h httpClient) GetResources(ctx context.Context, path string, params map[string]string) ([]gjson.Result, error) {
-	resource, err := h.getResource(ctx, path, params)
-	if err == nil {
-		return resource.Get("entry.#.resource").Array(), nil
+func (h httpClient) GetResources(ctx context.Context, path string, params map[string]string, results interface{}) error {
+	raw, err := h.getResource(ctx, path, params)
+	if err != nil {
+		return err
 	}
-	return nil, err
+	resourcesJSON := raw.Get("entry.#.resource").String()
+	err = json.Unmarshal([]byte(resourcesJSON), results)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, results, err)
+	}
+	return nil
 }
 
-func (h httpClient) GetResource(ctx context.Context, path string) (gjson.Result, error) {
-	return h.getResource(ctx, path, nil)
+func (h httpClient) GetResource(ctx context.Context, path string, result interface{}) error {
+	raw, err := h.getResource(ctx, path, nil)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal([]byte(raw.String()), &result)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, result, err)
+	}
+	return nil
 }
 
 func (h httpClient) getResource(ctx context.Context, path string, params map[string]string) (gjson.Result, error) {

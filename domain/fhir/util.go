@@ -34,6 +34,20 @@ func ToStringPtr(str string) *datatypes.String {
 	return &result
 }
 
+func FromStringPtr(str *datatypes.String) string {
+	if str == nil {
+		return ""
+	}
+	return string(*str)
+}
+
+func FromIDPtr(str *datatypes.ID) string {
+	if str == nil {
+		return ""
+	}
+	return string(*str)
+}
+
 func toIDPtr(str string) *datatypes.ID {
 	result := datatypes.ID(str)
 	return &result

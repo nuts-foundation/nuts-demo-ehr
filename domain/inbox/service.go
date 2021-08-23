@@ -3,13 +3,12 @@ package inbox
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
-
+	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -62,26 +61,30 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 func getInboxEntries(ctx context.Context, client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
 	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
 	// But we might need some persistence for that, which we don't have right now.
-	tasks, err := client.GetResources(ctx, "/Task", map[string]string{
+	tasks := []resources.Task{}
+	err := client.GetResources(ctx, "/Task", map[string]string{
 		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
-	})
+	}, &tasks)
 	if err != nil {
 		return nil, err
 	}
 	// Filter on current customer's DID (which is the receiver).
 	// Should be done by the remote XIS, but it might return more than just tasks for this particular DID, so we do it client-side as well.
-	tasks = fhir.Filter(tasks, func(resource gjson.Result) bool {
-		return resource.Get("owner.identifier.value").String() == receiverDID
-	})
+	var filteredTasks []resources.Task
+	for _, task := range tasks {
+		if fhir.FromStringPtr(task.Owner.Identifier.Value) == receiverDID {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
 
 	var results []domain.InboxEntry
-	for _, resource := range tasks {
+	for _, task := range filteredTasks {
 		results = append(results, domain.InboxEntry{
-			Date:       resource.Get("meta.lastUpdated").String(),
+			Date:       string(*task.Meta.LastUpdated),
 			Sender:     sender,
-			Title:      resource.Get("code.coding.0.display").String(),
+			Title:      fhir.FromStringPtr(task.Code.Coding[0].Display),
 			Type:       "transferRequest",
-			ResourceID: resource.Get("id").String(),
+			ResourceID: fhir.FromIDPtr(task.ID),
 		})
 	}
 	return results, nil

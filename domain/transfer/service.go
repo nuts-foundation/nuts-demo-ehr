@@ -142,7 +142,8 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}
 	// TODO: Read AdvanceNotification here instead of the transfer task
-	resource, err := fhir.NewClient(fhirServer).GetResource(ctx, "/Task/"+fhirTaskID)
+	task := resources.Task{}
+	err = fhir.NewClient(fhirServer).GetResource(ctx, "/Task/"+fhirTaskID, &task)
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
 	}
@@ -150,7 +151,8 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 	if err != nil {
 		return nil, err
 	}
-	transferDate, _ := time.Parse(time.RFC3339, resource.Get("meta.lastUpdated").String())
+	// TODO: Do we need nil checks?
+	transferDate, _ := time.Parse(time.RFC3339, string(*task.Meta.LastUpdated))
 	return &domain.TransferRequest{
 		Description:  "TODO",
 		Sender:       *organization,

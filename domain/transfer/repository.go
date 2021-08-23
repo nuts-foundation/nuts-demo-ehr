@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/google/uuid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
@@ -22,7 +20,7 @@ const COMPLETED_STATE = "completed"
 type Repository interface {
 	FindByID(ctx context.Context, customerID, transferID string) (*domain.Transfer, error)
 	FindByPatientID(ctx context.Context, customerID, patientID string) ([]domain.Transfer, error)
-	Create(ctx context.Context, customerID, dossierID, description string, date time.Time) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error)
 	Update(ctx context.Context, customerID, transferID string, updateFn func(c domain.Transfer) (*domain.Transfer, error)) (*domain.Transfer, error)
 
 	// Cancel cancels the indicated domain.Transfer and all its domain.TransferNegotiation`s
@@ -51,18 +49,4 @@ type Repository interface {
 
 	// ListNegotiations returns a list of negotiations for the indicated transfer
 	ListNegotiations(ctx context.Context, customerID, transferID string) ([]domain.TransferNegotiation, error)
-}
-
-type Factory struct{}
-
-func (f Factory) NewTransfer(description string, date time.Time, dossierID domain.ObjectID) *domain.Transfer {
-	return &domain.Transfer{
-		Id:        domain.ObjectID(uuid.NewString()),
-		DossierID: dossierID,
-		Status:    domain.TransferStatusCreated,
-		TransferProperties: domain.TransferProperties{
-			Description:  description,
-			TransferDate: openapi_types.Date{Time: date},
-		},
-	}
 }

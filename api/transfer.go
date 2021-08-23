@@ -18,7 +18,7 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	transfer, err := w.TransferRepository.Create(ctx.Request().Context(), w.getCustomerID(ctx), string(request.DossierID), request.Description, request.TransferDate.Time)
+	transfer, err := w.TransferService.Create(ctx.Request().Context(), w.getCustomerID(ctx), string(request.DossierID), request.Description, request.TransferDate.Time)
 	if err != nil {
 		return err
 	}

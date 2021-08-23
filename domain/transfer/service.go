@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/monarko/fhirgo/STU3/datatypes"
+	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -15,13 +18,15 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 )
 
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
 const ReceiverServiceName = "eOverdracht-receiver"
 
 type Service interface {
+	// Create creates a new transfer
+	Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
+
 	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
 	// ProposeAlternateDate updates the date on the domain.TransferNegotiation indicated by the negotiationID.
@@ -43,16 +48,16 @@ type Service interface {
 type service struct {
 	transferRepo Repository
 	auth         auth.Service
-	taskRepo     task.Repository
+	fhirRepo     fhir.Repository
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
 	notifier     Notifier
 }
 
-func NewTransferService(authService auth.Service, taskRepository task.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+func NewTransferService(authService auth.Service, fhirRepository fhir.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
 		auth:         authService,
-		taskRepo:     taskRepository,
+		fhirRepo:     fhirRepository,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
 		registry:     organizationRegistry,
@@ -80,10 +85,15 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
-
-		taskProperties := domain.TaskProperties{
+		taskProperties := fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
+			Input: []resources.TaskInputOutput{
+				{
+					Type:           &fhir.LoincAdvanceNoticeType,
+					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(transfer.FhirAdvanceNoticeComposition)},
+				},
+			},
 		}
 
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
@@ -92,7 +102,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
-		transferTask, err := s.taskRepo.Create(ctx, taskProperties)
+		transferTask, err := s.fhirRepo.CreateTask(ctx, taskProperties)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +142,8 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
 	}
 	// TODO: Read AdvanceNotification here instead of the transfer task
-	resource, err := fhir.NewClient(fhirServer).GetResource("/Task/" + fhirTaskID)
+	task := resources.Task{}
+	err = fhir.NewClient(fhirServer).GetResource(ctx, "/Task/"+fhirTaskID, &task)
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
 	}
@@ -140,12 +151,43 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 	if err != nil {
 		return nil, err
 	}
-	transferDate, _ := time.Parse(time.RFC3339, resource.Get("meta.lastUpdated").String())
+	// TODO: Do we need nil checks?
+	transferDate, _ := time.Parse(time.RFC3339, string(*task.Meta.LastUpdated))
 	return &domain.TransferRequest{
 		Description:  "TODO",
 		Sender:       *organization,
 		TransferDate: openapi_types.Date{Time: transferDate},
 	}, nil
+}
+
+func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
+	composition, err := s.fhirRepo.CreateComposition(ctx, map[string]interface{}{
+		"title": "Aanmeldbericht",
+		"type":  fhir.LoincAdvanceNoticeType,
+		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
+		// has patient in care to protect the identity of the patient during the negotiation phase.
+		//"subject":  fhir.Reference{Reference: "Patient/Anonymous"},
+		"author": eoverdracht.Practitioner{
+			// TODO: Derive from authenticated user?
+			Identifier: datatypes.Identifier{
+				System: &fhir.UZICodingSystem,
+				Value:  fhir.ToStringPtr("12345"),
+			},
+			Name: &datatypes.HumanName{
+				Family: fhir.ToStringPtr("Demo EHR"),
+				Given:  []datatypes.String{"Nuts"},
+			},
+		},
+		// TODO: sections
+	})
+	if err != nil {
+		return nil, err
+	}
+	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition.Reference)
+	if err != nil {
+		return nil, err
+	}
+	return transfer, nil
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {

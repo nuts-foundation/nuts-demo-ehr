@@ -1,10 +1,9 @@
-package task
+package fhir
 
 import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 type TaskState string
@@ -39,13 +38,14 @@ const CancelledState = TaskState("cancelled")
 const CompletedState = TaskState("completed")
 
 type Repository interface {
-	Create(ctx context.Context, taskProperties domain.TaskProperties) (*domain.Task, error)
+	CreateTask(ctx context.Context, taskProperties TaskProperties) (*Task, error)
+	CreateComposition(ctx context.Context, elements map[string]interface{}) (*Composition, error)
 }
 
-type Factory struct{}
+type TaskFactory struct{}
 
-func (Factory) New(taskProperties domain.TaskProperties) *domain.Task {
-	return &domain.Task{
+func (TaskFactory) New(taskProperties TaskProperties) *Task {
+	return &Task{
 		ID:             uuid.New().String(),
 		TaskProperties: taskProperties,
 	}

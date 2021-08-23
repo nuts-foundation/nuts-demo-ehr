@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"io/fs"
 	"log"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/task"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
@@ -87,10 +87,10 @@ func main() {
 	}
 
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
-	taskRepository := task.NewFHIRTaskRepository(task.Factory{}, config.FHIRServerAddress)
-	transferRepository := transfer.NewSQLiteTransferRepository(transfer.Factory{}, sqlDB)
+	fhirRepository := fhir.NewFHIRRepository(fhir.NewClient(config.FHIRServerAddress))
+	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(authService, taskRepository, transferRepository, customerRepository, orgRegistry)
+	transferService := transfer.NewTransferService(authService, fhirRepository, transferRepository, customerRepository, orgRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

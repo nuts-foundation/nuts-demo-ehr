@@ -11,3 +11,4 @@
 # eOverdracht Bolt Specification Gaps
 * The Bolt states: "Omdat het security token geen gebruikersinformatie bevat, mogen er nooit persoonsgegevens meegestuurd worden in de Task."
   * But this is allowed by the Nictiz specification (but optional)?
+* Subject (patient?) is required for compositions (advanceNotice), but is not allowed to be shared before the receiving care organization is decided, according to the Nuts Bolt?

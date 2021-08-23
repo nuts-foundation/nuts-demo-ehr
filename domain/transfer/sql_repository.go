@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
@@ -15,12 +16,14 @@ import (
 )
 
 type sqlTransfer struct {
-	ID          string       `db:"id"`
-	CustomerID  string       `db:"customer_id"`
-	Date        sql.NullTime `db:"date"`
-	Status      string       `db:"status"`
-	DossierID   string       `db:"dossier_id"`
-	Description string       `db:"description"`
+	ID                            string         `db:"id"`
+	CustomerID                    string         `db:"customer_id"`
+	Date                          sql.NullTime   `db:"date"`
+	Status                        string         `db:"status"`
+	DossierID                     string         `db:"dossier_id"`
+	Description                   string         `db:"description"`
+	FHIRAdvanceNoticeComposition  string         `db:"fhir_advancenotice_composition"`
+	FHIRNursingHandoffComposition sql.NullString `db:"fhir_nursinghandoff_composition"`
 }
 
 type sqlNegotiation struct {
@@ -57,12 +60,14 @@ func (dbNegotiation *sqlNegotiation) UnmarshalFromDomainNegotiation(customerID s
 
 func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID string, transfer domain.Transfer) error {
 	*dbTransfer = sqlTransfer{
-		ID:          string(transfer.Id),
-		CustomerID:  customerID,
-		DossierID:   string(transfer.DossierID),
-		Date:        sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
-		Status:      string(transfer.Status),
-		Description: transfer.Description,
+		ID:                            string(transfer.Id),
+		CustomerID:                    customerID,
+		DossierID:                     string(transfer.DossierID),
+		Date:                          sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
+		Status:                        string(transfer.Status),
+		Description:                   transfer.Description,
+		FHIRAdvanceNoticeComposition:  transfer.FhirAdvanceNoticeComposition,
+		FHIRNursingHandoffComposition: toNullString(transfer.FhirNursingHandoffComposition),
 	}
 	return nil
 }
@@ -97,7 +102,26 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 			Description:  dbTransfer.Description,
 			TransferDate: transferTime,
 		},
+		FhirAdvanceNoticeComposition:  dbTransfer.FHIRAdvanceNoticeComposition,
+		FhirNursingHandoffComposition: fromNullString(dbTransfer.FHIRNursingHandoffComposition),
 	}, nil
+}
+
+func fromNullString(input sql.NullString) *string {
+	if input.Valid {
+		return &input.String
+	}
+	return nil
+}
+
+func toNullString(input *string) sql.NullString {
+	if input == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: *input,
+		Valid:  true,
+	}
 }
 
 const transferSchema = `
@@ -108,6 +132,8 @@ const transferSchema = `
 		status char(10) NOT NULL DEFAULT 'created',
 		description varchar(200) NOT NULL,
 	    dossier_id char(36) NOT NULL,
+	    fhir_advancenotice_composition VARCHAR(100) NOT NULL,
+	    fhir_nursinghandoff_composition VARCHAR(100) NULL,
 		PRIMARY KEY (id),
 		UNIQUE(customer_id, id)
 	);
@@ -127,10 +153,9 @@ const negotiationSchema = `
 `
 
 type SQLiteTransferRepository struct {
-	factory Factory
 }
 
-func NewSQLiteTransferRepository(factory Factory, db *sqlx.DB) *SQLiteTransferRepository {
+func NewSQLiteTransferRepository(db *sqlx.DB) *SQLiteTransferRepository {
 	if db == nil {
 		panic("missing db")
 	}
@@ -142,9 +167,7 @@ func NewSQLiteTransferRepository(factory Factory, db *sqlx.DB) *SQLiteTransferRe
 		panic(err)
 	}
 
-	return &SQLiteTransferRepository{
-		factory: factory,
-	}
+	return &SQLiteTransferRepository{}
 }
 
 func (r SQLiteTransferRepository) findByID(ctx context.Context, tx *sqlx.Tx, customerID, id string) (*domain.Transfer, error) {
@@ -230,19 +253,28 @@ func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerI
 	return result, nil
 }
 
-func (r SQLiteTransferRepository) Create(ctx context.Context, customerID, dossierID, description string, date time.Time) (*domain.Transfer, error) {
+func (r SQLiteTransferRepository) Create(ctx context.Context, customerID, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
 	}
-	transfer := r.factory.NewTransfer(description, date, domain.ObjectID(dossierID))
+	transfer := &domain.Transfer{
+		Id:                           domain.ObjectID(uuid.NewString()),
+		DossierID:                    domain.ObjectID(dossierID),
+		Status:                       domain.TransferStatusCreated,
+		FhirAdvanceNoticeComposition: fhirAdvanceNoticeComposition,
+		TransferProperties: domain.TransferProperties{
+			Description:  description,
+			TransferDate: openapi_types.Date{Time: date},
+		},
+	}
 	dbTransfer := sqlTransfer{}
 	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, *transfer); err != nil {
 		return nil, err
 	}
 	const query = `INSERT INTO transfer 
-		(id, customer_id, dossier_id, date, status, description)
-		values(:id, :customer_id, :dossier_id, :date, :status, :description)
+		(id, customer_id, dossier_id, date, status, description, fhir_advancenotice_composition)
+		values(:id, :customer_id, :dossier_id, :date, :status, :description, :fhir_advancenotice_composition)
 `
 
 	if _, err := tx.NamedExecContext(ctx, query, dbTransfer); err != nil {

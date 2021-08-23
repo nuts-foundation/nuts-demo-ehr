@@ -224,6 +224,12 @@ type Transfer struct {
 	// An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
 
+	// Reference to the FHIR composition resource that describes the advance notice, according to the Nictiz eOverdracht FHIR specification.
+	FhirAdvanceNoticeComposition string `json:"fhirAdvanceNoticeComposition"`
+
+	// Reference to the FHIR composition resource that describes the nursing handoff, according to the Nictiz eOverdracht FHIR specification.
+	FhirNursingHandoffComposition *string `json:"fhirNursingHandoffComposition,omitempty"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 

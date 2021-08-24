@@ -89,7 +89,8 @@ func main() {
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(authService, fhir.NewClient(config.FHIRServerAddress), transferRepository, customerRepository, orgRegistry)
+	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
+	transferService := transfer.NewTransferService(authService, fhir.NewClient(config.FHIRServerAddress), transferRepository, customerRepository, orgRegistry, vcRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()
@@ -145,6 +146,7 @@ func main() {
 	// Check if we use live mode from the file system or using embedded files
 	useFS := len(os.Args) > 1 && os.Args[1] == "live"
 	assetHandler := http.FileServer(getFileSystem(useFS))
+
 	e.GET("/*", echo.WrapHandler(assetHandler))
 
 	// Start server

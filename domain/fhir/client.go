@@ -76,7 +76,7 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 	}
 	if !resp.IsSuccess() {
 		log.Warnf("FHIR server replied: %s", resp.String())
-		return gjson.Result{}, fmt.Errorf("unable to read FHIR resource (path=%s,http-status=%d): %w", path, resp.StatusCode, err)
+		return gjson.Result{}, fmt.Errorf("unable to read FHIR resource (path=%s,http-status=%d): %w", path, resp.StatusCode(), err)
 	}
 	return gjson.ParseBytes(resp.Body()), nil
 }

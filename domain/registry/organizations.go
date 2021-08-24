@@ -89,7 +89,7 @@ func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Conte
 		// Endpoint is a reference which needs to be resolved
 		resolvedEndpoint, err := r.client.ResolveEndpoint(ctx, endpoint)
 		if err != nil {
-			return "", fmt.Errorf("unable to resolve endpoint reference in DID service (did=%s,service=%s,ref=%s): %w", organizationDID, serviceType, endpoint)
+			return "", fmt.Errorf("unable to resolve endpoint reference in DID service (did=%s,service=%s,ref=%s): %w", organizationDID, serviceType, endpoint, err)
 		}
 		return resolvedEndpoint, nil
 	}

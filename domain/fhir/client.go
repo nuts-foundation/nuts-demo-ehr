@@ -18,30 +18,33 @@ func NewClient(baseURL string) Client {
 }
 
 type Client interface {
-	WriteResource(ctx context.Context, resourcePath string, resource interface{}) (gjson.Result, error)
-	GetResources(ctx context.Context, path string, params map[string]string, results interface{}) error
-	GetResource(ctx context.Context, path string, result interface{}) error
+	CreateOrUpdate(ctx context.Context, resource interface{}) error
+	ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error
+	ReadOne(ctx context.Context, path string, result interface{}) error
 }
 
 type httpClient struct {
 	restClient *resty.Client
-
-	url string
+	url        string
 }
 
-func (h httpClient) WriteResource(ctx context.Context, resourcePath string, resource interface{}) (gjson.Result, error) {
+func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {
+	resourcePath, err := resolveResourcePath(resource)
+	if err != nil {
+		return fmt.Errorf("unable to determine resource path: %w", err)
+	}
 	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Put(h.buildRequestURI(resourcePath))
 	if err != nil {
-		return gjson.Result{}, fmt.Errorf("unable to write FHIR resource (path=%s): %w", resourcePath, err)
+		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", resourcePath, err)
 	}
 	if !resp.IsSuccess() {
 		log.Warnf("FHIR server replied: %s", resp.String())
-		return gjson.Result{}, fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %w", resourcePath, resp.StatusCode, err)
+		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %w", resourcePath, resp.StatusCode(), err)
 	}
-	return gjson.ParseBytes(resp.Body()), nil
+	return nil
 }
 
-func (h httpClient) GetResources(ctx context.Context, path string, params map[string]string, results interface{}) error {
+func (h httpClient) ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error {
 	raw, err := h.getResource(ctx, path, params)
 	if err != nil {
 		return err
@@ -54,7 +57,7 @@ func (h httpClient) GetResources(ctx context.Context, path string, params map[st
 	return nil
 }
 
-func (h httpClient) GetResource(ctx context.Context, path string, result interface{}) error {
+func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}) error {
 	raw, err := h.getResource(ctx, path, nil)
 	if err != nil {
 		return err
@@ -83,4 +86,21 @@ func (h httpClient) buildRequestURI(path string) string {
 		path = "/" + path
 	}
 	return h.url + path
+}
+
+func resolveResourcePath(resource interface{}) (string, error) {
+	data, err := json.Marshal(resource)
+	if err != nil {
+		return "", err
+	}
+	js := gjson.ParseBytes(data)
+	resourceType := js.Get("resourceType").String()
+	if resourceType == "" {
+		return "", fmt.Errorf("unable to determine resource type of %T", resource)
+	}
+	resourceID := js.Get("id").String()
+	if resourceType == "" {
+		return "", fmt.Errorf("unable to determine resource ID of %T", resource)
+	}
+	return resourceType + "/" + resourceID, nil
 }

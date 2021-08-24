@@ -51,16 +51,16 @@ type Service interface {
 type service struct {
 	transferRepo Repository
 	auth         auth.Service
-	fhirRepo     fhir.Repository
+	fhirClient   fhir.Client
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
 	notifier     Notifier
 }
 
-func NewTransferService(authService auth.Service, fhirRepository fhir.Repository, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+func NewTransferService(authService auth.Service, fhirClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
 	return &service{
 		auth:         authService,
-		fhirRepo:     fhirRepository,
+		fhirClient:   fhirClient,
 		transferRepo: transferRepository,
 		customerRepo: customerRepository,
 		registry:     organizationRegistry,
@@ -105,12 +105,13 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
-		transferTask, err := s.fhirRepo.CreateTask(ctx, taskProperties)
+		transferTask := fhir.BuildNewTask(taskProperties)
+		err = s.fhirClient.CreateOrUpdate(ctx, transferTask)
 		if err != nil {
 			return nil, err
 		}
 
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time, transferTask.ID)
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time, fhir.FromIDPtr(transferTask.ID))
 		if err != nil {
 			return nil, err
 		}
@@ -140,15 +141,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 }
 
 func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, SenderServiceName, "fhir")
+	task, err := s.getTransferTask(ctx, requestorDID, fhirTaskID)
 	if err != nil {
-		return nil, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
-	}
-	// TODO: Read AdvanceNotification here instead of the transfer task
-	task := resources.Task{}
-	err = fhir.NewClient(fhirServer).GetResource(ctx, "/Task/"+fhirTaskID, &task)
-	if err != nil {
-		return nil, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
+		return nil, err
 	}
 	organization, err := s.registry.Get(ctx, requestorDID)
 	if err != nil {
@@ -164,7 +159,7 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 }
 
 func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
-	composition, err := s.fhirRepo.CreateComposition(ctx, map[string]interface{}{
+	elements := map[string]interface{}{
 		"title": "Aanmeldbericht",
 		"type":  fhir.LoincAdvanceNoticeType,
 		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
@@ -182,11 +177,13 @@ func (s service) Create(ctx context.Context, customerID string, dossierID string
 			},
 		},
 		// TODO: sections
-	})
+	}
+	composition := fhir.BuildNewComposition(elements)
+	err := s.fhirClient.CreateOrUpdate(ctx, composition)
 	if err != nil {
 		return nil, err
 	}
-	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition.Reference)
+	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
 	if err != nil {
 		return nil, err
 	}
@@ -203,4 +200,18 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID, negotiation
 
 func (s service) CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
+}
+
+func (s service) getTransferTask(ctx context.Context, requestorDID string, fhirTaskID string) (resources.Task, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, SenderServiceName, "fhir")
+	if err != nil {
+		return resources.Task{}, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
+	}
+	// TODO: Read AdvanceNotification here instead of the transfer task
+	task := resources.Task{}
+	err = fhir.NewClient(fhirServer).ReadOne(ctx, "/Task/"+fhirTaskID, &task)
+	if err != nil {
+		return resources.Task{}, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%d): %w", fhirServer, fhirTaskID, err)
+	}
+	return task, nil
 }

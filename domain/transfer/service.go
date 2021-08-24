@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
-	"time"
-
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
@@ -54,11 +55,13 @@ type service struct {
 	fhirClient   fhir.Client
 	customerRepo customers.Repository
 	registry     registry.OrganizationRegistry
+	vcr          registry.VerifiableCredentialRegistry
 	notifier     Notifier
 }
 
-func NewTransferService(authService auth.Service, fhirClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry) *service {
+func NewTransferService(authService auth.Service, fhirClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
 	return &service{
+		vcr:          vcr,
 		auth:         authService,
 		fhirClient:   fhirClient,
 		transferRepo: transferRepository,
@@ -81,7 +84,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
-		if transfer.Status == domain.TransferStatusCancelled || transfer.Status == domain.TransferStatusCompleted || transfer.Status == domain.TransferStatusAssigned {
+		if transfer.Status == domain.TransferStatusCancelled ||
+			transfer.Status == domain.TransferStatusCompleted ||
+			transfer.Status == domain.TransferStatusAssigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
 
@@ -111,6 +116,15 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return nil, err
 		}
 
+		if err := s.vcr.CreateAuthorizationCredential(ctx, "eOverdracht-receiver", *customer.Did, organizationDID, []credential.Resource{
+			{
+				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
+				Operations: []string{"update"},
+			},
+		}); err != nil {
+			return nil, err
+		}
+
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transfer.TransferDate.Time, fhir.FromIDPtr(transferTask.ID))
 		if err != nil {
 			return nil, err
@@ -127,7 +141,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return negotiation, commitErr
 		}
 
-		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName)
+		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -137,6 +151,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %w", organizationDID, err)
 		}
 	}
+
 	return negotiation, err
 }
 

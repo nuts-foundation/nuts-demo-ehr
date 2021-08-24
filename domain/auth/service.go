@@ -6,11 +6,12 @@ import (
 	"github.com/labstack/gommon/log"
 	"net/http"
 
+	"github.com/nuts-foundation/go-did/vc"
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 )
 
 type Service interface {
-	RequestAccessToken(ctx context.Context, actor, custodian, service string) (*client.AccessTokenResponse, error)
+	RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error)
 }
 
 type authService struct {
@@ -28,11 +29,12 @@ func NewService(server string) (Service, error) {
 	}, nil
 }
 
-func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, service string) (*client.AccessTokenResponse, error) {
+func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error) {
 	httpResponse, err := s.client.RequestAccessToken(ctx, client.RequestAccessTokenJSONRequestBody{
-		Actor:     actor,
-		Custodian: custodian,
-		Service:   service,
+		Actor:       actor,
+		Custodian:   custodian,
+		Service:     service,
+		Credentials: vcs,
 	})
 	if err != nil {
 		return nil, err

@@ -153,6 +153,9 @@ func registerEHR(server *echo.Echo, config Config) {
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, orgRegistry, vcRegistry)
+	tenantInitializer := func(tenant string) error {
+		return fhir.InitializeTenant(config.FHIR.Server.Type, config.FHIR.Server.Address, tenant)
+	}
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()
@@ -160,6 +163,9 @@ func registerEHR(server *echo.Echo, config Config) {
 			log.Fatal(err)
 		}
 		for _, customer := range allCustomers {
+			if err := tenantInitializer(customer.Id); err != nil {
+				log.Fatal(err)
+			}
 			registerPatients(patientRepository, sqlDB, customer.Id)
 		}
 	}
@@ -176,6 +182,7 @@ func registerEHR(server *echo.Echo, config Config) {
 		OrganizationRegistry: orgRegistry,
 		TransferService:      transferService,
 		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry, authService),
+		TenantInitializer:    tenantInitializer,
 	}
 
 	// JWT checking for correct claims

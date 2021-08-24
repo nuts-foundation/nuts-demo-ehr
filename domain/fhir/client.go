@@ -121,16 +121,7 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 }
 
 func (h httpClient) buildRequestURI(path string) string {
-	parts := []string{h.url, h.tenant, path}
-	result := ""
-	for i := 0; i < len(parts); i++ {
-		// Make sure parts are separated by exactly 1 slash
-		if result != "" && !strings.HasSuffix(result, "/") && !strings.HasPrefix(parts[i], "/") {
-			result += "/"
-		}
-		result += parts[i]
-	}
-	return result
+	return buildRequestURI(h.url, h.tenant, path)
 }
 
 func resolveResourcePath(resource interface{}) (string, error) {
@@ -148,4 +139,20 @@ func resolveResourcePath(resource interface{}) (string, error) {
 		return "", fmt.Errorf("unable to determine resource ID of %T", resource)
 	}
 	return resourceType + "/" + resourceID, nil
+}
+
+func buildRequestURI(parts ...string) string {
+	result := ""
+	for i := 0; i < len(parts); i++ {
+		if parts[i] == "" {
+			continue
+		}
+		// Make sure parts are separated by exactly 1 slash
+		if result != "" && !strings.HasSuffix(result, "/") && !strings.HasPrefix(parts[i], "/") {
+			result += "/"
+		}
+		result += parts[i]
+	}
+	println(result)
+	return result
 }

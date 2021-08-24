@@ -5,7 +5,7 @@ Content-Type: application/json
   "resourceType": "Parameters",
   "parameter": [ {
     "name": "id",
-    "valueInteger": 2
+    "valueString": "6"
   }, {
     "name": "name",
     "valueCode": "P2"

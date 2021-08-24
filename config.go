@@ -29,16 +29,21 @@ const configFileFlag = "configfile"
 const defaultConfigFile = "server.config.yaml"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
-const defaultFHIRServerAddress = "http://localhost:4003/hapi-fhir-jpaserver/fhir"
 const defaultCustomerFile = "customers.json"
+
+// defaultHAPIFHIRServer configures usage of the HAPI FHIR Server (https://hapifhir.io/)
+var defaultHAPIFHIRServer = FHIRServer{
+	Type:    "hapi",
+	Address: "http://localhost:8080/fhir",
+}
 
 func defaultConfig() Config {
 	return Config{
-		HTTPPort:          defaultHTTPPort,
-		NutsNodeAddress:   defaultNutsNodeAddress,
-		FHIRServerAddress: defaultFHIRServerAddress,
+		HTTPPort:        defaultHTTPPort,
+		NutsNodeAddress: defaultNutsNodeAddress,
 		FHIR: FHIR{
-			FHIRProxy{
+			Server: defaultHAPIFHIRServer,
+			Proxy: FHIRProxy{
 				Enable: true,
 				Path:   "/fhir",
 			},
@@ -51,13 +56,12 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	Credentials       Credentials `koanf:"credentials"`
-	HTTPPort          int         `koanf:"port"`
-	NutsNodeAddress   string      `koanf:"nutsnodeaddr"`
-	FHIRServerAddress string      `koanf:"fhirserveraddr"`
-	FHIR              FHIR        `koanf:"fhir"`
-	CustomersFile     string      `koanf:"customersfile"`
-	Branding          Branding    `koanf:"branding"`
+	Credentials     Credentials `koanf:"credentials"`
+	HTTPPort        int         `koanf:"port"`
+	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
+	FHIR            FHIR        `koanf:"fhir"`
+	CustomersFile   string      `koanf:"customersfile"`
+	Branding        Branding    `koanf:"branding"`
 	// Database connection string, accepts all options for the sqlite3 driver
 	// https://github.com/mattn/go-sqlite3#connection-string
 	DBConnectionString string `koanf:"dbConnectionString"`
@@ -70,7 +74,13 @@ type Config struct {
 }
 
 type FHIR struct {
-	Proxy FHIRProxy `koanf:"proxy"`
+	Server FHIRServer `koanf:"server"`
+	Proxy  FHIRProxy  `koanf:"proxy"`
+}
+
+type FHIRServer struct {
+	Type    string `koanf:"type"`
+	Address string `koanf:"address"`
 }
 
 type FHIRProxy struct {

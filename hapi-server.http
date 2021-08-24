@@ -1,0 +1,16 @@
+POST http://localhost:8080/fhir/DEFAULT/$partition-management-create-partition
+Content-Type: application/json
+
+{
+  "resourceType": "Parameters",
+  "parameter": [ {
+    "name": "id",
+    "valueInteger": 2
+  }, {
+    "name": "name",
+    "valueCode": "P2"
+  }, {
+    "name": "description",
+    "valueString": "a description"
+  } ]
+}

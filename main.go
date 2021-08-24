@@ -110,7 +110,7 @@ func registerFHIRProxy(server *echo.Echo, config Config) {
 		log.Fatal(err)
 	}
 
-	fhirURL, err := url.Parse(config.FHIRServerAddress)
+	fhirURL, err := url.Parse(config.FHIR.Server.Address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -147,11 +147,12 @@ func registerEHR(server *echo.Echo, config Config) {
 		log.Fatal(err)
 	}
 
-	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, config.FHIRServerAddress)
+	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address))
+	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(authService, fhir.NewClient(config.FHIRServerAddress), transferRepository, customerRepository, orgRegistry, vcRegistry)
+	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, orgRegistry, vcRegistry)
 
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()

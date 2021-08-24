@@ -60,7 +60,7 @@ func FromIDPtr(str *datatypes.ID) string {
 	return string(*str)
 }
 
-func toIDPtr(str string) *datatypes.ID {
+func ToIDPtr(str string) *datatypes.ID {
 	result := datatypes.ID(str)
 	return &result
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -18,7 +19,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
@@ -53,24 +53,24 @@ type Service interface {
 }
 
 type service struct {
-	transferRepo    Repository
-	auth            auth.Service
-	localFHIRClient fhir.Client // client for interacting with the local FHIR server
-	customerRepo    customers.Repository
-	registry        registry.OrganizationRegistry
-	vcr             registry.VerifiableCredentialRegistry
-	notifier        Notifier
+	transferRepo           Repository
+	auth                   auth.Service
+	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
+	customerRepo           customers.Repository
+	registry               registry.OrganizationRegistry
+	vcr                    registry.VerifiableCredentialRegistry
+	notifier               Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
 	return &service{
-		vcr:             vcr,
-		auth:            authService,
-		localFHIRClient: localFHIRClient,
-		transferRepo:    transferRepository,
-		customerRepo:    customerRepository,
-		registry:        organizationRegistry,
-		notifier:        fireAndForgetNotifier{},
+		auth:                   authService,
+		localFHIRClientFactory: localFHIRClientFactory,
+		transferRepo:           transferRepository,
+		customerRepo:           customerRepository,
+		registry:               organizationRegistry,
+		vcr:                    vcr,
+		notifier:               fireAndForgetNotifier{},
 	}
 }
 
@@ -113,7 +113,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 				},
 			},
 		})
-		err = s.localFHIRClient.CreateOrUpdate(ctx, transferTask)
+
+		err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, transferTask)
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +204,7 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID, requesto
 	}
 	task.Status = fhir.ToCodePtr(ACCEPTED_STATE)
 	// TODO: This doesn't work yet: the access token is missing NutsAuthorizationCredential
-	return client.CreateOrUpdate(ctx, task)
+	return client().CreateOrUpdate(ctx, task)
 }
 
 func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
@@ -227,7 +228,7 @@ func (s service) Create(ctx context.Context, customerID string, dossierID string
 		// TODO: sections
 	}
 	composition := fhir.BuildNewComposition(elements)
-	err := s.localFHIRClient.CreateOrUpdate(ctx, composition)
+	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +251,7 @@ func (s service) CancelNegotiation(ctx context.Context, customerID, negotiationI
 	panic("implement me")
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string) (fhir.Client, error) {
+func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string) (fhir.Factory, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, custodianDID, SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", custodianDID, err)
@@ -259,15 +260,15 @@ func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, l
 	if err != nil {
 		return nil, err
 	}
-	return fhir.NewClientWithToken(fhirServer, accessToken.AccessToken), nil
+	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken)), nil
 }
 
-func (s service) getTransferTask(ctx context.Context, client fhir.Client, fhirTaskID string) (resources.Task, error) {
+func (s service) getTransferTask(ctx context.Context, client fhir.Factory, fhirTaskID string) (resources.Task, error) {
 	// TODO: Read AdvanceNotification here instead of the transfer task
 	task := resources.Task{}
-	err := client.ReadOne(ctx, "/Task/"+fhirTaskID, &task)
+	err := client().ReadOne(ctx, "/Task/"+fhirTaskID, &task)
 	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%s): %w", client.String(), fhirTaskID, err)
+		return resources.Task{}, fmt.Errorf("error while looking up transfer task (task-id=%s): %w", fhirTaskID, err)
 	}
 	return task, nil
 }

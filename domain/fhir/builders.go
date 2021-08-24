@@ -12,7 +12,7 @@ func BuildNewTask(props TaskProperties) resources.Task {
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Task",
-				ID:           toIDPtr(generateResourceID()),
+				ID:           ToIDPtr(generateResourceID()),
 			},
 		},
 		Status: toCodePtr(props.Status),

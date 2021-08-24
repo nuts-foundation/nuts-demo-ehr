@@ -10,6 +10,8 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/sirupsen/logrus"
+	"sort"
+	"strings"
 )
 
 type Service struct {
@@ -56,6 +58,16 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 		}
 		results = append(results, entries...)
 	}
+
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].RequiresAttention {
+			return true
+		} else if results[j].RequiresAttention {
+			return false
+		}
+		return strings.Compare(results[i].Date, results[j].Date) > 0
+	})
+
 	return results, nil
 }
 

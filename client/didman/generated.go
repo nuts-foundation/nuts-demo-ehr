@@ -17,20 +17,20 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 )
 
-// A creation request for a compound service that references endpoints.
+// A creation request for a compound service with endpoints and/or references to endpoints.
 type CompoundService struct {
 	Id string `json:"id"`
 
-	// A map containing service references.
+	// A map containing service references and/or endpoints.
 	ServiceEndpoint map[string]interface{} `json:"serviceEndpoint"`
 
 	// type of the endpoint. May be freely choosen.
 	Type string `json:"type"`
 }
 
-// A creation request for a compound service that references endpoints.
+// A creation request for a compound service that contains endpoints. The endpoints can be either absolute endpoints or references.
 type CompoundServiceProperties struct {
-	// A map containing service references.
+	// A map containing service references and/or endpoints.
 	ServiceEndpoint map[string]interface{} `json:"serviceEndpoint"`
 
 	// type of the endpoint. May be freely choosen.
@@ -73,6 +73,13 @@ type EndpointProperties struct {
 
 // AddCompoundServiceJSONBody defines parameters for AddCompoundService.
 type AddCompoundServiceJSONBody CompoundServiceProperties
+
+// GetCompoundServiceEndpointParams defines parameters for GetCompoundServiceEndpoint.
+type GetCompoundServiceEndpointParams struct {
+	// Whether to resolve references. When true and the given endpoint is a reference it returns the endpoint of the referenced service.
+	// If false it returns the reference itself. Defaults to true.
+	Resolve *bool `json:"resolve,omitempty"`
+}
 
 // UpdateContactInformationJSONBody defines parameters for UpdateContactInformation.
 type UpdateContactInformationJSONBody ContactInformation
@@ -179,6 +186,9 @@ type ClientInterface interface {
 
 	AddCompoundService(ctx context.Context, did string, body AddCompoundServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetCompoundServiceEndpoint request
+	GetCompoundServiceEndpoint(ctx context.Context, did string, compoundServiceType string, endpointType string, params *GetCompoundServiceEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetContactInformation request
 	GetContactInformation(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -228,6 +238,18 @@ func (c *Client) AddCompoundServiceWithBody(ctx context.Context, did string, con
 
 func (c *Client) AddCompoundService(ctx context.Context, did string, body AddCompoundServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAddCompoundServiceRequest(c.Server, did, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCompoundServiceEndpoint(ctx context.Context, did string, compoundServiceType string, endpointType string, params *GetCompoundServiceEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCompoundServiceEndpointRequest(c.Server, did, compoundServiceType, endpointType, params)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +433,74 @@ func NewAddCompoundServiceRequestWithBody(server string, did string, contentType
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetCompoundServiceEndpointRequest generates requests for GetCompoundServiceEndpoint
+func NewGetCompoundServiceEndpointRequest(server string, did string, compoundServiceType string, endpointType string, params *GetCompoundServiceEndpointParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "did", runtime.ParamLocationPath, did)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "compoundServiceType", runtime.ParamLocationPath, compoundServiceType)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "endpointType", runtime.ParamLocationPath, endpointType)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/internal/didman/v1/did/%s/compoundservice/%s/endpoint/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Resolve != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resolve", runtime.ParamLocationQuery, *params.Resolve); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -728,6 +818,9 @@ type ClientWithResponsesInterface interface {
 
 	AddCompoundServiceWithResponse(ctx context.Context, did string, body AddCompoundServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*AddCompoundServiceResponse, error)
 
+	// GetCompoundServiceEndpoint request
+	GetCompoundServiceEndpointWithResponse(ctx context.Context, did string, compoundServiceType string, endpointType string, params *GetCompoundServiceEndpointParams, reqEditors ...RequestEditorFn) (*GetCompoundServiceEndpointResponse, error)
+
 	// GetContactInformation request
 	GetContactInformationWithResponse(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*GetContactInformationResponse, error)
 
@@ -789,6 +882,28 @@ func (r AddCompoundServiceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AddCompoundServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCompoundServiceEndpointResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *string
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCompoundServiceEndpointResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCompoundServiceEndpointResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -951,6 +1066,15 @@ func (c *ClientWithResponses) AddCompoundServiceWithResponse(ctx context.Context
 	return ParseAddCompoundServiceResponse(rsp)
 }
 
+// GetCompoundServiceEndpointWithResponse request returning *GetCompoundServiceEndpointResponse
+func (c *ClientWithResponses) GetCompoundServiceEndpointWithResponse(ctx context.Context, did string, compoundServiceType string, endpointType string, params *GetCompoundServiceEndpointParams, reqEditors ...RequestEditorFn) (*GetCompoundServiceEndpointResponse, error) {
+	rsp, err := c.GetCompoundServiceEndpoint(ctx, did, compoundServiceType, endpointType, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCompoundServiceEndpointResponse(rsp)
+}
+
 // GetContactInformationWithResponse request returning *GetContactInformationResponse
 func (c *ClientWithResponses) GetContactInformationWithResponse(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*GetContactInformationResponse, error) {
 	rsp, err := c.GetContactInformation(ctx, did, reqEditors...)
@@ -1063,6 +1187,32 @@ func ParseAddCompoundServiceResponse(rsp *http.Response) (*AddCompoundServiceRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CompoundService
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCompoundServiceEndpointResponse parses an HTTP response from a GetCompoundServiceEndpointWithResponse call
+func ParseGetCompoundServiceEndpointResponse(rsp *http.Response) (*GetCompoundServiceEndpointResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCompoundServiceEndpointResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest string
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

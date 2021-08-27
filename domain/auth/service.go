@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/labstack/gommon/log"
 	"net/http"
@@ -12,9 +13,16 @@ import (
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 )
 
+var (
+	bearerAuthSchema = "Bearer"
+
+	ErrEmptyBearerToken = errors.New("empty access token")
+)
+
 type Service interface {
 	RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error)
 	IntrospectAccessToken(ctx context.Context, accessToken string) (*client.TokenIntrospectionResponse, error)
+	ParseBearerToken(request *http.Request) (string, error)
 }
 
 type authService struct {
@@ -76,4 +84,18 @@ func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken str
 	}
 
 	return response.JSON200, nil
+}
+
+func (s *authService) ParseBearerToken(request *http.Request) (string, error) {
+	authorizationHeader := request.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		return "", ErrEmptyBearerToken
+	}
+
+	bearerToken := authorizationHeader[len(bearerAuthSchema)+1:]
+	if bearerToken == "" {
+		return "", ErrEmptyBearerToken
+	}
+
+	return bearerToken, nil
 }

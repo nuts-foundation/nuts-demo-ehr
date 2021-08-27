@@ -14,12 +14,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var (
-	ErrEmptyAccessToken = errors.New("empty access token")
-
-	bearerAuthSchema = "Bearer"
-)
-
 type Server struct {
 	proxy *httputil.ReverseProxy
 	auth  auth.Service
@@ -49,17 +43,12 @@ func findNutsAuthorizationCredential(token *client.TokenIntrospectionResponse) (
 }
 
 func (server *Server) parseAccessToken(c echo.Context) (*client.TokenIntrospectionResponse, error) {
-	authorizationHeader := c.Request().Header.Get("Authorization")
-	if authorizationHeader == "" {
-		return nil, ErrEmptyAccessToken
+	bearerToken, err := server.auth.ParseBearerToken(c.Request())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the bearer token: %w", err)
 	}
 
-	rawToken := authorizationHeader[len(bearerAuthSchema)+1:]
-	if rawToken == "" {
-		return nil, ErrEmptyAccessToken
-	}
-
-	token, err := server.auth.IntrospectAccessToken(c.Request().Context(), rawToken)
+	token, err := server.auth.IntrospectAccessToken(c.Request().Context(), bearerToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to introspect token: %w", err)
 	}

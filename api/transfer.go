@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -175,15 +176,30 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, params domain.NotifyTran
 		logrus.Warnf("Received transfer notification for unknown customer DID: %s", params.TaskOwnerDID)
 		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
-	// TODO: Retrieve sender of notification from access token, instead of equalling it to the receiving XIS
-	sender := ctx.Request().Header.Get("X-Sender")
-	if sender == "" {
-		return errors.New("missing X-Sender header in notification")
-	}
-	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, sender)
+
+	bearerToken, err := w.AuthService.ParseBearerToken(ctx.Request())
 	if err != nil {
 		return err
 	}
+
+	accessToken, err := w.AuthService.IntrospectAccessToken(ctx.Request().Context(), bearerToken)
+	if err != nil {
+		return err
+	}
+
+	if !accessToken.Active {
+		return fmt.Errorf("access-token is not active")
+	}
+
+	if accessToken.Sub == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "unable to parse sender without subject in the access-token")
+	}
+
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, *accessToken.Sub)
+	if err != nil {
+		return err
+	}
+
 	return ctx.NoContent(http.StatusNoContent)
 }
 

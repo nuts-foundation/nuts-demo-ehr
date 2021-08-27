@@ -136,6 +136,7 @@ func startEHR(config Config) {
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:                 auth,
+		AuthService:          authService,
 		Client:               nodeClient,
 		CustomerRepository:   customerRepository,
 		PatientRepository:    patientRepository,

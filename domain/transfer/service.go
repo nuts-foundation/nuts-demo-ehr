@@ -118,7 +118,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 
 		if err := s.vcr.CreateAuthorizationCredential(ctx, "eOverdracht-receiver", *customer.Did, organizationDID, []credential.Resource{
 			{
-				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
+				Path:       fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
 				Operations: []string{"update"},
 			},
 		}); err != nil {

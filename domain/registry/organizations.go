@@ -3,8 +3,6 @@ package registry
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -76,24 +74,7 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 }
 
 func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error) {
-	endpoints, err := r.client.GetCompoundService(ctx, organizationDID, serviceType)
-	if err != nil {
-		return "", err
-	}
-	endpoint := endpoints.ServiceEndpoint[field]
-	if endpoint == "" {
-		return "", fmt.Errorf("DID compound service does not contain the requested endpoint (did=%s,service=%s,name=%s)", organizationDID, serviceType, field)
-	}
-
-	if strings.HasPrefix(endpoint, "did:nuts:") {
-		// Endpoint is a reference which needs to be resolved
-		resolvedEndpoint, err := r.client.ResolveEndpoint(ctx, endpoint)
-		if err != nil {
-			return "", fmt.Errorf("unable to resolve endpoint reference in DID service (did=%s,service=%s,ref=%s): %w", organizationDID, serviceType, endpoint, err)
-		}
-		return resolvedEndpoint, nil
-	}
-	return endpoint, nil
+	return r.client.GetCompoundServiceEndpoint(ctx, organizationDID, serviceType, field)
 }
 
 func organizationConceptToDomain(concept map[string]interface{}) domain.Organization {

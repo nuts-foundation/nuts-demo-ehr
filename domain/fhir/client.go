@@ -70,7 +70,7 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 }
 
 func (h httpClient) getResource(ctx context.Context, path string, params map[string]string) (gjson.Result, error) {
-	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).Get(h.buildRequestURI(path))
+	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(h.buildRequestURI(path))
 	if err != nil {
 		return gjson.Result{}, err
 	}

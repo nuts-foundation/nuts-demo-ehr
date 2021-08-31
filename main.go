@@ -69,10 +69,12 @@ func main() {
 	config := loadConfig()
 	config.Print(log.Writer())
 
+	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
+
 	server := createServer()
-	registerEHR(server, config)
+	registerEHR(server, config, customerRepository)
 	if config.FHIR.Proxy.Enable {
-		registerFHIRProxy(server, config)
+		registerFHIRProxy(server, config, customerRepository)
 	}
 
 	// Start server
@@ -104,7 +106,7 @@ func createServer() *echo.Echo {
 	return server
 }
 
-func registerFHIRProxy(server *echo.Echo, config Config) {
+func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository) {
 	authService, err := auth_service.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
@@ -114,7 +116,7 @@ func registerFHIRProxy(server *echo.Echo, config Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	proxyServer := proxy.NewServer(authService, *fhirURL, config.FHIR.Proxy.Path)
+	proxyServer := proxy.NewServer(authService, customerRepository, *fhirURL, config.FHIR.Proxy.Path)
 
 	// set security filter
 	server.Use(proxyServer.AuthMiddleware())
@@ -125,7 +127,7 @@ func registerFHIRProxy(server *echo.Echo, config Config) {
 	}, proxyServer.Handler)
 }
 
-func registerEHR(server *echo.Echo, config Config) {
+func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository) {
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
@@ -138,7 +140,6 @@ func registerEHR(server *echo.Echo, config Config) {
 	}
 
 	// Initialize services
-	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 

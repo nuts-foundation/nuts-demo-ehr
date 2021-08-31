@@ -3,8 +3,9 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"net/http"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 
@@ -109,7 +110,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 	customerID, ok := token.Get(CustomerID)
-	if ok {
+	if !ok {
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 

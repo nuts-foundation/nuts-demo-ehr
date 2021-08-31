@@ -23,12 +23,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var cmd string
-
 const defaultPrefix = "NUTS_"
 const defaultDelimiter = "."
 const configFileFlag = "configfile"
-const configCmdFlag = "proxy"
 const defaultConfigFile = "server.config.yaml"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
@@ -37,9 +34,15 @@ const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {
 	return Config{
-		HTTPPort:           defaultHTTPPort,
-		NutsNodeAddress:    defaultNutsNodeAddress,
-		FHIRServerAddress:  defaultFHIRServerAddress,
+		HTTPPort:          defaultHTTPPort,
+		NutsNodeAddress:   defaultNutsNodeAddress,
+		FHIRServerAddress: defaultFHIRServerAddress,
+		FHIR: FHIR{
+			FHIRProxy{
+				Enable: true,
+				Path:   "/fhir",
+			},
+		},
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
 		DBConnectionString: "demo-ehr.db?cache=shared",
@@ -52,6 +55,7 @@ type Config struct {
 	HTTPPort          int         `koanf:"port"`
 	NutsNodeAddress   string      `koanf:"nutsnodeaddr"`
 	FHIRServerAddress string      `koanf:"fhirserveraddr"`
+	FHIR              FHIR        `koanf:"fhir"`
 	CustomersFile     string      `koanf:"customersfile"`
 	Branding          Branding    `koanf:"branding"`
 	// Database connection string, accepts all options for the sqlite3 driver
@@ -63,6 +67,15 @@ type Config struct {
 	// Developer tip: set the sessionPemKey so the session keeps valid after a server reboot.
 	SessionPemKey string `koanf:"sessionPemKey"`
 	sessionKey    *ecdsa.PrivateKey
+}
+
+type FHIR struct {
+	Proxy FHIRProxy `koanf:"proxy"`
+}
+
+type FHIRProxy struct {
+	Enable bool   `koanf:"enable"`
+	Path   string `koanf:"path"`
 }
 
 type Credentials struct {
@@ -164,7 +177,6 @@ func loadConfig() Config {
 func loadFlagSet(args []string) *pflag.FlagSet {
 	f := pflag.NewFlagSet("config", pflag.ContinueOnError)
 	f.String(configFileFlag, defaultConfigFile, "Nuts config file")
-	f.StringVarP(&cmd, configCmdFlag, "", "ehr", "Which command to run ('ehr' or 'proxy')")
 	f.Usage = func() {
 		fmt.Println(f.FlagUsages())
 		os.Exit(0)

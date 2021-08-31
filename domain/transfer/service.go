@@ -46,31 +46,31 @@ type Service interface {
 	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
-	GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 
 	// AcceptTransferRequest accepts the given transfer request, allowing the sending organization to assign the patient transfer to the local organization
 	AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error
 }
 
 type service struct {
-	transferRepo Repository
-	auth         auth.Service
-	fhirClient   fhir.Client
-	customerRepo customers.Repository
-	registry     registry.OrganizationRegistry
-	vcr          registry.VerifiableCredentialRegistry
-	notifier     Notifier
+	transferRepo    Repository
+	auth            auth.Service
+	localFHIRClient fhir.Client // client for interacting with the local FHIR server
+	customerRepo    customers.Repository
+	registry        registry.OrganizationRegistry
+	vcr             registry.VerifiableCredentialRegistry
+	notifier        Notifier
 }
 
-func NewTransferService(authService auth.Service, fhirClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
+func NewTransferService(authService auth.Service, localFHIRClient fhir.Client, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
 	return &service{
-		vcr:          vcr,
-		auth:         authService,
-		fhirClient:   fhirClient,
-		transferRepo: transferRepository,
-		customerRepo: customerRepository,
-		registry:     organizationRegistry,
-		notifier:     fireAndForgetNotifier{},
+		vcr:             vcr,
+		auth:            authService,
+		localFHIRClient: localFHIRClient,
+		transferRepo:    transferRepository,
+		customerRepo:    customerRepository,
+		registry:        organizationRegistry,
+		notifier:        fireAndForgetNotifier{},
 	}
 }
 
@@ -113,7 +113,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 				},
 			},
 		})
-		err = s.fhirClient.CreateOrUpdate(ctx, transferTask)
+		err = s.localFHIRClient.CreateOrUpdate(ctx, transferTask)
 		if err != nil {
 			return nil, err
 		}
@@ -157,8 +157,18 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 	return negotiation, err
 }
 
-func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
-	task, err := s.getTransferTask(ctx, requestorDID, fhirTaskID)
+func (s service) GetTransferRequest(ctx context.Context, customerID string, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil || customer.Did == nil {
+		return nil, err
+	}
+
+	client, err := s.getRemoteFHIRClient(ctx, requestorDID, *customer.Did)
+	if err != nil {
+		return nil, err
+	}
+
+	task, err := s.getTransferTask(ctx, client, fhirTaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,12 +187,23 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 }
 
 func (s service) AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error {
-	task, err := s.getTransferTask(ctx, requestorDID, fhirTaskID)
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil || customer.Did == nil {
+		return err
+	}
+
+	client, err := s.getRemoteFHIRClient(ctx, requestorDID, *customer.Did)
+	if err != nil {
+		return err
+	}
+
+	task, err := s.getTransferTask(ctx, client, fhirTaskID)
 	if err != nil {
 		return err
 	}
 	task.Status = fhir.ToCodePtr(ACCEPTED_STATE)
-	return s.fhirClient.CreateOrUpdate(ctx, task)
+	// TODO: This doesn't work yet: the access token is missing NutsAuthorizationCredential
+	return client.CreateOrUpdate(ctx, task)
 }
 
 func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
@@ -206,7 +227,7 @@ func (s service) Create(ctx context.Context, customerID string, dossierID string
 		// TODO: sections
 	}
 	composition := fhir.BuildNewComposition(elements)
-	err := s.fhirClient.CreateOrUpdate(ctx, composition)
+	err := s.localFHIRClient.CreateOrUpdate(ctx, composition)
 	if err != nil {
 		return nil, err
 	}
@@ -229,16 +250,24 @@ func (s service) CancelNegotiation(ctx context.Context, customerID, negotiationI
 	panic("implement me")
 }
 
-func (s service) getTransferTask(ctx context.Context, requestorDID string, fhirTaskID string) (resources.Task, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, requestorDID, SenderServiceName, "fhir")
+func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string) (fhir.Client, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, custodianDID, SenderServiceName, "fhir")
 	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up sender's FHIR server (did=%s): %w", requestorDID, err)
+		return nil, fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", custodianDID, err)
 	}
+	accessToken, err := s.auth.RequestAccessToken(ctx, localActorDID, custodianDID, SenderServiceName, nil)
+	if err != nil {
+		return nil, err
+	}
+	return fhir.NewClientWithToken(fhirServer, accessToken.AccessToken), nil
+}
+
+func (s service) getTransferTask(ctx context.Context, client fhir.Client, fhirTaskID string) (resources.Task, error) {
 	// TODO: Read AdvanceNotification here instead of the transfer task
 	task := resources.Task{}
-	err = fhir.NewClient(fhirServer).ReadOne(ctx, "/Task/"+fhirTaskID, &task)
+	err := client.ReadOne(ctx, "/Task/"+fhirTaskID, &task)
 	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%s): %w", fhirServer, fhirTaskID, err)
+		return resources.Task{}, fmt.Errorf("error while looking up transfer task (fhir-server=%s, task-id=%s): %w", client.String(), fhirTaskID, err)
 	}
 	return task, nil
 }

@@ -17,7 +17,16 @@ func NewClient(baseURL string) Client {
 	}
 }
 
+func NewClientWithToken(baseURL string, bearerToken string) Client {
+	client := resty.New().SetHeader("Content-Type", "application/json").SetAuthToken(bearerToken)
+	return &httpClient{
+		restClient: client,
+		url:        baseURL,
+	}
+}
+
 type Client interface {
+	String() string
 	CreateOrUpdate(ctx context.Context, resource interface{}) error
 	ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error
 	ReadOne(ctx context.Context, path string, result interface{}) error
@@ -26,6 +35,10 @@ type Client interface {
 type httpClient struct {
 	restClient *resty.Client
 	url        string
+}
+
+func (h httpClient) String() string {
+	return h.url
 }
 
 func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {

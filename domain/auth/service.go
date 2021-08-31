@@ -57,9 +57,8 @@ func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, 
 	}
 
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
-	} else {
 		log.Warnf("Server response: %s", string(response.Body))
+		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
 	}
 
 	return response.JSON200, nil
@@ -80,6 +79,7 @@ func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken str
 	}
 
 	if response.StatusCode() != http.StatusOK {
+		log.Warnf("Server response: %s", string(response.Body))
 		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
 	}
 

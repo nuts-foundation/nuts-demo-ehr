@@ -7,9 +7,11 @@ import (
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -17,11 +19,25 @@ import (
 type Server struct {
 	proxy *httputil.ReverseProxy
 	auth  auth.Service
+	path  string
 }
 
-func NewServer(authService auth.Service, host url.URL) *Server {
+func NewServer(authService auth.Service, targetURL url.URL, path string) *Server {
+	// Does not support query parameters in targetURL
+	proxyDirector := func(req *http.Request) {
+		req.URL.Scheme = targetURL.Scheme
+		req.URL.Host = targetURL.Host
+		req.URL.RawPath = "" // Not required?
+		req.URL.Path = targetURL.Path + req.URL.Path[len(path):]
+		logrus.Infof("Rewritten to: %s", req.URL.Path)
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
+	}
 	return &Server{
-		proxy: httputil.NewSingleHostReverseProxy(&host),
+		path:  path,
+		proxy: &httputil.ReverseProxy{Director: proxyDirector},
 		auth:  authService,
 	}
 }
@@ -61,6 +77,14 @@ func (server *Server) parseAccessToken(c echo.Context) (*client.TokenIntrospecti
 }
 
 func (server *Server) verifyAccess(route *fhirRoute, token *client.TokenIntrospectionResponse) error {
+	// TODO: Assert that token.subject equals the requester?
+	// NutsAuthorizationCredential is only required for:
+	// 1. Retrieving FHIR resources that contain personal information (for the sake of simplicity; everything other than the Task for now)
+	// 2. Updating a task resource (so everything other than a HTTP GET/read)
+	if route.operation == "read" && strings.HasPrefix(route.path, server.path+"/Task") {
+		return nil
+	}
+
 	authCredential, err := findNutsAuthorizationCredential(token)
 	if err != nil {
 		return err
@@ -96,6 +120,7 @@ func (server *Server) verifyAccess(route *fhirRoute, token *client.TokenIntrospe
 
 func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
 		token, err := server.parseAccessToken(c)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, NewOperationOutcome(err, "Invalid access-token", CodeSecurity, SeverityError))

@@ -7,6 +7,9 @@ type fhirRoute struct {
 	operation string
 }
 
+// parseRoute maps the HTTP request to a FHIR route. It can differentiate between read and vread only by looking at the route.
+// And there isn't an HTTP method which could be mapped to the history operation for example.
+// But as it's a proxy for demo purpose this should be fine for now.
 func parseRoute(request *http.Request) *fhirRoute {
 	var operation string
 

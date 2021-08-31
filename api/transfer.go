@@ -49,6 +49,14 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	return ctx.JSON(http.StatusOK, transferRequest)
 }
 
+func (w Wrapper) AcceptTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+	err := w.TransferService.AcceptTransferRequest(ctx.Request().Context(), w.getCustomerID(ctx), requestorDID, fhirTaskID)
+	if err != nil {
+		return err
+	}
+	return ctx.NoContent(http.StatusNoContent)
+}
+
 func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 	updateRequest := &domain.TransferProperties{}
 	err := ctx.Bind(updateRequest)

@@ -47,6 +47,9 @@ type Service interface {
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
+
+	// AcceptTransferRequest accepts the given transfer request, allowing the sending organization to assign the patient transfer to the local organization
+	AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error
 }
 
 type service struct {
@@ -93,24 +96,23 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		// Create negotiation and share it to the other party
 		// TODO: Share transaction to this repository call as well
 		var err error
-		taskProperties := fhir.TaskProperties{
-			RequesterID: *customer.Did,
-			OwnerID:     organizationDID,
-			Input: []resources.TaskInputOutput{
-				{
-					Type:           &fhir.LoincAdvanceNoticeType,
-					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(transfer.FhirAdvanceNoticeComposition)},
-				},
-			},
-		}
-
 		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
 		notificationEndpoint, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, ReceiverServiceName, "notification")
 		if err != nil {
 			return nil, err
 		}
 
-		transferTask := fhir.BuildNewTask(taskProperties)
+		transferTask := fhir.BuildNewTask(fhir.TaskProperties{
+			RequesterID: *customer.Did,
+			OwnerID:     organizationDID,
+			Status:      REQUESTED_STATE,
+			Input: []resources.TaskInputOutput{
+				{
+					Type:           &fhir.LoincAdvanceNoticeType,
+					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(transfer.FhirAdvanceNoticeComposition)},
+				},
+			},
+		})
 		err = s.fhirClient.CreateOrUpdate(ctx, transferTask)
 		if err != nil {
 			return nil, err
@@ -170,7 +172,17 @@ func (s service) GetTransferRequest(ctx context.Context, requestorDID string, fh
 		Description:  "TODO",
 		Sender:       *organization,
 		TransferDate: openapi_types.Date{Time: transferDate},
+		Status:       fhir.FromCodePtr(task.Status),
 	}, nil
+}
+
+func (s service) AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error {
+	task, err := s.getTransferTask(ctx, requestorDID, fhirTaskID)
+	if err != nil {
+		return err
+	}
+	task.Status = fhir.ToCodePtr(ACCEPTED_STATE)
+	return s.fhirClient.CreateOrUpdate(ctx, task)
 }
 
 func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {

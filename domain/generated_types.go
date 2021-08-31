@@ -129,6 +129,9 @@ type InboxEntry struct {
 	// Date/time of the entry.
 	Date string `json:"date"`
 
+	// If true, this inbox entry requires attention of an end user (e.g. data has been changed by a remote system).
+	RequiresAttention bool `json:"requiresAttention"`
+
 	// ID that should be used when retrieving the source document of the inbox entry, e.g. a transfer request.
 	ResourceID string `json:"resourceID"`
 
@@ -289,6 +292,9 @@ type TransferRequest struct {
 
 	// A care organization available through the Nuts Network to exchange information.
 	Sender Organization `json:"sender"`
+
+	// State of the transfer request. Maps to FHIR task state.
+	Status string `json:"status"`
 
 	// Requested transfer date.
 	TransferDate openapi_types.Date `json:"transferDate"`

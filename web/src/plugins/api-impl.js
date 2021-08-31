@@ -372,6 +372,20 @@ function createApi(options) {
           mode,
         });
     },
+    acceptTransferRequest(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'acceptTransferRequest');
+      return fetch(endpoint + basePath + '/private/transfer-request/' + params['requestorDID'] + '/' + params['fhirTaskID'] + ''
+        , {
+          method: 'POST',
+          headers,
+          mode,
+        });
+    },
     cancelTransfer(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

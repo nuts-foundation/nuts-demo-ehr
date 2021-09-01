@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"net/http"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 
@@ -33,7 +33,6 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 
 type Wrapper struct {
 	Auth                 *Auth
-	AuthService          auth.Service
 	Client               client.HTTPClient
 	CustomerRepository   customers.Repository
 	PatientRepository    patients.Repository

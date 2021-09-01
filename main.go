@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -25,6 +27,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
 	"github.com/nuts-foundation/nuts-demo-ehr/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
@@ -113,6 +116,9 @@ func registerFHIRProxy(server *echo.Echo, config Config) {
 	}
 	proxyServer := proxy.NewServer(authService, *fhirURL, config.FHIR.Proxy.Path)
 
+	// set security filter
+	server.Use(proxyServer.AuthMiddleware())
+
 	server.Any(config.FHIR.Proxy.Path+"/*", func(c echo.Context) error {
 		// Logic performed by middleware
 		return nil
@@ -161,7 +167,6 @@ func registerEHR(server *echo.Echo, config Config) {
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		Auth:                 auth,
-		AuthService:          authService,
 		Client:               nodeClient,
 		CustomerRepository:   customerRepository,
 		PatientRepository:    patientRepository,
@@ -175,6 +180,9 @@ func registerEHR(server *echo.Echo, config Config) {
 	// JWT checking for correct claims
 	server.Use(auth.JWTHandler)
 	server.Use(sql.Transactional(sqlDB))
+
+	// for requests that require Nuts AccesToken
+	server.Use(authMiddleware(authService))
 
 	api.RegisterHandlersWithBaseURL(server, apiWrapper, "/web")
 
@@ -278,4 +286,24 @@ func httpErrorHandler(err error, c echo.Context) {
 			c.Logger().Error(err)
 		}
 	}
+}
+
+func authMiddleware(authService auth_service.Service) echo.MiddlewareFunc {
+	config := http2.Config{
+		Skipper: func(e echo.Context) bool {
+			return e.Request().RequestURI != "/web/external/transfer/notify"
+		},
+		AccessF: func(request *http.Request, token *auth.TokenIntrospectionResponse) error {
+			service := token.Service
+			if service == nil {
+				return errors.New("access-token doesn't contain 'service' claim")
+			}
+			if *service != "eOverdracht-receiver" {
+				return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be eOverdracht-receiver", *service)
+			}
+
+			return nil
+		},
+	}
+	return http2.SecurityFilter{Auth: authService}.AuthWithConfig(config)
 }

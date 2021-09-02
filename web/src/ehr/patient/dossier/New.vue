@@ -11,6 +11,9 @@
       </button>
     </div>
 
+    <!--
+    Not supported(yet)
+
     <div class="mt-4">
       Do you want to collaborate with a group of care professionals on a specific case?
       With the dossier type you invite other care professionals to exchange reports on a specific case.
@@ -18,6 +21,7 @@
         Collaborate
       </button>
     </div>
+    -->
   </modal-window>
 </template>
 <script>

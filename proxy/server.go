@@ -76,9 +76,9 @@ func errorFunc(ctx echo.Context, err error) error {
 func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
-		accessToken := c.Get(http2.AccessToken).(*client.TokenIntrospectionResponse)
-		// Enrich request with requesting party's FHIR server tenant, which is the customer's ID
-		tenant, err := server.getTenant(*accessToken.Sub)
+		accessToken := c.Get(http2.AccessToken).(client.TokenIntrospectionResponse)
+		// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
+		tenant, err := server.getTenant(*accessToken.Iss)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, NewOperationOutcome(err, err.Error(), CodeSecurity, SeverityError))
 		}

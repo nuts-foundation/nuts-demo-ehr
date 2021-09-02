@@ -14,11 +14,13 @@ import (
 const AccessToken = "accessToken"
 
 type ErrorFunc func(c echo.Context, err error) error
+
 func DefaultErrorFunc(c echo.Context, err error) error {
 	return err
 }
 
 type AccessFunc func(request *http.Request, token *client.TokenIntrospectionResponse) error
+
 func DefaultAccessFunc(request *http.Request, token *client.TokenIntrospectionResponse) error {
 	return nil
 }
@@ -30,7 +32,7 @@ type Config struct {
 }
 
 type SecurityFilter struct {
-	Auth  auth.Service
+	Auth auth.Service
 }
 
 func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {

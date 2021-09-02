@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
@@ -291,7 +292,7 @@ func httpErrorHandler(err error, c echo.Context) {
 func authMiddleware(authService auth_service.Service) echo.MiddlewareFunc {
 	config := http2.Config{
 		Skipper: func(e echo.Context) bool {
-			return e.Request().RequestURI != "/web/external/transfer/notify"
+			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")
 		},
 		AccessF: func(request *http.Request, token *auth.TokenIntrospectionResponse) error {
 			service := token.Service

@@ -55,7 +55,7 @@ func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
 
 func (server *Server) skipper(ctx echo.Context) bool {
 	requestURI := ctx.Request().RequestURI
-	return strings.HasPrefix(requestURI, server.path)
+	return !strings.HasPrefix(requestURI, server.path)
 }
 
 func errorFunc(ctx echo.Context, err error) error {

@@ -63,8 +63,12 @@ func (h httpClient) ReadMultiple(ctx context.Context, path string, params map[st
 		return err
 	}
 	resourcesJSON := raw.Get("entry.#.resource").String()
+	if resourcesJSON == "" {
+		resourcesJSON = "[]"
+	}
 	err = json.Unmarshal([]byte(resourcesJSON), results)
 	if err != nil {
+		log.Warnf("FHIR server replied: %s", raw.String())
 		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, results, err)
 	}
 	return nil
@@ -77,6 +81,7 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 	}
 	err = json.Unmarshal([]byte(raw.String()), &result)
 	if err != nil {
+		log.Warnf("FHIR server replied: %s", raw.String())
 		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, result, err)
 	}
 	return nil

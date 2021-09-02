@@ -29,6 +29,12 @@ func FilterResources(resources []gjson.Result, codingSystem string, code Code) [
 	return result
 }
 
+func ToIntegerPtr(input int) *datatypes.Integer {
+	result := datatypes.Integer(int32(input))
+	return &result
+}
+
+
 func ToStringPtr(str string) *datatypes.String {
 	result := datatypes.String(str)
 	return &result
@@ -60,7 +66,7 @@ func FromIDPtr(str *datatypes.ID) string {
 	return string(*str)
 }
 
-func toIDPtr(str string) *datatypes.ID {
+func ToIDPtr(str string) *datatypes.ID {
 	result := datatypes.ID(str)
 	return &result
 }

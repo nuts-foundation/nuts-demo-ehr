@@ -1,13 +1,11 @@
 package patients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	url2 "net/url"
+	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -15,50 +13,42 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-type fhirPatient struct {
-	data gjson.Result
-}
-
-func newFHIRPatientFromGJSON(data gjson.Result) *fhirPatient {
-	return &fhirPatient{data: data}
-}
-
-func newFHIRPatientFromJSON(jsonBytes []byte) *fhirPatient {
-	return newFHIRPatientFromGJSON(gjson.ParseBytes(jsonBytes))
-}
-
 const dobFormat = "2006-01-02"
 const bsnSystem = "http://fhir.nl/fhir/NamingSystem/bsn"
 
-func (p fhirPatient) MarshalToDomainPatient() (*domain.Patient, error) {
-	dob, _ := time.Parse(dobFormat, p.data.Get("birthDate").String())
+func ToDomainPatient(fhirPatient resources.Patient) domain.Patient {
+	asJSON, _ := json.Marshal(fhirPatient)
+	p := gjson.ParseBytes(asJSON)
+
+	dob, _ := time.Parse(dobFormat, p.Get("birthDate").String())
 	gender := domain.PatientPropertiesGenderUnknown
-	fhirGender := p.data.Get("gender").String()
+	fhirGender := p.Get("gender").String()
 	switch fhirGender {
 	case string(domain.PatientPropertiesGenderMale):
 		gender = domain.PatientPropertiesGenderMale
 	case string(domain.PatientPropertiesGenderFemale):
 		gender = domain.PatientPropertiesGenderFemale
 	}
-	ssn := p.data.Get(fmt.Sprintf(`identifier.#(system==%s).value`, bsnSystem)).String()
-	avatar := p.data.Get(`photo.0.url`).String()
-	return &domain.Patient{
-		ObjectID: domain.ObjectID(p.data.Get("id").String()),
+	ssn := p.Get(fmt.Sprintf(`identifier.#(system==%s).value`, bsnSystem)).String()
+	avatar := p.Get(`photo.0.url`).String()
+	return domain.Patient{
+		ObjectID: domain.ObjectID(p.Get("id").String()),
 		PatientProperties: domain.PatientProperties{
 			Dob:       &openapi_types.Date{Time: dob},
 			Email:     nil,
-			FirstName: p.data.Get(`name.#(use=="official").given.0`).String(),
+			FirstName: p.Get(`name.#(use=="official").given.0`).String(),
 			Gender:    gender,
 			Ssn:       &ssn,
-			Surname:   p.data.Get(`name.#(use=="official").family`).String(),
+			Surname:   p.Get(`name.#(use=="official").family`).String(),
 			Zipcode:   "",
 		},
 		AvatarUrl: &avatar,
-	}, nil
+	}
 }
 
-func (p *fhirPatient) UnmarshalFromDomainPatient(domainPatient domain.Patient) error {
-	fhirData := map[string]interface{}{
+func ToFHIRPatient(domainPatient domain.Patient) map[string]interface{} {
+	// TODO: Update to resources.Patient instead of map
+	return map[string]interface{}{
 		"resourceType": "Patient",
 		"id":           domainPatient.ObjectID,
 		"name": []map[string]interface{}{
@@ -73,40 +63,28 @@ func (p *fhirPatient) UnmarshalFromDomainPatient(domainPatient domain.Patient) e
 		"photo":      []map[string]interface{}{{"url": domainPatient.AvatarUrl}},
 		"identifier": []map[string]interface{}{{"system": bsnSystem, "value": domainPatient.Ssn}},
 	}
-	jsonData, err := json.Marshal(fhirData)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling fhirPatient from domain.Patient: %w", err)
-	}
-	*p = *newFHIRPatientFromJSON(jsonData)
-	return nil
 }
 
 type FHIRPatientRepository struct {
-	url     string
-	factory Factory
+	fhirClientFactory fhir.Factory
+	factory           Factory
 }
 
-func NewFHIRPatientRepository(factory Factory, url string) *FHIRPatientRepository {
+func NewFHIRPatientRepository(factory Factory, fhirClientFactory fhir.Factory) *FHIRPatientRepository {
 	return &FHIRPatientRepository{
-		url:     url,
-		factory: factory,
+		fhirClientFactory: fhirClientFactory,
+		factory:           factory,
 	}
 }
 
 func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error) {
-	client := http.Client{}
-	res, err := client.Get(r.url + "/Patient/" + id)
+	patient := resources.Patient{}
+	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "Patient/"+id, &patient)
 	if err != nil {
 		return nil, err
 	}
-	rawPatient, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	parsedGJSON := gjson.Parse(string(rawPatient))
-	p := newFHIRPatientFromGJSON(parsedGJSON)
-	patient, _ := p.MarshalToDomainPatient()
-	return patient, nil
+	result := ToDomainPatient(patient)
+	return &result, nil
 }
 
 func (r FHIRPatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
@@ -114,56 +92,31 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID, id string
 }
 
 func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (*domain.Patient, error) {
-	p := fhirPatient{}
-	newPatient, err := r.factory.NewPatientWithAvatar(patientProperties)
+	patient, err := r.factory.NewPatientWithAvatar(patientProperties)
 	if err != nil {
 		return nil, err
 	}
-	err = p.UnmarshalFromDomainPatient(*newPatient)
+	err = r.fhirClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, ToFHIRPatient(*patient))
 	if err != nil {
 		return nil, err
 	}
-
-	client := http.Client{}
-	resp, err := client.Post(r.url+"/Patient", "application/json", bytes.NewBuffer([]byte(p.data.Raw)))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusCreated {
-		body, ioErr := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create new patient. Unable to read error response: ioerr: %s", ioErr)
-		}
-		return nil, fmt.Errorf("unable to create new patient: %s", body)
-	}
-
-	return newPatient, nil
+	return patient, nil
 }
 
 func (r FHIRPatientRepository) All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error) {
-	client := http.Client{}
-	url := r.url + "/Patient"
+	var params map[string]string
 	if name != nil {
-		url += "/_search?name=" + url2.QueryEscape(*name)
+		params = map[string]string{"name": *name}
 	}
-	res, err := client.Get(url)
+	fhirPatients := []resources.Patient{}
+	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Patient", params, &fhirPatients)
 	if err != nil {
 		return nil, err
 	}
-	bundle, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
 
-	parsedGJSON := gjson.Parse(string(bundle))
-	bundleEntries := parsedGJSON.Get("entry.#.resource").Array()
-
-	patients := make([]domain.Patient, len(bundleEntries))
-
-	for idx, bundleEntry := range bundleEntries {
-		p := newFHIRPatientFromGJSON(bundleEntry)
-		patient, _ := p.MarshalToDomainPatient()
-		patients[idx] = *patient
+	patients := make([]domain.Patient, 0)
+	for _, patient := range fhirPatients {
+		patients = append(patients, ToDomainPatient(patient))
 	}
 
 	return patients, nil

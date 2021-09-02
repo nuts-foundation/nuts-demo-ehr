@@ -7,21 +7,41 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
 	"github.com/tidwall/gjson"
-	"strings"
+	"net/url"
+	"path"
 )
 
-func NewClient(baseURL string) Client {
-	return &httpClient{
-		restClient: resty.New().SetHeader("Content-Type", "application/json"),
-		url:        baseURL,
+type ClientOpt func(client *httpClient)
+
+type Factory func(opts ...ClientOpt) Client
+
+func WithURL(serverURL string) ClientOpt {
+	return func(client *httpClient) {
+		client.url = serverURL
 	}
 }
 
-func NewClientWithToken(baseURL string, bearerToken string) Client {
-	client := resty.New().SetHeader("Content-Type", "application/json").SetAuthToken(bearerToken)
-	return &httpClient{
-		restClient: client,
-		url:        baseURL,
+func WithTenant(tenant string) ClientOpt {
+	return func(client *httpClient) {
+		client.tenant = tenant
+	}
+}
+
+func WithAuthToken(authToken string) ClientOpt {
+	return func(client *httpClient) {
+		client.restClient.SetAuthToken(authToken)
+	}
+}
+
+func NewFactory(defaultOpts ...ClientOpt) Factory {
+	return func(callerOpts ...ClientOpt) Client {
+		client := &httpClient{
+			restClient: resty.New().SetHeader("Content-Type", "application/json"),
+		}
+		for _, opt := range append(defaultOpts, callerOpts...) {
+			opt(client)
+		}
+		return client
 	}
 }
 
@@ -35,6 +55,7 @@ type Client interface {
 type httpClient struct {
 	restClient *resty.Client
 	url        string
+	tenant     string
 }
 
 func (h httpClient) String() string {
@@ -46,13 +67,14 @@ func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) er
 	if err != nil {
 		return fmt.Errorf("unable to determine resource path: %w", err)
 	}
-	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Put(h.buildRequestURI(resourcePath))
+	requestURI := h.buildRequestURI(resourcePath)
+	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Put(requestURI)
 	if err != nil {
-		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", resourcePath, err)
+		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", requestURI, err)
 	}
 	if !resp.IsSuccess() {
 		log.Warnf("FHIR server replied: %s", resp.String())
-		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %w", resourcePath, resp.StatusCode(), err)
+		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %w", requestURI, resp.StatusCode(), err)
 	}
 	return nil
 }
@@ -99,11 +121,8 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 	return gjson.ParseBytes(resp.Body()), nil
 }
 
-func (h httpClient) buildRequestURI(path string) string {
-	if !strings.HasSuffix(path, "/") && !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-	return h.url + path
+func (h httpClient) buildRequestURI(fhirResourcePath string) string {
+	return buildRequestURI(h.url, h.tenant, fhirResourcePath)
 }
 
 func resolveResourcePath(resource interface{}) (string, error) {
@@ -121,4 +140,10 @@ func resolveResourcePath(resource interface{}) (string, error) {
 		return "", fmt.Errorf("unable to determine resource ID of %T", resource)
 	}
 	return resourceType + "/" + resourceID, nil
+}
+
+func buildRequestURI(baseURL string, tenant string, resourcePath string) string {
+	parsedBaseURL, _ := url.Parse(baseURL)
+	parsedBaseURL.Path = path.Join("/", parsedBaseURL.Path, tenant, resourcePath)
+	return parsedBaseURL.String()
 }

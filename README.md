@@ -61,25 +61,17 @@ docker run -p 1304:1304 nutsfoundation/nuts-demo-ehr:main
 #### Configuration
 When running in Docker without a config file mounted at `/app/server.config.yaml` it will use the default configuration.
 
-### Starting the _Smart On FHIR_ backend
+### Starting the HAPI FHIR server backend
 
-The simplest way of starting up an out of the box FHIR backend is using the smart-on-fhir hapi server by running the following docker command:
+The simplest way of starting up an out of the box FHIR backend is using the HAPI FHIR server by running the following docker command:
 
 ```shell
-docker run -p 4003:8080 smartonfhir/hapi-5:r3-synthea
+docker run -p 8080:8080 -e hapi.fhir.fhir_version=DSTU3 -e hapi.fhir.partitioning.allow_references_across_partitions=false hapiproject/hapi:v5.4.1
 ```
 
-This gives you a FHIR STU3 server with a generated patient population.
-For other versions see the Smart on Health [docker repository](https://hub.docker.com/r/smartonfhir/hapi-5/tags?page=1&ordering=last_updated)
-
-This server is part of a larger development kit which can be found [here](https://github.com/smart-on-fhir/smart-dev-sandbox#start-the-dev-sandbox).
-
-#### FHIR configuration
-The address of the FHIR endpoint can be configured in the `server.config.yaml` file.
-The default value is set to:
-```yaml
-fhirserveraddr: "http://localhost:4003/hapi-fhir-jpaserver/fhir" 
-```
+Configuration explanation:
+- `hapi.fhir.fhir_version=DSTU3` indicates FHIR version STU3 is used
+- `hapi.fhir.partitioning.allow_references_across_partitions=false` signals HAPI server to enable partitioning, which allows multi-tenancy.
 
 ### Nuts-node
 

@@ -59,7 +59,7 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 		if err != nil {
 			return nil, fmt.Errorf("error while retrieving access token for looking up inbox entry (did=%s): %w", senderDID, err)
 		}
-		entries, err := getInboxEntries(ctx, fhir.NewClientWithToken(fhirServer, accessToken), *sendingOrg, *customer.Did)
+		entries, err := getInboxEntries(ctx, fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken)), *sendingOrg, *customer.Did)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
@@ -92,11 +92,11 @@ func (s Service) getAuthToken(ctx context.Context, actor string, custodian strin
 	return accessToken.AccessToken, nil
 }
 
-func getInboxEntries(ctx context.Context, client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
+func getInboxEntries(ctx context.Context, client fhir.Factory, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {
 	// TODO: add _lastUpdated query paramater as required by Nictiz spec (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Task_invocations)
 	// But we might need some persistence for that, which we don't have right now.
 	tasks := []resources.Task{}
-	err := client.ReadMultiple(ctx, "/Task", map[string]string{
+	err := client().ReadMultiple(ctx, "/Task", map[string]string{
 		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
 	}, &tasks)
 	if err != nil {

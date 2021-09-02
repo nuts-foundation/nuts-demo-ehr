@@ -1,16 +1,18 @@
 package proxy
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
-	"github.com/nuts-foundation/go-did/vc"
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
@@ -18,30 +20,39 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+var fhirServerTenant = struct{}{}
+
 type Server struct {
-	proxy *httputil.ReverseProxy
-	auth  auth.Service
-	path  string
+	proxy              *httputil.ReverseProxy
+	auth               auth.Service
+	path               string
+	customerRepository customers.Repository
 }
 
-func NewServer(authService auth.Service, targetURL url.URL, path string) *Server {
-	// Does not support query parameters in targetURL
-	proxyDirector := func(req *http.Request) {
-		req.URL.Scheme = targetURL.Scheme
-		req.URL.Host = targetURL.Host
-		req.URL.RawPath = "" // Not required?
-		req.URL.Path = targetURL.Path + req.URL.Path[len(path):]
-		logrus.Infof("Rewritten to: %s", req.URL.Path)
-		if _, ok := req.Header["User-Agent"]; !ok {
-			// explicitly disable User-Agent so it's not set to default value
-			req.Header.Set("User-Agent", "")
-		}
+func NewServer(authService auth.Service, customerRepository customers.Repository, targetURL url.URL, path string) *Server {
+	server := &Server{
+		path:               path,
+		auth:               authService,
+		customerRepository: customerRepository,
 	}
-	return &Server{
-		path:  path,
-		proxy: &httputil.ReverseProxy{Director: proxyDirector},
-		auth:  authService,
+	server.proxy = &httputil.ReverseProxy{
+		// Does not support query parameters in targetURL
+		Director: func(req *http.Request) {
+			tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
+
+			req.URL.Scheme = targetURL.Scheme
+			req.URL.Host = targetURL.Host
+			req.URL.RawPath = "" // Not required?
+			req.URL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+			logrus.Debugf("Rewritten to: %s", req.URL.Path)
+			if _, ok := req.Header["User-Agent"]; !ok {
+				// explicitly disable User-Agent so it's not set to default value
+				req.Header.Set("User-Agent", "")
+			}
+		},
 	}
+
+	return server
 }
 
 func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
@@ -65,6 +76,14 @@ func errorFunc(ctx echo.Context, err error) error {
 func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
+		accessToken := c.Get(http2.AccessToken).(client.TokenIntrospectionResponse)
+		// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
+		tenant, err := server.getTenant(*accessToken.Iss)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, NewOperationOutcome(err, err.Error(), CodeSecurity, SeverityError))
+		}
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), fhirServerTenant, tenant)))
+
 		server.proxy.ServeHTTP(c.Response().Writer, c.Request())
 
 		return nil
@@ -138,4 +157,15 @@ func findNutsAuthorizationCredential(token *client.TokenIntrospectionResponse) (
 	}
 
 	return nil, errors.New("NutsAuthorizationCredential was not found in the access-token")
+}
+
+func (server *Server) getTenant(requesterDID string) (string, error) {
+	customer, err := server.customerRepository.FindByDID(requesterDID)
+	if err != nil {
+		return "", err
+	}
+	if customer == nil {
+		return "", errors.New("unknown tenant")
+	}
+	return customer.Id, nil
 }

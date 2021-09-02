@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
-	"net/http"
-
+	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
+	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 
@@ -41,6 +41,7 @@ type Wrapper struct {
 	OrganizationRegistry registry.OrganizationRegistry
 	TransferService      transfer.Service
 	Inbox                *inbox.Service
+	TenantInitializer    func(tenant string) error
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -57,6 +58,10 @@ func (w Wrapper) SetCustomer(ctx echo.Context) error {
 	token, err := w.Auth.CreateCustomerJWT(customer.Id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	if err := w.TenantInitializer(customer.Id); err != nil {
+		return fmt.Errorf("unable to initialize tenant: %w", err)
 	}
 
 	return ctx.JSON(200, domain.SessionToken{Token: string(token)})

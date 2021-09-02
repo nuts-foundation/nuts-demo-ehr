@@ -34,9 +34,15 @@ const defaultCustomerFile = "customers.json"
 
 func defaultConfig() Config {
 	return Config{
-		HTTPPort:           defaultHTTPPort,
-		NutsNodeAddress:    defaultNutsNodeAddress,
-		FHIRServerAddress:  defaultFHIRServerAddress,
+		HTTPPort:          defaultHTTPPort,
+		NutsNodeAddress:   defaultNutsNodeAddress,
+		FHIRServerAddress: defaultFHIRServerAddress,
+		FHIR: FHIR{
+			FHIRProxy{
+				Enable: true,
+				Path:   "/fhir",
+			},
+		},
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
 		DBConnectionString: "demo-ehr.db?cache=shared",
@@ -49,6 +55,7 @@ type Config struct {
 	HTTPPort          int         `koanf:"port"`
 	NutsNodeAddress   string      `koanf:"nutsnodeaddr"`
 	FHIRServerAddress string      `koanf:"fhirserveraddr"`
+	FHIR              FHIR        `koanf:"fhir"`
 	CustomersFile     string      `koanf:"customersfile"`
 	Branding          Branding    `koanf:"branding"`
 	// Database connection string, accepts all options for the sqlite3 driver
@@ -60,6 +67,15 @@ type Config struct {
 	// Developer tip: set the sessionPemKey so the session keeps valid after a server reboot.
 	SessionPemKey string `koanf:"sessionPemKey"`
 	sessionKey    *ecdsa.PrivateKey
+}
+
+type FHIR struct {
+	Proxy FHIRProxy `koanf:"proxy"`
+}
+
+type FHIRProxy struct {
+	Enable bool   `koanf:"enable"`
+	Path   string `koanf:"path"`
 }
 
 type Credentials struct {
@@ -165,7 +181,12 @@ func loadFlagSet(args []string) *pflag.FlagSet {
 		fmt.Println(f.FlagUsages())
 		os.Exit(0)
 	}
-	f.Parse(args)
+
+	err := f.Parse(args)
+	if err != nil {
+		panic(err)
+	}
+
 	return f
 }
 
@@ -174,7 +195,6 @@ func loadFlagSet(args []string) *pflag.FlagSet {
 // 2. environment vars,
 // 3. default location.
 func resolveConfigFile(flagset *pflag.FlagSet) string {
-
 	k := koanf.New(defaultDelimiter)
 
 	// load env flags, can't return error
@@ -184,6 +204,7 @@ func resolveConfigFile(flagset *pflag.FlagSet) string {
 	_ = k.Load(posflag.Provider(flagset, defaultDelimiter, k), nil)
 
 	configFile := k.String(configFileFlag)
+
 	return configFile
 }
 

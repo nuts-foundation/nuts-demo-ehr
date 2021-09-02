@@ -499,13 +499,6 @@ paths:
 
   /external/transfer/notify:
     post:
-      parameters:
-        - name: taskOwnerDID
-          in: query
-          description: Nuts DID of the task-owner organisation, aka the filler.
-          required: true
-          schema:
-            type: string
       description: >
         Call this endpoint to notify the app of an update for one of its customers, indicating that an eOverdracht FHIR task was update or created.
         The customer is identified by the taskOwnerDID parameter.

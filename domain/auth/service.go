@@ -1,17 +1,28 @@
 package auth
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/labstack/gommon/log"
 	"net/http"
+	"net/url"
 
 	"github.com/nuts-foundation/go-did/vc"
 	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 )
 
+var (
+	bearerAuthSchema = "Bearer"
+
+	ErrEmptyBearerToken = errors.New("empty access token")
+)
+
 type Service interface {
 	RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error)
+	IntrospectAccessToken(ctx context.Context, accessToken string) (*client.TokenIntrospectionResponse, error)
+	ParseBearerToken(request *http.Request) (string, error)
 }
 
 type authService struct {
@@ -46,10 +57,45 @@ func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, 
 	}
 
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
-	} else {
 		log.Warnf("Server response: %s", string(response.Body))
+		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
 	}
 
 	return response.JSON200, nil
+}
+
+func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken string) (*client.TokenIntrospectionResponse, error) {
+	values := &url.Values{}
+	values.Set("token", accessToken)
+
+	httpResponse, err := s.client.IntrospectAccessTokenWithBody(ctx, "application/x-www-form-urlencoded", bytes.NewBuffer([]byte(values.Encode())))
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := client.ParseIntrospectAccessTokenResponse(httpResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode() != http.StatusOK {
+		log.Warnf("Server response: %s", string(response.Body))
+		return nil, fmt.Errorf("invalid status code when requesting token: %d", response.StatusCode())
+	}
+
+	return response.JSON200, nil
+}
+
+func (s *authService) ParseBearerToken(request *http.Request) (string, error) {
+	authorizationHeader := request.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		return "", ErrEmptyBearerToken
+	}
+
+	bearerToken := authorizationHeader[len(bearerAuthSchema)+1:]
+	if bearerToken == "" {
+		return "", ErrEmptyBearerToken
+	}
+
+	return bearerToken, nil
 }

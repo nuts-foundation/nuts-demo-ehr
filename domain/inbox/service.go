@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
@@ -18,10 +19,11 @@ type Service struct {
 	customerRepository customers.Repository
 	repository         Repository
 	orgRegistry        registry.OrganizationRegistry
+	authService        auth.Service
 }
 
-func NewService(customerRepository customers.Repository, repository Repository, organizationRegistry registry.OrganizationRegistry) *Service {
-	return &Service{customerRepository: customerRepository, repository: repository, orgRegistry: organizationRegistry}
+func NewService(customerRepository customers.Repository, repository Repository, organizationRegistry registry.OrganizationRegistry, authService auth.Service) *Service {
+	return &Service{customerRepository: customerRepository, repository: repository, orgRegistry: organizationRegistry, authService: authService}
 }
 
 func (s Service) RegisterNotification(ctx context.Context, customerID, senderDID string) error {
@@ -38,7 +40,7 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 		if remoteFHIRServers[not.SenderDID] != "" {
 			continue
 		}
-		fhirServer, err := s.orgRegistry.GetCompoundServiceEndpoint(ctx, not.SenderDID, "eOverdracht-sender", "fhir")
+		fhirServer, err := s.orgRegistry.GetCompoundServiceEndpoint(ctx, not.SenderDID, transfer.SenderServiceName, "fhir")
 		if err != nil {
 			logrus.Errorf("Unable to retrieve FHIR tasks from remote FHIR server (server=%s,did=%s): %v", fhirServer, not.SenderDID, err)
 			continue
@@ -47,12 +49,17 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 	}
 
 	var results []domain.InboxEntry
+	authTokenCache := map[string]string{}
 	for senderDID, fhirServer := range remoteFHIRServers {
 		sendingOrg, err := s.orgRegistry.Get(ctx, senderDID)
 		if err != nil {
 			return nil, fmt.Errorf("error while looking up sender for inbox entry (did=%s): %w", senderDID, err)
 		}
-		entries, err := getInboxEntries(ctx, fhir.NewClient(fhirServer), *sendingOrg, *customer.Did)
+		accessToken, err := s.getAuthToken(ctx, *customer.Did, sendingOrg.Did, authTokenCache)
+		if err != nil {
+			return nil, fmt.Errorf("error while retrieving access token for looking up inbox entry (did=%s): %w", senderDID, err)
+		}
+		entries, err := getInboxEntries(ctx, fhir.NewClientWithToken(fhirServer, accessToken), *sendingOrg, *customer.Did)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve tasks from XIS (did=%s,url=%s): %w", senderDID, fhirServer, err)
 		}
@@ -69,6 +76,20 @@ func (s Service) List(ctx context.Context, customer *domain.Customer) ([]domain.
 	})
 
 	return results, nil
+}
+
+func (s Service) getAuthToken(ctx context.Context, actor string, custodian string, cache map[string]string) (string, error) {
+	cacheKey := fmt.Sprintf("%s@%s", actor, custodian)
+	if token, cached := cache[cacheKey]; cached {
+		return token, nil
+	}
+
+	accessToken, err := s.authService.RequestAccessToken(ctx, actor, custodian, transfer.SenderServiceName, nil)
+	if err != nil {
+		return "", err
+	}
+	cache[cacheKey] = accessToken.AccessToken
+	return accessToken.AccessToken, nil
 }
 
 func getInboxEntries(ctx context.Context, client fhir.Client, sender domain.Organization, receiverDID string) ([]domain.InboxEntry, error) {

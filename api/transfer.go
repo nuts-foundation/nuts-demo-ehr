@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
+	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
@@ -42,7 +44,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	transferRequest, err := w.TransferService.GetTransferRequest(ctx.Request().Context(), requestorDID, fhirTaskID)
+	transferRequest, err := w.TransferService.GetTransferRequest(ctx.Request().Context(), w.getCustomerID(ctx), requestorDID, fhirTaskID)
 	if err != nil {
 		return err
 	}
@@ -165,25 +167,37 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	return ctx.JSON(http.StatusOK, negotiation)
 }
 
-func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, params domain.NotifyTransferUpdateParams) error {
+func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
-	customer, err := w.CustomerRepository.FindByDID(params.TaskOwnerDID)
+	rawToken := ctx.Get(http2.AccessToken)
+	if rawToken == nil {
+		// should have been caught by security filter
+		return errors.New("missing access-token")
+	}
+	token, ok := rawToken.(client.TokenIntrospectionResponse)
+	if !ok {
+		// should have been caught by security filter
+		return errors.New("missing access-token")
+	}
+
+	customerDID := token.Sub
+	if customerDID == nil {
+		return errors.New("missing 'sub' in access-token")
+	}
+	customer , err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
 		return err
 	}
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", params.TaskOwnerDID)
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *customerDID)
 		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
-	// TODO: Retrieve sender of notification from access token, instead of equalling it to the receiving XIS
-	sender := ctx.Request().Header.Get("X-Sender")
-	if sender == "" {
-		return errors.New("missing X-Sender header in notification")
-	}
-	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, sender)
+
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, *customerDID)
 	if err != nil {
 		return err
 	}
+
 	return ctx.NoContent(http.StatusNoContent)
 }
 

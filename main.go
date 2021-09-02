@@ -6,24 +6,29 @@ import (
 	"crypto/sha1"
 	"embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
+	"github.com/nuts-foundation/nuts-demo-ehr/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -64,6 +69,63 @@ func main() {
 	config := loadConfig()
 	config.Print(log.Writer())
 
+	server := createServer()
+	registerEHR(server, config)
+	if config.FHIR.Proxy.Enable {
+		registerFHIRProxy(server, config)
+	}
+
+	// Start server
+	server.Logger.Fatal(server.Start(fmt.Sprintf(":%d", config.HTTPPort)))
+}
+
+func createServer() *echo.Echo {
+	server := echo.New()
+	server.HideBanner = true
+	// Register Echo logger middleware but do not log calls to the status endpoint,
+	// since that gets called by the Docker healthcheck very, very often which leads to lots of clutter in the log.
+	server.GET("/status", func(c echo.Context) error {
+		c.Response().WriteHeader(http.StatusNoContent)
+		return nil
+	})
+	loggerConfig := middleware.DefaultLoggerConfig
+	loggerConfig.Skipper = func(ctx echo.Context) bool {
+		return ctx.Request().RequestURI == "/status"
+	}
+	server.Use(middleware.LoggerWithConfig(loggerConfig))
+	server.Logger.SetLevel(log2.DEBUG)
+	server.HTTPErrorHandler = func(err error, ctx echo.Context) {
+		if !ctx.Response().Committed {
+			ctx.Response().Write([]byte(err.Error()))
+			ctx.Echo().Logger.Error(err)
+		}
+	}
+	server.HTTPErrorHandler = httpErrorHandler
+	return server
+}
+
+func registerFHIRProxy(server *echo.Echo, config Config) {
+	authService, err := auth_service.NewService(config.NutsNodeAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fhirURL, err := url.Parse(config.FHIRServerAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	proxyServer := proxy.NewServer(authService, *fhirURL, config.FHIR.Proxy.Path)
+
+	// set security filter
+	server.Use(proxyServer.AuthMiddleware())
+
+	server.Any(config.FHIR.Proxy.Path+"/*", func(c echo.Context) error {
+		// Logic performed by middleware
+		return nil
+	}, proxyServer.Handler)
+}
+
+func registerEHR(server *echo.Echo, config Config) {
 	// init node API client
 	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
@@ -79,7 +141,6 @@ func main() {
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
-	//patientRepository := patients.NewSQLitePatientRepository(patients.Factory{}, sqlDB)
 
 	authService, err := auth_service.NewService(config.NutsNodeAddress)
 	if err != nil {
@@ -113,44 +174,24 @@ func main() {
 		TransferRepository:   transferRepository,
 		OrganizationRegistry: orgRegistry,
 		TransferService:      transferService,
-		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry),
+		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry, authService),
 	}
-	e := echo.New()
-	e.HideBanner = true
-	// Register Echo logger middleware but do not log calls to the status endpoint,
-	// since that gets called by the Docker healthcheck very, very often which leads to lots of clutter in the log.
-	e.GET("/status", func(c echo.Context) error {
-		c.Response().WriteHeader(http.StatusNoContent)
-		return nil
-	})
-	loggerConfig := middleware.DefaultLoggerConfig
-	loggerConfig.Skipper = func(ctx echo.Context) bool {
-		return ctx.Request().RequestURI == "/status"
-	}
-	e.Use(middleware.LoggerWithConfig(loggerConfig))
-	// JWT checking for correct claims
-	e.Use(auth.JWTHandler)
-	e.Use(sql.Transactional(sqlDB))
-	e.Logger.SetLevel(log2.DEBUG)
-	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
-		if !ctx.Response().Committed {
-			ctx.Response().Write([]byte(err.Error()))
-			ctx.Echo().Logger.Error(err)
-		}
-	}
-	e.HTTPErrorHandler = httpErrorHandler
 
-	api.RegisterHandlersWithBaseURL(e, apiWrapper, "/web")
+	// JWT checking for correct claims
+	server.Use(auth.JWTHandler)
+	server.Use(sql.Transactional(sqlDB))
+
+	// for requests that require Nuts AccesToken
+	server.Use(authMiddleware(authService))
+
+	api.RegisterHandlersWithBaseURL(server, apiWrapper, "/web")
 
 	// Setup asset serving:
 	// Check if we use live mode from the file system or using embedded files
 	useFS := len(os.Args) > 1 && os.Args[1] == "live"
 	assetHandler := http.FileServer(getFileSystem(useFS))
 
-	e.GET("/*", echo.WrapHandler(assetHandler))
-
-	// Start server
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", config.HTTPPort)))
+	server.GET("/*", echo.WrapHandler(assetHandler))
 }
 
 func registerPatients(repository patients.Repository, db *sqlx.DB, customerID string) {
@@ -245,4 +286,24 @@ func httpErrorHandler(err error, c echo.Context) {
 			c.Logger().Error(err)
 		}
 	}
+}
+
+func authMiddleware(authService auth_service.Service) echo.MiddlewareFunc {
+	config := http2.Config{
+		Skipper: func(e echo.Context) bool {
+			return e.Request().RequestURI != "/web/external/transfer/notify"
+		},
+		AccessF: func(request *http.Request, token *auth.TokenIntrospectionResponse) error {
+			service := token.Service
+			if service == nil {
+				return errors.New("access-token doesn't contain 'service' claim")
+			}
+			if *service != "eOverdracht-receiver" {
+				return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be eOverdracht-receiver", *service)
+			}
+
+			return nil
+		},
+	}
+	return http2.SecurityFilter{Auth: authService}.AuthWithConfig(config)
 }

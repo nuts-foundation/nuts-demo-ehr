@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"fmt"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
 )
@@ -9,7 +10,7 @@ import (
 // Notifier defines the API for notifying a remote care organization that an eOverdracht FHIR task has been updated,
 type Notifier interface {
 	// Notify sends a notification to the given endpoint.
-	Notify(token, endpoint, taskOwnerDID string) error
+	Notify(token, endpoint string) error
 }
 
 // fireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
@@ -17,9 +18,8 @@ type Notifier interface {
 type fireAndForgetNotifier struct {
 }
 
-func (f fireAndForgetNotifier) Notify(token, endpoint, taskOwnerDID string) error {
+func (f fireAndForgetNotifier) Notify(token, endpoint string) error {
 	response, err := resty.New().
-		SetQueryParam("taskOwnerDID", taskOwnerDID).
 		R().
 		SetBody([]byte{}).
 		SetAuthToken(token).

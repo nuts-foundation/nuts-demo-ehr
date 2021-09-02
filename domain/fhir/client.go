@@ -7,7 +7,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
 	"github.com/tidwall/gjson"
-	"strings"
+	"net/url"
+	"path"
 )
 
 type ClientOpt func(client *httpClient)
@@ -120,8 +121,8 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 	return gjson.ParseBytes(resp.Body()), nil
 }
 
-func (h httpClient) buildRequestURI(path string) string {
-	return buildRequestURI(h.url, h.tenant, path)
+func (h httpClient) buildRequestURI(fhirResourcePath string) string {
+	return buildRequestURI(h.url, h.tenant, fhirResourcePath)
 }
 
 func resolveResourcePath(resource interface{}) (string, error) {
@@ -141,18 +142,8 @@ func resolveResourcePath(resource interface{}) (string, error) {
 	return resourceType + "/" + resourceID, nil
 }
 
-func buildRequestURI(parts ...string) string {
-	result := ""
-	for i := 0; i < len(parts); i++ {
-		if parts[i] == "" {
-			continue
-		}
-		// Make sure parts are separated by exactly 1 slash
-		if result != "" && !strings.HasSuffix(result, "/") && !strings.HasPrefix(parts[i], "/") {
-			result += "/"
-		}
-		result += parts[i]
-	}
-	println(result)
-	return result
+func buildRequestURI(baseURL string, tenant string, resourcePath string) string {
+	parsedBaseURL, _ := url.Parse(baseURL)
+	parsedBaseURL.Path = path.Join("/", parsedBaseURL.Path, tenant, resourcePath)
+	return parsedBaseURL.String()
 }

@@ -1,5 +1,5 @@
 <template>
-  <modal-window title="Start a new dossier" type="add">
+  <modal-window title="Start a new dossier" type="add" :cancel-route="{name: 'ehr.patient', params: {id: this.$route.params.id}}">
     <div class="mt-4">
       <span>
         Do you want to transfer this patient to another care organization?

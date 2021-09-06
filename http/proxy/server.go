@@ -14,7 +14,6 @@ import (
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
@@ -57,12 +56,12 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 }
 
 func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
-	config := httpAuth.Config{
+	config := auth.Config{
 		Skipper: server.skipper,
 		ErrorF:  errorFunc,
 		AccessF: server.verifyAccess,
 	}
-	return httpAuth.SecurityFilter{Auth: server.auth}.AuthWithConfig(config)
+	return auth.SecurityFilter{Auth: server.auth}.AuthWithConfig(config)
 }
 
 func (server *Server) skipper(ctx echo.Context) bool {
@@ -77,7 +76,7 @@ func errorFunc(ctx echo.Context, err error) error {
 func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
-		accessToken := c.Get(httpAuth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
+		accessToken := c.Get(auth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
 		// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
 		tenant, err := server.getTenant(*accessToken.Iss)
 		if err != nil {

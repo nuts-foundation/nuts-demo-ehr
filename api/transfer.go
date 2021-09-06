@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
+	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
 

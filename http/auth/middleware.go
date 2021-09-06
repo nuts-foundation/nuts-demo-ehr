@@ -1,4 +1,4 @@
-package http
+package auth
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
@@ -32,7 +31,7 @@ type Config struct {
 }
 
 type SecurityFilter struct {
-	Auth auth.Service
+	Auth Service
 }
 
 func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {

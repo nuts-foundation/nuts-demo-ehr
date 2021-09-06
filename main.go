@@ -24,12 +24,11 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
-	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
-	httpAuthService "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
-	"github.com/nuts-foundation/nuts-demo-ehr/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -108,7 +107,7 @@ func createServer() *echo.Echo {
 }
 
 func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository) {
-	authService, err := httpAuthService.NewService(config.NutsNodeAddress)
+	authService, err := httpAuth.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,7 +143,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 
-	authService, err := httpAuthService.NewService(config.NutsNodeAddress)
+	authService, err := httpAuth.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -298,7 +297,7 @@ func httpErrorHandler(err error, c echo.Context) {
 	}
 }
 
-func authMiddleware(authService httpAuthService.Service) echo.MiddlewareFunc {
+func authMiddleware(authService httpAuth.Service) echo.MiddlewareFunc {
 	config := httpAuth.Config{
 		Skipper: func(e echo.Context) bool {
 			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")

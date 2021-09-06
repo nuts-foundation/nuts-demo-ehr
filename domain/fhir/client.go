@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"path"
+	"strconv"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
 	"github.com/tidwall/gjson"
-	"net/url"
-	"path"
 )
 
 type ClientOpt func(client *httpClient)
@@ -27,7 +29,7 @@ func WithMultiTenancyEnabled(enabled bool) ClientOpt {
 	}
 }
 
-func WithTenant(tenant string) ClientOpt {
+func WithTenant(tenant int) ClientOpt {
 	return func(client *httpClient) {
 		client.tenant = tenant
 	}
@@ -61,7 +63,7 @@ type Client interface {
 type httpClient struct {
 	restClient          *resty.Client
 	url                 string
-	tenant              string
+	tenant              int
 	multiTenancyEnabled bool
 }
 
@@ -133,7 +135,7 @@ func (h httpClient) buildRequestURI(fhirResourcePath string) string {
 		return buildRequestURI(h.url, "", fhirResourcePath)
 	}
 
-	return buildRequestURI(h.url, h.tenant, fhirResourcePath)
+	return buildRequestURI(h.url, strconv.Itoa(h.tenant), fhirResourcePath)
 }
 
 func resolveResourcePath(resource interface{}) (string, error) {

@@ -20,7 +20,11 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	transfer, err := w.TransferService.Create(ctx.Request().Context(), w.getCustomerID(ctx), string(request.DossierID), request.Description, request.TransferDate.Time)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transfer, err := w.TransferService.Create(ctx.Request().Context(), cid, string(request.DossierID), request.Description, request.TransferDate.Time)
 	if err != nil {
 		return err
 	}
@@ -28,7 +32,11 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetPatientTransfers(ctx echo.Context, params GetPatientTransfersParams) error {
-	transfers, err := w.TransferRepository.FindByPatientID(ctx.Request().Context(), w.getCustomerID(ctx), params.PatientID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transfers, err := w.TransferRepository.FindByPatientID(ctx.Request().Context(), cid, params.PatientID)
 	if err != nil {
 		return err
 	}
@@ -36,7 +44,11 @@ func (w Wrapper) GetPatientTransfers(ctx echo.Context, params GetPatientTransfer
 }
 
 func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
-	transfer, err := w.TransferRepository.FindByID(ctx.Request().Context(), w.getCustomerID(ctx), transferID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transfer, err := w.TransferRepository.FindByID(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}
@@ -44,7 +56,11 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	transferRequest, err := w.TransferService.GetTransferRequest(ctx.Request().Context(), w.getCustomerID(ctx), requestorDID, fhirTaskID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transferRequest, err := w.TransferService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
 	if err != nil {
 		return err
 	}
@@ -52,7 +68,11 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 }
 
 func (w Wrapper) AcceptTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	err := w.TransferService.AcceptTransferRequest(ctx.Request().Context(), w.getCustomerID(ctx), requestorDID, fhirTaskID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	err = w.TransferService.AcceptTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
 	if err != nil {
 		return err
 	}
@@ -65,7 +85,11 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(ctx), transferID, func(t domain.Transfer) (*domain.Transfer, error) {
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transfer, err := w.TransferRepository.Update(ctx.Request().Context(), cid, transferID, func(t domain.Transfer) (*domain.Transfer, error) {
 		t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
 		return &t, nil
@@ -74,7 +98,11 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) CancelTransfer(ctx echo.Context, transferID string) error {
-	transfer, err := w.TransferRepository.Cancel(ctx.Request().Context(), w.getCustomerID(ctx), transferID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transfer, err := w.TransferRepository.Cancel(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}
@@ -86,7 +114,11 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	negotiation, err := w.TransferService.CreateNegotiation(ctx.Request().Context(), w.getCustomerID(ctx), transferID, request.OrganizationDID, request.TransferDate.Time)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	negotiation, err := w.TransferService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID, request.TransferDate.Time)
 	if err != nil {
 		return err
 	}
@@ -99,7 +131,11 @@ func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	_, err := w.TransferRepository.Update(ctx.Request().Context(), w.getCustomerID(ctx), transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = w.TransferRepository.Update(ctx.Request().Context(), cid, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusRequested {
 			return nil, errors.New("can't assign transfer to care organization when status is not 'requested'")
@@ -110,7 +146,7 @@ func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
 		}
 		// Make sure the negotiation is accepted by the receiving care organization
 		var err error
-		negotiation, err = w.findNegotiation(ctx.Request().Context(), w.getCustomerID(ctx), transferID, string(request.NegotiationID))
+		negotiation, err = w.findNegotiation(ctx.Request().Context(), cid, transferID, string(request.NegotiationID))
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +174,11 @@ func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) error {
-	negotiations, err := w.TransferRepository.ListNegotiations(ctx.Request().Context(), w.getCustomerID(ctx), transferID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	negotiations, err := w.TransferRepository.ListNegotiations(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}
@@ -159,7 +199,11 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	negotiation, err := w.TransferRepository.UpdateNegotiationState(ctx.Request().Context(), w.getCustomerID(ctx), negotiationID, request.Status)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	negotiation, err := w.TransferRepository.UpdateNegotiationState(ctx.Request().Context(), cid, negotiationID, request.Status)
 	if err != nil {
 		return err
 	}
@@ -201,7 +245,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (w Wrapper) findNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
+func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
 	negotiations, err := w.TransferRepository.ListNegotiations(ctx, customerID, transferID)
 	if err != nil {
 		return nil, err

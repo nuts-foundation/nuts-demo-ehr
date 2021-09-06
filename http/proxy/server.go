@@ -177,13 +177,13 @@ func findNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionRes
 	return nil, errors.New("NutsAuthorizationCredential was not found in the access-token")
 }
 
-func (server *Server) getTenant(requesterDID string) (string, error) {
+func (server *Server) getTenant(requesterDID string) (int, error) {
 	customer, err := server.customerRepository.FindByDID(requesterDID)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	if customer == nil {
-		return "", errors.New("unknown tenant")
+		return 0, errors.New("unknown tenant")
 	}
 	return customer.Id, nil
 }

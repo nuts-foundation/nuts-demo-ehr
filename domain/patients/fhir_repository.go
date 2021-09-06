@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -77,7 +78,7 @@ func NewFHIRPatientRepository(factory Factory, fhirClientFactory fhir.Factory) *
 	}
 }
 
-func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID, id string) (*domain.Patient, error) {
+func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id string) (*domain.Patient, error) {
 	patient := resources.Patient{}
 	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "Patient/"+id, &patient)
 	if err != nil {
@@ -87,11 +88,11 @@ func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID, id stri
 	return &result, nil
 }
 
-func (r FHIRPatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
+func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
 	panic("implement me")
 }
 
-func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties domain.PatientProperties) (*domain.Patient, error) {
+func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties domain.PatientProperties) (*domain.Patient, error) {
 	patient, err := r.factory.NewPatientWithAvatar(patientProperties)
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID string
 	return patient, nil
 }
 
-func (r FHIRPatientRepository) All(ctx context.Context, customerID string, name *string) ([]domain.Patient, error) {
+func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *string) ([]domain.Patient, error) {
 	var params map[string]string
 	if name != nil {
 		params = map[string]string{"name": *name}

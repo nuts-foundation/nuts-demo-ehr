@@ -27,7 +27,7 @@ func NewService(customerRepository customers.Repository, repository Repository, 
 	return &Service{customerRepository: customerRepository, repository: repository, orgRegistry: organizationRegistry, authService: authService}
 }
 
-func (s Service) RegisterNotification(ctx context.Context, customerID, senderDID string) error {
+func (s Service) RegisterNotification(ctx context.Context, customerID int, senderDID string) error {
 	return s.repository.registerNotification(ctx, customerID, senderDID)
 }
 

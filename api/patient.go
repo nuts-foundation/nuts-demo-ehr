@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"strings"
@@ -17,7 +18,10 @@ type GetPatientsParams struct {
 }
 
 func (w Wrapper) GetPatients(ctx echo.Context, params GetPatientsParams) error {
-	customerID := w.getCustomerID(ctx)
+	customerID, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
 	patients, err := w.PatientRepository.All(ctx.Request().Context(), customerID, params.Name)
 	if err != nil {
 		return err
@@ -43,7 +47,11 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 		return err
 	}
 
-	patient, err := w.PatientRepository.NewPatient(ctx.Request().Context(), w.getCustomerID(ctx), patientProperties)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	patient, err := w.PatientRepository.NewPatient(ctx.Request().Context(), cid, patientProperties)
 	if err != nil {
 		return err
 	}
@@ -55,7 +63,11 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 	if err := ctx.Bind(&patientProps); err != nil {
 		return err
 	}
-	patient, err := w.PatientRepository.Update(ctx.Request().Context(), w.getCustomerID(ctx), patientID, func(c domain.Patient) (*domain.Patient, error) {
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	patient, err := w.PatientRepository.Update(ctx.Request().Context(), cid, patientID, func(c domain.Patient) (*domain.Patient, error) {
 		c.PatientProperties = patientProps
 		return &c, nil
 	})
@@ -66,7 +78,11 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 }
 
 func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
-	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), w.getCustomerID(ctx), patientID)
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), cid, patientID)
 	if err != nil {
 		return err
 	}
@@ -77,16 +93,16 @@ func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 
 }
 
-func (w Wrapper) getCustomerID(ctx echo.Context) string {
+func (w Wrapper) getCustomerID(ctx echo.Context) (int, error) {
 	customer := w.getCustomer(ctx)
 	if customer == nil {
-		return ""
+		return 0, errors.New("not found")
 	}
-	return customer.Id
+	return customer.Id, nil
 }
 
 func (w Wrapper) getCustomer(ctx echo.Context) *domain.Customer {
-	cid, ok := ctx.Get(CustomerID).(string)
+	cid, ok := ctx.Get(CustomerID).(int)
 	if !ok {
 		return nil
 	}
@@ -98,7 +114,7 @@ func (w Wrapper) getCustomer(ctx echo.Context) *domain.Customer {
 }
 
 func (w Wrapper) getCustomerDID(ctx echo.Context) *string {
-	cid, ok := ctx.Get(CustomerID).(string)
+	cid, ok := ctx.Get(CustomerID).(int)
 	if !ok {
 		return nil
 	}

@@ -8,9 +8,9 @@ import (
 )
 
 type Repository interface {
-	FindByID(ctx context.Context, customerID, id string) (*domain.Dossier, error)
-	Create(ctx context.Context, customerID, name, patientID string) (*domain.Dossier, error)
-	AllByPatient(ctx context.Context, customerID, patientID string) ([]domain.Dossier, error)
+	FindByID(ctx context.Context, customerID int, id string) (*domain.Dossier, error)
+	Create(ctx context.Context, customerID int ,name, patientID string) (*domain.Dossier, error)
+	AllByPatient(ctx context.Context, customerID int, patientID string) ([]domain.Dossier, error)
 }
 
 type Factory struct{}

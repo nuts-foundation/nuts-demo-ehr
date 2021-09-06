@@ -428,18 +428,21 @@ function createApi(options) {
 
         });
     },
-    assignTransfer(parameters) {
+    assignTransferDirect(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
+        'content-type': 'application/json',
 
       };
       handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'assignTransfer');
+          , headers, params, 'assignTransferDirect');
       return fetch(endpoint + basePath + '/private/transfer/' + params['transferID'] + '/assign'
         , {
           method: 'PUT',
           headers,
           mode,
+          body: JSON.stringify(params['body']),
+
         });
     },
     listTransferNegotiations(parameters) {

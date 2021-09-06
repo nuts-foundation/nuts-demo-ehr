@@ -135,6 +135,32 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	return negotiation, err
 }
 
-func (s service) ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
-	panic("implement me")
+func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
+	// find transfer
+	transfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
+	if err != nil {
+		return nil, err
+	}
+	if transfer == nil {
+		return nil, fmt.Errorf("transfer with ID: %s, not found", transferID)
+	}
+	negotiations, err := s.transferRepo.ListNegotiations(ctx, customerID, transferID)
+	if err != nil {
+		return nil, err
+	}
+
+	// cancel other negotiations + tasks + notifications
+	for _, negotiation := range negotiations {
+		if negotiationID != string(negotiation.Id) {
+			// this also handles the FHIR and notification stuff
+			_, err := s.CancelNegotiation(ctx, customerID, string(negotiation.Id))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// create eTransfer composition
+
+	// confirm this one + task + notification
 }

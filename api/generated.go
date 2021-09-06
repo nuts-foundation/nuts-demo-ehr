@@ -87,7 +87,7 @@ type ServerInterface interface {
 	UpdateTransfer(ctx echo.Context, transferID string) error
 
 	// (PUT /private/transfer/{transferID}/assign)
-	AssignTransfer(ctx echo.Context, transferID string) error
+	AssignTransferDirect(ctx echo.Context, transferID string) error
 
 	// (GET /private/transfer/{transferID}/negotiation)
 	ListTransferNegotiations(ctx echo.Context, transferID string) error
@@ -483,8 +483,8 @@ func (w *ServerInterfaceWrapper) UpdateTransfer(ctx echo.Context) error {
 	return err
 }
 
-// AssignTransfer converts echo context to params.
-func (w *ServerInterfaceWrapper) AssignTransfer(ctx echo.Context) error {
+// AssignTransferDirect converts echo context to params.
+func (w *ServerInterfaceWrapper) AssignTransferDirect(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "transferID" -------------
 	var transferID string
@@ -497,7 +497,7 @@ func (w *ServerInterfaceWrapper) AssignTransfer(ctx echo.Context) error {
 	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AssignTransfer(ctx, transferID)
+	err = w.Handler.AssignTransferDirect(ctx, transferID)
 	return err
 }
 
@@ -615,7 +615,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/private/transfer/:transferID", wrapper.CancelTransfer)
 	router.GET(baseURL+"/private/transfer/:transferID", wrapper.GetTransfer)
 	router.PUT(baseURL+"/private/transfer/:transferID", wrapper.UpdateTransfer)
-	router.PUT(baseURL+"/private/transfer/:transferID/assign", wrapper.AssignTransfer)
+	router.PUT(baseURL+"/private/transfer/:transferID/assign", wrapper.AssignTransferDirect)
 	router.GET(baseURL+"/private/transfer/:transferID/negotiation", wrapper.ListTransferNegotiations)
 	router.POST(baseURL+"/private/transfer/:transferID/negotiation", wrapper.StartTransferNegotiation)
 	router.PUT(baseURL+"/private/transfer/:transferID/negotiation/:negotiationID", wrapper.UpdateTransferNegotiationStatus)

@@ -55,13 +55,6 @@ const (
 	TransferNegotiationStatusStatusRequested TransferNegotiationStatusStatus = "requested"
 )
 
-// Request used to assign a transfer to a specific negotiation indicated by the negotiationID.
-type AssignTransferRequest struct {
-
-	// An internal object UUID which can be used as unique identifier for entities.
-	NegotiationID ObjectID `json:"negotiationID"`
-}
-
 // API request to create a dossier for a patient.
 type CreateDossierRequest struct {
 	Name string `json:"name"`
@@ -372,6 +365,9 @@ type CreateTransferJSONBody CreateTransferRequest
 // UpdateTransferJSONBody defines parameters for UpdateTransfer.
 type UpdateTransferJSONBody TransferProperties
 
+// AssignTransferDirectJSONBody defines parameters for AssignTransferDirect.
+type AssignTransferDirectJSONBody CreateTransferNegotiationRequest
+
 // StartTransferNegotiationJSONBody defines parameters for StartTransferNegotiation.
 type StartTransferNegotiationJSONBody CreateTransferNegotiationRequest
 
@@ -401,6 +397,9 @@ type CreateTransferJSONRequestBody CreateTransferJSONBody
 
 // UpdateTransferJSONRequestBody defines body for UpdateTransfer for application/json ContentType.
 type UpdateTransferJSONRequestBody UpdateTransferJSONBody
+
+// AssignTransferDirectJSONRequestBody defines body for AssignTransferDirect for application/json ContentType.
+type AssignTransferDirectJSONRequestBody AssignTransferDirectJSONBody
 
 // StartTransferNegotiationJSONRequestBody defines body for StartTransferNegotiation for application/json ContentType.
 type StartTransferNegotiationJSONRequestBody StartTransferNegotiationJSONBody

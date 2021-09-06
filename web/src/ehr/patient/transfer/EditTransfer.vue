@@ -44,7 +44,8 @@
           {{ requestedOrganization.name }}
         </td>
         <td v-if="!!requestedOrganization">
-          <button class="btn btn-primary" @click="startNegotiation">Request</button>
+          <button class="btn btn-primary" @click="assignOrganization">Assign</button>
+          <button class="btn" @click="startNegotiation">Request</button>
           <button class="btn" @click="cancelOrganization">Cancel</button>
         </td>
       </tr>
@@ -135,6 +136,19 @@ export default {
             this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
           })
           .catch(error => this.$status.error(error))
+    },
+    assignOrganization() {
+      const negotiation = {
+        transferID: this.transfer.id,
+        body: {
+          organizationDID: this.requestedOrganization.did
+        }
+      };
+      this.$api.assignTransferDirect(negotiation)
+          .then(() => {
+            this.requestedOrganization = null
+            this.fetchTransfer(this.transfer.id)
+          })
     },
     startNegotiation() {
       const negotiation = {

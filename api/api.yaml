@@ -245,14 +245,16 @@ paths:
       description: >
         Assign the transfer of a patient to a care organization that accepted the transfer negotiation.
         Calling this operation will update the state of the negotiation to "inProgress" and the transfer to "assigned".
-      operationId: assignTransfer
+      operationId: assignTransferDirect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferNegotiationRequest'
       responses:
-        200:
+        204:
           description: Transfer accepted.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssignTransferRequest'
         404:
           description: Transfer or negotiation not found
         400:

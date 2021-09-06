@@ -25,7 +25,7 @@ type Service interface {
 	// The updates the status to ACCEPTED_STATE.
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
 	// by setting their status to CANCELLED_STATE.
-	ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+	ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)

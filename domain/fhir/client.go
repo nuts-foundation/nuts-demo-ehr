@@ -21,6 +21,12 @@ func WithURL(serverURL string) ClientOpt {
 	}
 }
 
+func WithMultiTenancyEnabled(enabled bool) ClientOpt {
+	return func(client *httpClient) {
+		client.multiTenancyEnabled = enabled
+	}
+}
+
 func WithTenant(tenant string) ClientOpt {
 	return func(client *httpClient) {
 		client.tenant = tenant
@@ -53,9 +59,10 @@ type Client interface {
 }
 
 type httpClient struct {
-	restClient *resty.Client
-	url        string
-	tenant     string
+	restClient          *resty.Client
+	url                 string
+	tenant              string
+	multiTenancyEnabled bool
 }
 
 func (h httpClient) String() string {
@@ -122,6 +129,10 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 }
 
 func (h httpClient) buildRequestURI(fhirResourcePath string) string {
+	if !h.multiTenancyEnabled {
+		return buildRequestURI(h.url, "", fhirResourcePath)
+	}
+
 	return buildRequestURI(h.url, h.tenant, fhirResourcePath)
 }
 
@@ -145,5 +156,6 @@ func resolveResourcePath(resource interface{}) (string, error) {
 func buildRequestURI(baseURL string, tenant string, resourcePath string) string {
 	parsedBaseURL, _ := url.Parse(baseURL)
 	parsedBaseURL.Path = path.Join("/", parsedBaseURL.Path, tenant, resourcePath)
+
 	return parsedBaseURL.String()
 }

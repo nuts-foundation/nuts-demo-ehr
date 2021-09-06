@@ -23,28 +23,37 @@ import (
 var fhirServerTenant = struct{}{}
 
 type Server struct {
-	proxy              *httputil.ReverseProxy
-	auth               auth.Service
-	path               string
-	customerRepository customers.Repository
+	proxy               *httputil.ReverseProxy
+	auth                auth.Service
+	path                string
+	customerRepository  customers.Repository
+	multiTenancyEnabled bool
 }
 
-func NewServer(authService auth.Service, customerRepository customers.Repository, targetURL url.URL, path string) *Server {
+func NewServer(authService auth.Service, customerRepository customers.Repository, targetURL url.URL, path string, multiTenancyEnabled bool) *Server {
 	server := &Server{
-		path:               path,
-		auth:               authService,
-		customerRepository: customerRepository,
+		path:                path,
+		auth:                authService,
+		customerRepository:  customerRepository,
+		multiTenancyEnabled: multiTenancyEnabled,
 	}
+
 	server.proxy = &httputil.ReverseProxy{
 		// Does not support query parameters in targetURL
 		Director: func(req *http.Request) {
-			tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
-
 			req.URL.Scheme = targetURL.Scheme
 			req.URL.Host = targetURL.Host
 			req.URL.RawPath = "" // Not required?
-			req.URL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+
+			if server.multiTenancyEnabled {
+				tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
+				req.URL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+			} else {
+				req.URL.Path = targetURL.Path + req.URL.Path[len(path):]
+			}
+
 			logrus.Debugf("Rewritten to: %s", req.URL.Path)
+
 			if _, ok := req.Header["User-Agent"]; !ok {
 				// explicitly disable User-Agent so it's not set to default value
 				req.Header.Set("User-Agent", "")
@@ -61,6 +70,7 @@ func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
 		ErrorF:  errorFunc,
 		AccessF: server.verifyAccess,
 	}
+
 	return auth.SecurityFilter{Auth: server.auth}.AuthWithConfig(config)
 }
 
@@ -77,14 +87,22 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
 		accessToken := c.Get(auth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
-		// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
-		tenant, err := server.getTenant(*accessToken.Iss)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, NewOperationOutcome(err, err.Error(), CodeSecurity, SeverityError))
-		}
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), fhirServerTenant, tenant)))
 
-		server.proxy.ServeHTTP(c.Response().Writer, c.Request())
+		if server.multiTenancyEnabled {
+			// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
+			tenant, err := server.getTenant(*accessToken.Iss)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, NewOperationOutcome(err, err.Error(), CodeSecurity, SeverityError))
+			}
+
+			c.SetRequest(c.Request().WithContext(context.WithValue(
+				c.Request().Context(),
+				fhirServerTenant,
+				tenant,
+			)))
+		}
+
+		server.proxy.ServeHTTP(c.Response(), c.Request())
 
 		return nil
 	}

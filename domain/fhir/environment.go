@@ -9,11 +9,7 @@ import (
 )
 
 // InitializeTenant sets up the FHIR server for the given tenant, if the FHIR server if of a supported type.
-func InitializeTenant(fhirServerType string, fhirServerURL string, tenant string) error {
-	if fhirServerType != "hapi" {
-		return nil
-	}
-
+func InitializeTenant(fhirServerURL string, tenant string) error {
 	restClient := resty.New()
 
 	// Check if tenant already exists

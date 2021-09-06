@@ -33,7 +33,6 @@ const defaultCustomerFile = "customers.json"
 
 // defaultHAPIFHIRServer configures usage of the HAPI FHIR Server (https://hapifhir.io/)
 var defaultHAPIFHIRServer = FHIRServer{
-	Type:    "hapi",
 	Address: "http://localhost:8080/fhir",
 }
 
@@ -81,6 +80,10 @@ type FHIR struct {
 type FHIRServer struct {
 	Type    string `koanf:"type"`
 	Address string `koanf:"address"`
+}
+
+func (server FHIRServer) SupportsMultiTenancy() bool {
+	return server.Type == "hapi-multi-tenant"
 }
 
 type FHIRProxy struct {

@@ -69,10 +69,16 @@ func main() {
 	config := loadConfig()
 	config.Print(log.Writer())
 
+	if config.FHIR.Server.Type == "" {
+		logrus.Fatal("Invalid FHIR server type, valid options are: 'hapi-multi-tenant', 'hapi' or 'other'")
+	}
+
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 
 	server := createServer()
+
 	registerEHR(server, config, customerRepository)
+
 	if config.FHIR.Proxy.Enable {
 		registerFHIRProxy(server, config, customerRepository)
 	}
@@ -116,7 +122,7 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 	if err != nil {
 		log.Fatal(err)
 	}
-	proxyServer := proxy.NewServer(authService, customerRepository, *fhirURL, config.FHIR.Proxy.Path)
+	proxyServer := proxy.NewServer(authService, customerRepository, *fhirURL, config.FHIR.Proxy.Path, config.FHIR.Server.SupportsMultiTenancy())
 
 	// set security filter
 	server.Use(proxyServer.AuthMiddleware())
@@ -148,14 +154,18 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		log.Fatal(err)
 	}
 
-	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address))
+	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address), fhir.WithMultiTenancyEnabled(config.FHIR.Server.SupportsMultiTenancy()))
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, orgRegistry, vcRegistry)
 	tenantInitializer := func(tenant string) error {
-		return fhir.InitializeTenant(config.FHIR.Server.Type, config.FHIR.Server.Address, tenant)
+		if !config.FHIR.Server.SupportsMultiTenancy() {
+			return nil
+		}
+
+		return fhir.InitializeTenant(config.FHIR.Server.Address, tenant)
 	}
 
 	if config.LoadTestPatients {

@@ -73,6 +73,10 @@ Configuration explanation:
 - `hapi.fhir.fhir_version=DSTU3` indicates FHIR version STU3 is used
 - `hapi.fhir.partitioning.allow_references_across_partitions=false` signals HAPI server to enable partitioning, which allows multi-tenancy.
 
+### FHIR server type
+
+If you're using the HAPI FHIR docker image or any other HAPI FHIR server with support for multi-tenancy you should set the `fhir.server.type` option to: `hapi-multi-tenant` otherwise choose either `hapi` (for a single-tenant HAPI FHIR server) or `other`.
+
 ### Nuts-node
 
 The Demo-EHR needs a connection to a running Nuts node. The `customers.json` file also needs to be in sync with the DIDs known to the Nuts node.

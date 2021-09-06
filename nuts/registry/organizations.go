@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/client/didman"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/didman"
 )
 
 const cacheMaxAge = 10 * time.Second

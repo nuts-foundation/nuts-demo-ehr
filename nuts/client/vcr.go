@@ -6,8 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/client/vcr"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 )
+
+type VCRClient interface {
+	GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error)
+	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
+}
 
 func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
 	return c.searchVCR(ctx, organizationConcept, []vcr.KeyValuePair{
@@ -42,7 +47,7 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 }
 
 func (c HTTPClient) searchVCR(ctx context.Context, concept string, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {
-	response, err := c.vcr().Search(ctx, concept, vcr.SearchJSONRequestBody{Params: params})
+	response, err := c.vcr().Search(ctx, concept, &vcr.SearchParams{}, vcr.SearchJSONRequestBody{Params: params})
 	if err != nil {
 		return nil, err
 	}

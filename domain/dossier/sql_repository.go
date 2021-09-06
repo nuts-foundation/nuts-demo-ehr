@@ -2,9 +2,9 @@ package dossier
 
 import (
 	"context"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"database/sql"
 	"errors"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -111,4 +111,3 @@ func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID, p
 	}
 	return result, nil
 }
-

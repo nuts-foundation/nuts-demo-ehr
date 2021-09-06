@@ -3,16 +3,17 @@ package inbox
 import (
 	"context"
 	"fmt"
-	"github.com/monarko/fhirgo/STU3/resources"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
-	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
+
+	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {

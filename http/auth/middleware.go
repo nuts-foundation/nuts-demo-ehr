@@ -1,4 +1,4 @@
-package http
+package auth
 
 import (
 	"errors"
@@ -7,8 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
+	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
 const AccessToken = "accessToken"
@@ -19,9 +18,9 @@ func DefaultErrorFunc(c echo.Context, err error) error {
 	return err
 }
 
-type AccessFunc func(request *http.Request, token *client.TokenIntrospectionResponse) error
+type AccessFunc func(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error
 
-func DefaultAccessFunc(request *http.Request, token *client.TokenIntrospectionResponse) error {
+func DefaultAccessFunc(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 	return nil
 }
 
@@ -32,7 +31,7 @@ type Config struct {
 }
 
 type SecurityFilter struct {
-	Auth auth.Service
+	Auth Service
 }
 
 func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
@@ -69,7 +68,7 @@ func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
 	}
 }
 
-func (filter SecurityFilter) parseAccessToken(c echo.Context) (*client.TokenIntrospectionResponse, error) {
+func (filter SecurityFilter) parseAccessToken(c echo.Context) (*nutsAuthClient.TokenIntrospectionResponse, error) {
 	bearerToken, err := filter.Auth.ParseBearerToken(c.Request())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the bearer token: %w", err)

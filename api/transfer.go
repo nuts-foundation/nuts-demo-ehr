@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
-	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
+	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
+	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
@@ -169,12 +169,12 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
-	rawToken := ctx.Get(http2.AccessToken)
+	rawToken := ctx.Get(httpAuth.AccessToken)
 	if rawToken == nil {
 		// should have been caught by security filter
 		return errors.New("missing access-token")
 	}
-	token, ok := rawToken.(client.TokenIntrospectionResponse)
+	token, ok := rawToken.(nutsAuthClient.TokenIntrospectionResponse)
 	if !ok {
 		// should have been caught by security filter
 		return errors.New("missing access-token")

@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
+
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
@@ -13,12 +14,12 @@ type VerifiableCredentialRegistry interface {
 }
 
 type httpVerifiableCredentialRegistry struct {
-	client *client.HTTPClient
+	nutsClient nutsClient.VCRClient
 }
 
-func NewVerifiableCredentialRegistry(client *client.HTTPClient) VerifiableCredentialRegistry {
+func NewVerifiableCredentialRegistry(client *nutsClient.HTTPClient) VerifiableCredentialRegistry {
 	return &httpVerifiableCredentialRegistry{
-		client: client,
+		nutsClient: client,
 	}
 }
 
@@ -42,5 +43,5 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 		return fmt.Errorf("invalid subject: %w", err)
 	}
 
-	return registry.client.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
+	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
 }

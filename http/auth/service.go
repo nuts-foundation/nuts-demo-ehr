@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/labstack/gommon/log"
 	"net/http"
 	"net/url"
 
+	"github.com/labstack/gommon/log"
+	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
+
 	"github.com/nuts-foundation/go-did/vc"
-	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 )
 
 var (
@@ -20,17 +21,17 @@ var (
 )
 
 type Service interface {
-	RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error)
-	IntrospectAccessToken(ctx context.Context, accessToken string) (*client.TokenIntrospectionResponse, error)
+	RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*nutsAuthClient.AccessTokenResponse, error)
+	IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsAuthClient.TokenIntrospectionResponse, error)
 	ParseBearerToken(request *http.Request) (string, error)
 }
 
 type authService struct {
-	client *client.ClientWithResponses
+	client *nutsAuthClient.ClientWithResponses
 }
 
 func NewService(server string) (Service, error) {
-	authClient, err := client.NewClientWithResponses(server)
+	authClient, err := nutsAuthClient.NewClientWithResponses(server)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +41,8 @@ func NewService(server string) (Service, error) {
 	}, nil
 }
 
-func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*client.AccessTokenResponse, error) {
-	httpResponse, err := s.client.RequestAccessToken(ctx, client.RequestAccessTokenJSONRequestBody{
+func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, service string, vcs []vc.VerifiableCredential) (*nutsAuthClient.AccessTokenResponse, error) {
+	httpResponse, err := s.client.RequestAccessToken(ctx, nutsAuthClient.RequestAccessTokenJSONRequestBody{
 		Actor:       actor,
 		Custodian:   custodian,
 		Service:     service,
@@ -51,7 +52,7 @@ func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, 
 		return nil, err
 	}
 
-	response, err := client.ParseRequestAccessTokenResponse(httpResponse)
+	response, err := nutsAuthClient.ParseRequestAccessTokenResponse(httpResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (s *authService) RequestAccessToken(ctx context.Context, actor, custodian, 
 	return response.JSON200, nil
 }
 
-func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken string) (*client.TokenIntrospectionResponse, error) {
+func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsAuthClient.TokenIntrospectionResponse, error) {
 	values := &url.Values{}
 	values.Set("token", accessToken)
 
@@ -73,7 +74,7 @@ func (s *authService) IntrospectAccessToken(ctx context.Context, accessToken str
 		return nil, err
 	}
 
-	response, err := client.ParseIntrospectAccessTokenResponse(httpResponse)
+	response, err := nutsAuthClient.ParseIntrospectAccessTokenResponse(httpResponse)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 )
 
@@ -28,7 +27,6 @@ type Auth struct {
 	sessions map[string]Session
 	// mux is used to secure access to internal state of this struct to prevent racy behaviour
 	mux        sync.Mutex
-	nodeClient client.HTTPClient
 	customers  customers.Repository
 	password   string
 	sessionKey *ecdsa.PrivateKey
@@ -46,10 +44,9 @@ type JWTCustomClaims struct {
 	jwt2.StandardClaims
 }
 
-func NewAuth(key *ecdsa.PrivateKey, nodeClient client.HTTPClient, customers customers.Repository, passwd string) *Auth {
+func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd string) *Auth {
 	return &Auth{
 		sessionKey: key,
-		nodeClient: nodeClient,
 		customers:  customers,
 		sessions:   map[string]Session{},
 		password:   passwd,

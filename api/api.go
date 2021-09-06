@@ -4,16 +4,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"net/http"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
@@ -32,8 +32,8 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 }
 
 type Wrapper struct {
-	Auth                 *Auth
-	Client               client.HTTPClient
+	APIAuth              *Auth
+	NutsAuth             nutsClient.Auth
 	CustomerRepository   customers.Repository
 	PatientRepository    patients.Repository
 	DossierRepository    dossier.Repository
@@ -55,7 +55,7 @@ func (w Wrapper) SetCustomer(ctx echo.Context) error {
 		return err
 	}
 
-	token, err := w.Auth.CreateCustomerJWT(customer.Id)
+	token, err := w.APIAuth.CreateCustomerJWT(customer.Id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -72,11 +72,11 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
-	sessionId, err := w.Auth.AuthenticatePassword(req.CustomerID, req.Password)
+	sessionId, err := w.APIAuth.AuthenticatePassword(req.CustomerID, req.Password)
 	if err != nil {
 		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
-	token, err := w.Auth.CreateSessionJWT(req.CustomerID, sessionId)
+	token, err := w.APIAuth.CreateSessionJWT(req.CustomerID, sessionId)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -96,7 +96,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	}
 
 	// forward to node
-	bytes, err := w.Client.CreateIrmaSession(*customer)
+	bytes, err := w.NutsAuth.CreateIrmaSession(*customer)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
 	// current customerID
-	token, err := w.Auth.extractJWTFromHeader(ctx)
+	token, err := w.APIAuth.extractJWTFromHeader(ctx)
 	if err != nil {
 		ctx.Echo().Logger.Error(err)
 		return ctx.NoContent(http.StatusUnauthorized)
@@ -120,15 +120,15 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	// forward to node
-	bytes, err := w.Client.GetIrmaSessionResult(sessionToken)
+	bytes, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
 	if err != nil {
 		return err
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	sessionID := w.Auth.StoreVP(customerID.(string), base64String)
+	sessionID := w.APIAuth.StoreVP(customerID.(string), base64String)
 
-	newToken, err := w.Auth.CreateSessionJWT(customerID.(string), sessionID)
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(string), sessionID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

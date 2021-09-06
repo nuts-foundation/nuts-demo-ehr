@@ -17,18 +17,18 @@ import (
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
-	"github.com/nuts-foundation/nuts-demo-ehr/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	auth_service "github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
-	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
+	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
+	httpAuthService "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
@@ -108,7 +108,7 @@ func createServer() *echo.Echo {
 }
 
 func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository) {
-	authService, err := auth_service.NewService(config.NutsNodeAddress)
+	authService, err := httpAuthService.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,8 +129,8 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 }
 
 func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository) {
-	// init node API client
-	nodeClient := client.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
+	// init node API nutsClient
+	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
 	var passwd string
 	if config.Credentials.Empty() {
@@ -144,7 +144,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 
-	authService, err := auth_service.NewService(config.NutsNodeAddress)
+	authService, err := httpAuthService.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -171,12 +171,12 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 			registerPatients(patientRepository, sqlDB, customer.Id)
 		}
 	}
-	auth := api.NewAuth(config.sessionKey, nodeClient, customerRepository, passwd)
+	auth := api.NewAuth(config.sessionKey, customerRepository, passwd)
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		Auth:                 auth,
-		Client:               nodeClient,
+		APIAuth:              auth,
+		NutsAuth:             nodeClient,
 		CustomerRepository:   customerRepository,
 		PatientRepository:    patientRepository,
 		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
@@ -298,12 +298,12 @@ func httpErrorHandler(err error, c echo.Context) {
 	}
 }
 
-func authMiddleware(authService auth_service.Service) echo.MiddlewareFunc {
-	config := http2.Config{
+func authMiddleware(authService httpAuthService.Service) echo.MiddlewareFunc {
+	config := httpAuth.Config{
 		Skipper: func(e echo.Context) bool {
 			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")
 		},
-		AccessF: func(request *http.Request, token *auth.TokenIntrospectionResponse) error {
+		AccessF: func(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 			service := token.Service
 			if service == nil {
 				return errors.New("access-token doesn't contain 'service' claim")
@@ -315,5 +315,5 @@ func authMiddleware(authService auth_service.Service) echo.MiddlewareFunc {
 			return nil
 		},
 	}
-	return http2.SecurityFilter{Auth: authService}.AuthWithConfig(config)
+	return httpAuth.SecurityFilter{Auth: authService}.AuthWithConfig(config)
 }

@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"time"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	registry2 "github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/datatypes"
@@ -13,11 +16,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/registry"
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 )
 
@@ -56,13 +57,13 @@ type service struct {
 	transferRepo           Repository
 	auth                   auth.Service
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
-	customerRepo           customers.Repository
-	registry               registry.OrganizationRegistry
-	vcr                    registry.VerifiableCredentialRegistry
-	notifier               Notifier
+	customerRepo customers.Repository
+	registry     registry2.OrganizationRegistry
+	vcr          registry2.VerifiableCredentialRegistry
+	notifier     Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry2.OrganizationRegistry, vcr registry2.VerifiableCredentialRegistry) *service {
 	return &service{
 		auth:                   authService,
 		localFHIRClientFactory: localFHIRClientFactory,

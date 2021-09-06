@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
-	client "github.com/nuts-foundation/nuts-demo-ehr/client/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/auth"
+	"github.com/nuts-foundation/go-did/vc"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	http2 "github.com/nuts-foundation/nuts-demo-ehr/http"
+	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
@@ -23,9 +24,9 @@ import (
 var fhirServerTenant = struct{}{}
 
 type Server struct {
-	proxy              *httputil.ReverseProxy
-	auth               auth.Service
-	path               string
+	proxy *httputil.ReverseProxy
+	auth  auth.Service
+	path  string
 	customerRepository customers.Repository
 }
 
@@ -56,12 +57,12 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 }
 
 func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
-	config := http2.Config{
+	config := httpAuth.Config{
 		Skipper: server.skipper,
 		ErrorF:  errorFunc,
 		AccessF: server.verifyAccess,
 	}
-	return http2.SecurityFilter{Auth: server.auth}.AuthWithConfig(config)
+	return httpAuth.SecurityFilter{Auth: server.auth}.AuthWithConfig(config)
 }
 
 func (server *Server) skipper(ctx echo.Context) bool {
@@ -76,7 +77,7 @@ func errorFunc(ctx echo.Context, err error) error {
 func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
-		accessToken := c.Get(http2.AccessToken).(client.TokenIntrospectionResponse)
+		accessToken := c.Get(httpAuth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
 		// Enrich request with resource owner's FHIR server tenant, which is the customer's ID
 		tenant, err := server.getTenant(*accessToken.Iss)
 		if err != nil {
@@ -90,7 +91,7 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func (server *Server) verifyAccess(request *http.Request, token *client.TokenIntrospectionResponse) error {
+func (server *Server) verifyAccess(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 	route := parseRoute(request)
 
 	// check purposeOfUse/service
@@ -143,7 +144,7 @@ func (server *Server) verifyAccess(request *http.Request, token *client.TokenInt
 	return nil
 }
 
-func findNutsAuthorizationCredential(token *client.TokenIntrospectionResponse) (*vc.VerifiableCredential, error) {
+func findNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionResponse) (*vc.VerifiableCredential, error) {
 	if token.Vcs != nil {
 		for _, verifiableCredential := range *token.Vcs {
 			types := credential.ExtractTypes(verifiableCredential)

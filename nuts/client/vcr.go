@@ -6,8 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/client/vcr"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 )
+
+type VCRClient interface {
+	GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error)
+	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
+}
 
 func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
 	return c.searchVCR(ctx, organizationConcept, []vcr.KeyValuePair{

@@ -18,7 +18,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 )
 
@@ -209,26 +208,7 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requ
 }
 
 func (s service) Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
-	elements := map[string]interface{}{
-		"title": "Aanmeldbericht",
-		"type":  fhir.LoincAdvanceNoticeType,
-		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
-		// has patient in care to protect the identity of the patient during the negotiation phase.
-		//"subject":  fhir.Reference{Reference: "Patient/Anonymous"},
-		"author": eoverdracht.Practitioner{
-			// TODO: Derive from authenticated user?
-			Identifier: datatypes.Identifier{
-				System: &fhir.UZICodingSystem,
-				Value:  fhir.ToStringPtr("12345"),
-			},
-			Name: &datatypes.HumanName{
-				Family: fhir.ToStringPtr("Demo EHR"),
-				Given:  []datatypes.String{"Nuts"},
-			},
-		},
-		// TODO: sections
-	}
-	composition := fhir.BuildNewComposition(elements)
+	composition := fhir.BuildAdvanceNotice()
 	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition)
 	if err != nil {
 		return nil, err

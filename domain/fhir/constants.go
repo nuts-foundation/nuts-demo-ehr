@@ -21,6 +21,7 @@ var (
 	SnomedNursingHandoffCode  datatypes.Code = "371535009"
 )
 
+var NursingHandoffDisplay datatypes.String = "verslag van zorg"
 var TransferDisplay datatypes.String = "Overdracht van zorg"
 
 /* Short-hand types */
@@ -30,4 +31,12 @@ var LoincAdvanceNoticeType = datatypes.CodeableConcept{
 		Code:   &LoincAdvanceNoticeCode,
 	}},
 	Text: ToStringPtr("Aanmeldbericht"),
+}
+
+var SnomedNursingHandoffType = datatypes.CodeableConcept{
+	Coding: []datatypes.Coding{{
+		System: &SnomedCodingSystem,
+		Code:   &SnomedNursingHandoffCode,
+		Display: &NursingHandoffDisplay,
+	}},
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -34,12 +35,12 @@ type Auth struct {
 
 type Session struct {
 	credential interface{}
-	customerID string
+	customerID int
 	startTime  time.Time
 }
 
 type JWTCustomClaims struct {
-	CustomerID string `json:"cis"`
+	CustomerID int    `json:"cis"`
 	SessionID  string `json:"sid"`
 	jwt2.StandardClaims
 }
@@ -54,7 +55,7 @@ func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd strin
 }
 
 // CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
-func (auth *Auth) CreateCustomerJWT(customerId string) ([]byte, error) {
+func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
@@ -64,7 +65,7 @@ func (auth *Auth) CreateCustomerJWT(customerId string) ([]byte, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(customerId string, session string) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(customerId int, session string) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
@@ -75,7 +76,7 @@ func (auth *Auth) CreateSessionJWT(customerId string, session string) ([]byte, e
 }
 
 // StoreVP stores the given VP under a new identifier or existing identifier
-func (auth *Auth) StoreVP(customerID string, VP string) string {
+func (auth *Auth) StoreVP(customerID int, VP string) string {
 	return auth.createSession(customerID, VP)
 }
 
@@ -96,18 +97,25 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get sessionID from token")
 				}
 
-				if customerId, ok := token.Get(CustomerID); !ok {
+				var (
+					customerId interface{}
+					fid float64
+					ok bool
+				)
+				if customerId, ok = token.Get(CustomerID); !ok {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get customerID from token")
-				} else {
-					ctx.Set(CustomerID, customerId)
 				}
+				if fid, ok = customerId.(float64); !ok {
+					return echo.NewHTTPError(http.StatusUnauthorized, "could not convert customerID from token")
+				}
+				ctx.Set(CustomerID, int(fid))
 			}
 		}
 		return next(ctx)
 	}
 }
 
-func (auth *Auth) AuthenticatePassword(customerID string, password string) (string, error) {
+func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, error) {
 	_, err := auth.customers.FindByID(customerID)
 	if err != nil {
 		return "", errors.New("invalid customer ID")
@@ -115,11 +123,11 @@ func (auth *Auth) AuthenticatePassword(customerID string, password string) (stri
 	if auth.password != password {
 		return "", errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, customerID+password)
+	token := auth.createSession(customerID, fmt.Sprintf("%d%s", customerID, password))
 	return token, nil
 }
 
-func (auth *Auth) createSession(customerID string, credential interface{}) string {
+func (auth *Auth) createSession(customerID int, credential interface{}) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 

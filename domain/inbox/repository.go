@@ -13,7 +13,7 @@ import (
 const notificationSchema = `
 	CREATE TABLE IF NOT EXISTS notification (
 		id char(36) NOT NULL,
-		customer_id varchar(100) NOT NULL,
+		customer_id integer(11) NOT NULL,
 		sender_did varchar(100) NOT NULL,
 		date DATETIME NOT NULL,
 		PRIMARY KEY (id)
@@ -31,7 +31,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 type sqlNotification struct {
 	ID         string    `db:"id"`
-	CustomerID string    `db:"customer_id"`
+	CustomerID int        `db:"customer_id"`
 	SenderDID  string    `db:"sender_did"`
 	Date       time.Time `db:"date"`
 }
@@ -40,7 +40,7 @@ type Repository struct {
 	db *sqlx.DB
 }
 
-func (f Repository) getAll(ctx context.Context, customerID string) ([]sqlNotification, error) {
+func (f Repository) getAll(ctx context.Context, customerID int) ([]sqlNotification, error) {
 	const query = `SELECT * FROM notification WHERE customer_id = ?`
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
@@ -56,7 +56,7 @@ func (f Repository) getAll(ctx context.Context, customerID string) ([]sqlNotific
 	return result, nil
 }
 
-func (f Repository) registerNotification(ctx context.Context, customerID, senderDID string) error {
+func (f Repository) registerNotification(ctx context.Context, customerID int, senderDID string) error {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return err

@@ -41,7 +41,7 @@ type Wrapper struct {
 	OrganizationRegistry registry.OrganizationRegistry
 	TransferService      transfer.Service
 	Inbox                *inbox.Service
-	TenantInitializer    func(tenant string) error
+	TenantInitializer    func(tenant int) error
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -126,9 +126,9 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	sessionID := w.APIAuth.StoreVP(customerID.(string), base64String)
+	sessionID := w.APIAuth.StoreVP(customerID.(int), base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(string), sessionID)
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(int), sessionID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -139,7 +139,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 func (w Wrapper) GetCustomer(ctx echo.Context) error {
 	customerID := ctx.Get(CustomerID)
 
-	customer, err := w.CustomerRepository.FindByID(customerID.(string))
+	customer, err := w.CustomerRepository.FindByID(customerID.(int))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}

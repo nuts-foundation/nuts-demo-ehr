@@ -30,27 +30,27 @@ const SenderServiceName = "eOverdracht-sender"
 
 type Service interface {
 	// Create creates a new transfer
-	Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
 
-	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
 	// ProposeAlternateDate updates the date on the domain.TransferNegotiation indicated by the negotiationID.
 	// It updates the status to ON_HOLD_STATE
-	ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
+	ProposeAlternateDate(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// ConfirmNegotiation confirms the negotiation indicated by the negotiationID.
 	// The updates the status to ACCEPTED_STATE.
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
 	// by setting their status to CANCELLED_STATE.
-	ConfirmNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
+	ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 
-	CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error)
+	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
-	GetTransferRequest(ctx context.Context, customerID, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 
 	// AcceptTransferRequest accepts the given transfer request, allowing the sending organization to assign the patient transfer to the local organization
-	AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error
+	AcceptTransferRequest(ctx context.Context, customerID int, requestorDID, fhirTaskID string) error
 }
 
 type service struct {
@@ -75,7 +75,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
+func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 	return negotiation, err
 }
 
-func (s service) GetTransferRequest(ctx context.Context, customerID string, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
+func (s service) GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID string, requ
 	}, nil
 }
 
-func (s service) AcceptTransferRequest(ctx context.Context, customerID, requestorDID, fhirTaskID string) error {
+func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requestorDID, fhirTaskID string) error {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return err
@@ -208,7 +208,7 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID, requesto
 	return client().CreateOrUpdate(ctx, task)
 }
 
-func (s service) Create(ctx context.Context, customerID string, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
+func (s service) Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
 	elements := map[string]interface{}{
 		"title": "Aanmeldbericht",
 		"type":  fhir.LoincAdvanceNoticeType,
@@ -240,15 +240,15 @@ func (s service) Create(ctx context.Context, customerID string, dossierID string
 	return transfer, nil
 }
 
-func (s service) ProposeAlternateDate(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+func (s service) ProposeAlternateDate(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
 }
 
-func (s service) ConfirmNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+func (s service) ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
 }
 
-func (s service) CancelNegotiation(ctx context.Context, customerID, negotiationID string) (*domain.TransferNegotiation, error) {
+func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
 }
 

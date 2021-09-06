@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -160,12 +161,12 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, orgRegistry, vcRegistry)
-	tenantInitializer := func(tenant string) error {
+	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil
 		}
 
-		return fhir.InitializeTenant(config.FHIR.Server.Address, tenant)
+		return fhir.InitializeTenant(config.FHIR.Server.Address, strconv.Itoa(tenant))
 	}
 
 	if config.LoadTestPatients {
@@ -213,7 +214,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	server.GET("/*", echo.WrapHandler(assetHandler))
 }
 
-func registerPatients(repository patients.Repository, db *sqlx.DB, customerID string) {
+func registerPatients(repository patients.Repository, db *sqlx.DB, customerID int) {
 	pdate := func(value time.Time) *openapi_types.Date {
 		val := openapi_types.Date{value}
 		return &val

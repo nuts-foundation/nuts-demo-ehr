@@ -25,8 +25,8 @@ func TestSQLiteDossierRepository_Create(t *testing.T) {
 
 	var newDossier *domain.Dossier
 	var err error
-	sql.ExecuteTransactional(db, func(ctx context.Context) error {
-		newDossier, err = repo.Create(ctx, "c1", "Broken leg", "p1")
+	err = sql.ExecuteTransactional(db, func(ctx context.Context) error {
+		newDossier, err = repo.Create(ctx, 1, "Broken leg", "p1")
 		return err
 	})
 
@@ -36,7 +36,7 @@ func TestSQLiteDossierRepository_Create(t *testing.T) {
 	assert.NotEmpty(t, newDossier.Id)
 
 	query := "SELECT * FROM `dossier` WHERE customer_id = ? ORDER BY id ASC"
-	rows, err := db.Queryx(query, "c1")
+	rows, err := db.Queryx(query, 1)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -48,5 +48,5 @@ func TestSQLiteDossierRepository_Create(t *testing.T) {
 	assert.Equal(t, string(newDossier.Id), dbDossier.ID)
 	assert.Equal(t, "Broken leg", dbDossier.Name)
 	assert.Equal(t, "p1", dbDossier.PatientID)
-	assert.Equal(t, "c1", dbDossier.CustomerID)
+	assert.Equal(t, 1, dbDossier.CustomerID)
 }

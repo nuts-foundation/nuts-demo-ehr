@@ -518,9 +518,9 @@ components:
         - active
       properties:
         id:
-          type: string
+          type: integer
           description: The internal customer ID.
-          example: "C12"
+          example: 1
         did:
           type: string
           description: The customer DID.
@@ -607,7 +607,7 @@ components:
       properties:
         customerID:
           description: Internal ID of the customer for which is being logged in
-          type: string
+          type: integer
           example: 1
     PasswordAuthenticateRequest:
       required:
@@ -616,7 +616,7 @@ components:
       properties:
         customerID:
           description: Internal ID of the customer for which is being logged in
-          type: string
+          type: integer
           example: 1
         password:
           type: string

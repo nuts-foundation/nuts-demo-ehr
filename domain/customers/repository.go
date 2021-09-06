@@ -11,7 +11,7 @@ import (
 )
 
 type Repository interface {
-	FindByID(id string) (*domain.Customer, error)
+	FindByID(id int) (*domain.Customer, error)
 	FindByDID(did string) (*domain.Customer, error)
 	All() ([]domain.Customer, error)
 }
@@ -43,7 +43,7 @@ func NewJsonFileRepository(filepath string) *jsonFileRepo {
 	return &repo
 }
 
-func (db *jsonFileRepo) FindByID(id string) (*domain.Customer, error) {
+func (db *jsonFileRepo) FindByID(id int) (*domain.Customer, error) {
 	if len(db.records) == 0 {
 		if err := db.readAll(); err != nil {
 			return nil, err

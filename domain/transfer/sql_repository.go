@@ -376,7 +376,19 @@ func (r SQLiteTransferRepository) ProposeAlternateDate(ctx context.Context, cust
 }
 
 func (r SQLiteTransferRepository) ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
-	panic("implement me")
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	negotiation, err := r.findNegotiationByID(ctx, tx, customerID, negotiationID)
+	if err != nil {
+		return nil, err
+	}
+	negotiation.Status = IN_PROGRESS_STATE
+	if err := r.updateNegotiation(ctx, tx, customerID, *negotiation); err != nil {
+		return nil, err
+	}
+	return negotiation, nil
 }
 
 func (r SQLiteTransferRepository) updateNegotiation(ctx context.Context, tx *sqlx.Tx, customerID int, negotiation domain.TransferNegotiation) error {

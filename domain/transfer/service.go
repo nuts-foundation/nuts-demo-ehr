@@ -27,6 +27,13 @@ type Service interface {
 	// by setting their status to CANCELLED_STATE.
 	ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error)
 
+	// CancelNegotiation withdraws the negotiation/organization from the transfer. This is done by the sending party
+	// It updates the status to CANCELLED_STATE, updates the FHIR Task and sends out a notification
+	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+
+	// RejectNegotiation rejects the proposed transfer. This is done by the receiving party
+	RejectNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 

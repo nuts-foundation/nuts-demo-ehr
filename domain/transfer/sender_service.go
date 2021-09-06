@@ -121,12 +121,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return negotiation, commitErr
 		}
 
-		tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint); err != nil {
+		if err = s.sendNotification(ctx, customer, organizationDID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationDID, err)
 		}
@@ -160,7 +155,71 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 	}
 
+	// alter state to in-progress in DB
+	negotiation, err := s.transferRepo.ConfirmNegotiation(ctx, customerID, negotiationID)
+	if err != nil {
+		return nil, err
+	}
+
 	// create eTransfer composition
 
-	// confirm this one + task + notification
+	// update task
+
+	// update authorization credential
+
+	// notify
+
+	return nil, nil
 }
+
+func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
+	// update DB state
+	negotiation, err := s.transferRepo.CancelNegotiation(ctx, customerID, negotiationID)
+	if err != nil {
+		return nil, err
+	}
+
+	// update local Task
+	task, err := s.getLocalTransferTask(ctx, customerID, negotiation.TaskID)
+	if err != nil {
+		return nil, err
+	}
+	task.Status = fhir.ToCodePtr(CANCELLED_STATE)
+	if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
+		return nil, err
+	}
+
+	// TODO: revoke credential
+
+	// send notification
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil {
+		return nil, err
+	}
+	return negotiation, s.sendNotification(ctx, customer, negotiation.OrganizationDID)
+}
+
+func (s service) sendNotification(ctx context.Context, customer *domain.Customer, organizationDID string) error {
+	notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, ReceiverServiceName, "notification")
+	if err != nil {
+		return err
+	}
+
+	tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, ReceiverServiceName, nil)
+	if err != nil {
+		return err
+	}
+
+	return s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint)
+}
+
+
+func (s service) getLocalTransferTask(ctx context.Context, customerID int, fhirTaskID string) (resources.Task, error) {
+	task := resources.Task{}
+	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "/Task/"+fhirTaskID, &task)
+	if err != nil {
+		return resources.Task{}, fmt.Errorf("error while looking up transfer task locally (task-id=%s): %w", fhirTaskID, err)
+	}
+	return task, nil
+}
+

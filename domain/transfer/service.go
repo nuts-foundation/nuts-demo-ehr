@@ -57,10 +57,10 @@ type service struct {
 	transferRepo           Repository
 	auth                   auth.Service
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
-	customerRepo customers.Repository
-	registry     registry2.OrganizationRegistry
-	vcr          registry2.VerifiableCredentialRegistry
-	notifier     Notifier
+	customerRepo           customers.Repository
+	registry               registry2.OrganizationRegistry
+	vcr                    registry2.VerifiableCredentialRegistry
+	notifier               Notifier
 }
 
 func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry2.OrganizationRegistry, vcr registry2.VerifiableCredentialRegistry) *service {

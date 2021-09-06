@@ -34,7 +34,6 @@ func ToIntegerPtr(input int) *datatypes.Integer {
 	return &result
 }
 
-
 func ToStringPtr(str string) *datatypes.String {
 	result := datatypes.String(str)
 	return &result

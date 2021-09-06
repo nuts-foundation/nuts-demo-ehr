@@ -184,7 +184,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	if customerDID == nil {
 		return errors.New("missing 'sub' in access-token")
 	}
-	customer , err := w.CustomerRepository.FindByDID(*customerDID)
+	customer, err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
 		return err
 	}

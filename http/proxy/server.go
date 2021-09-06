@@ -23,9 +23,9 @@ import (
 var fhirServerTenant = struct{}{}
 
 type Server struct {
-	proxy *httputil.ReverseProxy
-	auth  auth.Service
-	path  string
+	proxy              *httputil.ReverseProxy
+	auth               auth.Service
+	path               string
 	customerRepository customers.Repository
 }
 

@@ -18,9 +18,9 @@ import (
 
 type Service struct {
 	customerRepository customers.Repository
-	repository  Repository
-	orgRegistry registry.OrganizationRegistry
-	authService auth.Service
+	repository         Repository
+	orgRegistry        registry.OrganizationRegistry
+	authService        auth.Service
 }
 
 func NewService(customerRepository customers.Repository, repository Repository, organizationRegistry registry.OrganizationRegistry, authService auth.Service) *Service {

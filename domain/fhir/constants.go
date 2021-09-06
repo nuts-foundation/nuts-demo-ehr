@@ -39,5 +39,4 @@ var SnomedNursingHandoffType = datatypes.CodeableConcept{
 		Code:   &SnomedNursingHandoffCode,
 		Display: &NursingHandoffDisplay,
 	}},
-	Text: ToStringPtr("Aanmeldbericht"),
 }

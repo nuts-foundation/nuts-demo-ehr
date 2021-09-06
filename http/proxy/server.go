@@ -54,8 +54,8 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 			requestURL.RawPath = "" // Not required?
 
 			if server.multiTenancyEnabled {
-				tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
-				requestURL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+				tenant := req.Context().Value(fhirServerTenant).(int) // this shouldn't/can't fail, because the middleware handler should've set it.
+				requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path,tenant, req.URL.Path[len(path):])
 			} else {
 				requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
 			}
@@ -87,6 +87,7 @@ func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
 
 func (server *Server) skipper(ctx echo.Context) bool {
 	requestURI := ctx.Request().RequestURI
+	// everything with /web is handled
 	return !strings.HasPrefix(requestURI, server.path)
 }
 
@@ -94,8 +95,18 @@ func errorFunc(ctx echo.Context, err error) error {
 	return ctx.JSON(http.StatusUnauthorized, NewOperationOutcome(err, "access denied", CodeSecurity, SeverityError))
 }
 
-func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
+func (server *Server) Handler(other echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Task update
+		if intervalValue := c.Get("internal"); intervalValue != nil {
+			if value, ok := intervalValue.(bool); ok && value {
+				c.Logger().Debugf("routing internally to %s", c.Request().URL.Path)
+
+				return other(c)
+			}
+		}
+
+		// non task FHIR resources
 		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
 		accessToken := c.Get(auth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
 
@@ -113,6 +124,7 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 			)))
 		}
 
+		// proxy handling
 		server.proxy.ServeHTTP(c.Response(), c.Request())
 
 		return nil
@@ -120,9 +132,7 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // verifyAccess checks the access policy rules. The token has already been checked and the introspected token is used.
-func (server *Server) verifyAccess(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
-	// todo: delegate to access_policy.go
-
+func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 	route := parseRoute(request)
 
 	// check purposeOfUse/service according to §6.2 eOverdracht-sender policy
@@ -154,6 +164,24 @@ func (server *Server) verifyAccess(request *http.Request, token *nutsAuthClient.
 	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err!= nil {
 		fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
 	}
+
+	// Task updates must be routed internally
+	if route.operation == "update" && strings.HasPrefix(route.path(), serverTaskPath) {
+		tenant, err := server.getTenant(*token.Iss)
+		if err != nil {
+			fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
+		}
+		// task handling
+		req := ctx.Request()
+		path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
+		req.URL.Path = path
+		req.URL.RawPath = path
+		req.RequestURI = path
+		ctx.SetRequest(req)
+
+		ctx.Set("internal", true)
+	}
+
 	return nil
 }
 

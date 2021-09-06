@@ -22,6 +22,7 @@ var (
 )
 
 var NursingHandoffDisplay datatypes.String = "verslag van zorg"
+var TransferDisplay datatypes.String = "Overdracht van zorg"
 
 /* Short-hand types */
 var LoincAdvanceNoticeType = datatypes.CodeableConcept{

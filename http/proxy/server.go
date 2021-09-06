@@ -41,16 +41,21 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 	server.proxy = &httputil.ReverseProxy{
 		// Does not support query parameters in targetURL
 		Director: func(req *http.Request) {
-			req.URL.Scheme = targetURL.Scheme
-			req.URL.Host = targetURL.Host
-			req.URL.RawPath = "" // Not required?
+			requestURL := &url.URL{}
+			*requestURL = *req.URL
+			requestURL.Scheme = targetURL.Scheme
+			requestURL.Host = targetURL.Host
+			requestURL.RawPath = "" // Not required?
 
 			if server.multiTenancyEnabled {
 				tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
-				req.URL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+				requestURL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
 			} else {
-				req.URL.Path = targetURL.Path + req.URL.Path[len(path):]
+				requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
 			}
+
+			req.URL = requestURL
+			req.Host = requestURL.Host
 
 			logrus.Debugf("Rewritten to: %s", req.URL.Path)
 

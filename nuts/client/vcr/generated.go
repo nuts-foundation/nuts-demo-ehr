@@ -150,6 +150,12 @@ type ResolveParams struct {
 // SearchJSONBody defines parameters for Search.
 type SearchJSONBody SearchRequest
 
+// SearchParams defines parameters for Search.
+type SearchParams struct {
+	// when true, the search also returns untrusted credentials. Default false
+	Untrusted *bool `json:"untrusted,omitempty"`
+}
+
 // UntrustIssuerJSONRequestBody defines body for UntrustIssuer for application/json ContentType.
 type UntrustIssuerJSONRequestBody UntrustIssuerJSONBody
 
@@ -257,9 +263,9 @@ type ClientInterface interface {
 	Resolve(ctx context.Context, id string, params *ResolveParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Search request with any body
-	SearchWithBody(ctx context.Context, concept string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	SearchWithBody(ctx context.Context, concept string, params *SearchParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	Search(ctx context.Context, concept string, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	Search(ctx context.Context, concept string, params *SearchParams, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTrusted request
 	ListTrusted(ctx context.Context, credentialType string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -364,8 +370,8 @@ func (c *Client) Resolve(ctx context.Context, id string, params *ResolveParams, 
 	return c.Client.Do(req)
 }
 
-func (c *Client) SearchWithBody(ctx context.Context, concept string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSearchRequestWithBody(c.Server, concept, contentType, body)
+func (c *Client) SearchWithBody(ctx context.Context, concept string, params *SearchParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchRequestWithBody(c.Server, concept, params, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -376,8 +382,8 @@ func (c *Client) SearchWithBody(ctx context.Context, concept string, contentType
 	return c.Client.Do(req)
 }
 
-func (c *Client) Search(ctx context.Context, concept string, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSearchRequest(c.Server, concept, body)
+func (c *Client) Search(ctx context.Context, concept string, params *SearchParams, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchRequest(c.Server, concept, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -621,18 +627,18 @@ func NewResolveRequest(server string, id string, params *ResolveParams) (*http.R
 }
 
 // NewSearchRequest calls the generic Search builder with application/json body
-func NewSearchRequest(server string, concept string, body SearchJSONRequestBody) (*http.Request, error) {
+func NewSearchRequest(server string, concept string, params *SearchParams, body SearchJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewSearchRequestWithBody(server, concept, "application/json", bodyReader)
+	return NewSearchRequestWithBody(server, concept, params, "application/json", bodyReader)
 }
 
 // NewSearchRequestWithBody generates requests for Search with any type of body
-func NewSearchRequestWithBody(server string, concept string, contentType string, body io.Reader) (*http.Request, error) {
+func NewSearchRequestWithBody(server string, concept string, params *SearchParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -656,6 +662,26 @@ func NewSearchRequestWithBody(server string, concept string, contentType string,
 	if err != nil {
 		return nil, err
 	}
+
+	queryValues := queryURL.Query()
+
+	if params.Untrusted != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "untrusted", runtime.ParamLocationQuery, *params.Untrusted); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
@@ -800,9 +826,9 @@ type ClientWithResponsesInterface interface {
 	ResolveWithResponse(ctx context.Context, id string, params *ResolveParams, reqEditors ...RequestEditorFn) (*ResolveResponse, error)
 
 	// Search request with any body
-	SearchWithBodyWithResponse(ctx context.Context, concept string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchResponse, error)
+	SearchWithBodyWithResponse(ctx context.Context, concept string, params *SearchParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchResponse, error)
 
-	SearchWithResponse(ctx context.Context, concept string, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchResponse, error)
+	SearchWithResponse(ctx context.Context, concept string, params *SearchParams, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchResponse, error)
 
 	// ListTrusted request
 	ListTrustedWithResponse(ctx context.Context, credentialType string, reqEditors ...RequestEditorFn) (*ListTrustedResponse, error)
@@ -1052,16 +1078,16 @@ func (c *ClientWithResponses) ResolveWithResponse(ctx context.Context, id string
 }
 
 // SearchWithBodyWithResponse request with arbitrary body returning *SearchResponse
-func (c *ClientWithResponses) SearchWithBodyWithResponse(ctx context.Context, concept string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
-	rsp, err := c.SearchWithBody(ctx, concept, contentType, body, reqEditors...)
+func (c *ClientWithResponses) SearchWithBodyWithResponse(ctx context.Context, concept string, params *SearchParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
+	rsp, err := c.SearchWithBody(ctx, concept, params, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseSearchResponse(rsp)
 }
 
-func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, concept string, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
-	rsp, err := c.Search(ctx, concept, body, reqEditors...)
+func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, concept string, params *SearchParams, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
+	rsp, err := c.Search(ctx, concept, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

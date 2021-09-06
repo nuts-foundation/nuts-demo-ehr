@@ -67,8 +67,8 @@ type AccessTokenResponse struct {
 // Contract defines model for Contract.
 type Contract struct {
 	// Language of the contract in all caps.
-	Language         ContractLanguage `json:"language"`
-	SignerAttributes *[]string        `json:"signer_attributes,omitempty"`
+	Language           ContractLanguage `json:"language"`
+	SignerAttributes   *[]string        `json:"signer_attributes,omitempty"`
 	Template           *string          `json:"template,omitempty"`
 	TemplateAttributes *[]string        `json:"template_attributes,omitempty"`
 

@@ -89,10 +89,10 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferRepository.Update(ctx.Request().Context(), cid, transferID, func(t domain.Transfer) (*domain.Transfer, error) {
+	transfer, err := w.TransferRepository.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
 		t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
-		return &t, nil
+		return t, nil
 	})
 	return ctx.JSON(http.StatusOK, transfer)
 }

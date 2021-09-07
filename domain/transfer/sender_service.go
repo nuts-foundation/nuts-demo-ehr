@@ -41,7 +41,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		negotiation          *domain.TransferNegotiation
 	)
 
-	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
+	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer *domain.Transfer) (*domain.Transfer, error) {
 		// Validate transfer
 		if transfer.Status == domain.TransferStatusCancelled ||
 			transfer.Status == domain.TransferStatusCompleted ||
@@ -58,14 +58,15 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, err
 		}
 
+		compositionPath := fmt.Sprintf("/Composition/%s", transfer.FhirAdvanceNoticeComposition)
 		transferTask := fhir.BuildNewTask(fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
 			Status:      REQUESTED_STATE,
 			Input: []resources.TaskInputOutput{
-				{
+			{
 					Type:           &fhir.LoincAdvanceNoticeType,
-					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(transfer.FhirAdvanceNoticeComposition)},
+					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
 				},
 			},
 		})
@@ -75,10 +76,16 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, err
 		}
 
-		if err := s.vcr.CreateAuthorizationCredential(ctx, "eOverdracht-receiver", *customer.Did, organizationDID, []credential.Resource{
+		if err := s.vcr.CreateAuthorizationCredential(ctx, SenderServiceName, *customer.Did, organizationDID, []credential.Resource{
 			{
 				Path:       fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
 				Operations: []string{"read", "update"},
+				UserContext: true,
+			},
+			{
+				Path:       compositionPath,
+				Operations: []string{"read", "document"},
+				UserContext: true,
 			},
 		}); err != nil {
 			return nil, err
@@ -91,7 +98,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 
 		// Update transfer.Status = requested
 		//transfer.Status = domain.TransferStatusRequested
-		return &transfer, nil
+		return transfer, nil
 	})
 	if err == nil {
 		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
@@ -127,17 +134,13 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		notifications []*notification
 	)
 
-	// create eTransfer composition connect to transfer
-	composition := fhir.BuildNursingHandoff(patient)
-	compositionID := composition["id"].(string)
-	compositionPath := fmt.Sprintf("/Composition/%s", compositionID)
-	advanceNoticePath := fmt.Sprintf("/Composition/%s", transfer.FhirAdvanceNoticeComposition)
-	transfer.FhirNursingHandoffComposition = &compositionID
-	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
+	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer *domain.Transfer) (*domain.Transfer, error) {
 		negotiations, err := s.transferRepo.ListNegotiations(ctx, customerID, transferID)
 		if err != nil {
 			return nil, err
 		}
+
+		advanceNoticePath := fmt.Sprintf("/Composition/%s", transfer.FhirAdvanceNoticeComposition)
 
 		// cancel other negotiations + tasks + batch notifications
 		for _, n := range negotiations {
@@ -168,6 +171,13 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, err
 		}
 
+		// create eTransfer composition connect to transfer
+		composition := fhir.BuildNursingHandoff(patient)
+		compositionID := composition["id"].(string)
+		compositionPath := fmt.Sprintf("/Composition/%s", compositionID)
+		transfer.FhirNursingHandoffComposition = &compositionID
+		transfer.Status = domain.TransferStatusAssigned
+
 		// update task
 		task, err := s.getLocalTransferTask(ctx, customerID, negotiation.TaskID)
 		if err != nil {
@@ -183,20 +193,25 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
 			return nil, err
 		}
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition); err != nil {
+			return nil, err
+		}
 
 		// update authorization credential
 		// todo referenced resources from within composition
-		if err = s.vcr.RevokeAuthorizationCredential(ctx, "eOverdracht-receiver", negotiation.OrganizationDID, advanceNoticePath); err != nil {
+		if err = s.vcr.RevokeAuthorizationCredential(ctx, SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
 			return nil, err
 		}
-		if err := s.vcr.CreateAuthorizationCredential(ctx, "eOverdracht-receiver", *customer.Did, negotiation.OrganizationDID, []credential.Resource{
+		if err := s.vcr.CreateAuthorizationCredential(ctx, SenderServiceName, *customer.Did, negotiation.OrganizationDID, []credential.Resource{
 			{
 				Path:       fmt.Sprintf("/Task/%s", fhir.FromIDPtr(task.ID)),
 				Operations: []string{"read", "update"},
+				UserContext: true,
 			},
 			{
 				Path:       compositionPath,
 				Operations: []string{"read", "document"},
+				UserContext: true,
 			},
 		}); err != nil {
 			return nil, err
@@ -206,7 +221,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			organizationDID: negotiation.OrganizationDID,
 		})
 
-		return &transfer, nil
+		return transfer, nil
 	})
 	if err == nil {
 		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
@@ -215,14 +230,14 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return negotiation, commitErr
 		}
 
-		// send all notifications
+		for _, n := range notifications {
+			s.sendNotification(ctx, n.customer, n.organizationDID)
+		}
 	}
 
-	for _, n := range notifications {
-		s.sendNotification(ctx, n.customer, n.organizationDID)
-	}
 
-	return negotiation, nil
+
+	return negotiation, err
 }
 
 func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
@@ -270,7 +285,7 @@ func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiat
 	}
 
 	// revoke credential, find by AdvanceNotice
-	if err = s.vcr.RevokeAuthorizationCredential(ctx, "eOverdracht-receiver", negotiation.OrganizationDID, advanceNoticePath); err != nil {
+	if err = s.vcr.RevokeAuthorizationCredential(ctx, SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
 		return nil, nil, err
 	}
 

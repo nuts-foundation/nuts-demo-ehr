@@ -26,7 +26,7 @@ type Repository interface {
 
 	// Update finds the correct Transfer applies the updateFn and then stores the Transfer
 	// it uses the Transaction from the context but does not commit it.
-	Update(ctx context.Context, customerID int, transferID string, updateFn func(c domain.Transfer) (*domain.Transfer, error)) (*domain.Transfer, error)
+	Update(ctx context.Context, customerID int, transferID string, updateFn func(c *domain.Transfer) (*domain.Transfer, error)) (*domain.Transfer, error)
 
 	// Cancel cancels the indicated domain.Transfer and all its domain.TransferNegotiation`s
 	Cancel(ctx context.Context, customerID int, transferID string) (*domain.Transfer, error)

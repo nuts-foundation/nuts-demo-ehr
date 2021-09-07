@@ -66,7 +66,20 @@ func NewSQLiteDossierRepository(factory Factory, db *sqlx.DB) *SQLiteDossierRepo
 }
 
 func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, id string) (*domain.Dossier, error) {
-	panic("implement me")
+	const query = `SELECT * FROM dossier WHERE customer_id = ? AND id = ? ORDER BY id ASC`
+
+	dbDossier := sqlDossier{}
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.GetContext(ctx, &dbDossier, query, customerID, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return dbDossier.MarshalToDomainDossier()
 }
 
 func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, name, patientID string) (*domain.Dossier, error) {

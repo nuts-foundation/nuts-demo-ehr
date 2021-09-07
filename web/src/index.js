@@ -29,7 +29,8 @@ const routes = [
   {
     name: 'login',
     path: '/login',
-    component: Login
+    component: Login,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     name: 'logout',
@@ -40,11 +41,13 @@ const routes = [
     name: 'auth.passwd',
     path: '/auth/passwd/',
     component: PasswordAuthentication,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     name: 'auth.irma',
     path: '/auth/irma/',
     component: IRMALogin,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     path: '/ehr',
@@ -142,8 +145,8 @@ router.beforeEach((to, from, next) => {
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
     if (!localStorage.getItem("session")) {
-      console.log("no cookie found, redirect to login")
-      return '/login'
+      console.log("no active session found, redirect to login")
+      return next({name: 'login', props: true, query: {redirect: to.path }})
     }
   }
   if (to.meta.requiresElevation === true) {
@@ -152,7 +155,7 @@ router.beforeEach((to, from, next) => {
     let token = JSON.parse(rawToken)
     if (!token["elv"]) {
       console.log("route requires elevation, redirect to elevate")
-      next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
+      return next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
     }
   }
   next()

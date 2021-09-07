@@ -5,6 +5,7 @@
 import irma from "@privacybydesign/irma-frontend";
 
 export default {
+  props: ['redirectPath'],
   data() {
     return {
       customer: null,
@@ -21,7 +22,9 @@ export default {
   },
   methods: {
     redirectAfterLogin() {
-      console.log('logged in, redirecting!')
+      if (this.redirectPath) {
+        return this.$router.push(this.redirectPath)
+      }
       this.$router.push("/ehr/")
     },
     perform() {

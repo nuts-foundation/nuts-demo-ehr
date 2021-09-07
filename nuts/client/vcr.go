@@ -12,6 +12,8 @@ import (
 type VCRClient interface {
 	GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error)
 	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
+	FindAuthorizationCredentialIDs(ctx context.Context, params map[string]string) ([]string, error)
+	RevokeCredential(ctx context.Context, credentialID string) error
 }
 
 func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
@@ -44,6 +46,50 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 	}
 
 	return nil
+}
+
+var trueVal = true
+
+func (c HTTPClient) FindAuthorizationCredentialIDs(ctx context.Context, params map[string]string) ([]string, error) {
+	var vcParams = make([]vcr.KeyValuePair, 0)
+	for k, v := range params {
+		vcParams = append(vcParams, vcr.KeyValuePair{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	response, err := c.vcr().Search(ctx, authorizationConcept, &vcr.SearchParams{Untrusted: &trueVal}, vcr.SearchJSONRequestBody{Params: vcParams})
+	if err != nil {
+		return nil, err
+	}
+	// returns array of raw credentials
+	data, err := testAndReadResponse(http.StatusOK, response)
+	if err != nil {
+		return nil, err
+	}
+	var credentials []vcr.VerifiableCredential
+	if err = json.Unmarshal(data, &credentials); err != nil {
+		return nil, err
+	}
+	var credentialIDs = make([]string, len(credentials))
+	j := 0
+	for _, c := range credentials {
+		if c.Id != nil {
+			credentialIDs[j] = *c.Id
+			j++
+		}
+	}
+	return credentialIDs[:j], nil
+}
+
+func (c HTTPClient) RevokeCredential(ctx context.Context, credentialID string) error {
+	response, err := c.vcr().Revoke(ctx, credentialID)
+	if err != nil {
+		return err
+	}
+	_, err = testAndReadResponse(http.StatusOK, response)
+	return err
 }
 
 func (c HTTPClient) searchVCR(ctx context.Context, concept string, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {

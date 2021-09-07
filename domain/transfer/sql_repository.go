@@ -204,6 +204,15 @@ func (r SQLiteTransferRepository) updateTransfer(ctx context.Context, tx *sqlx.T
 	return nil
 }
 
+func (r SQLiteTransferRepository) FindNegotiationByID(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.findNegotiationByID(ctx, tx, customerID, negotiationID)
+}
+
 func (r SQLiteTransferRepository) findNegotiationByID(ctx context.Context, tx *sqlx.Tx, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
 	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? AND organization_did = ?`
 

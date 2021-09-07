@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 )
 
@@ -82,11 +83,11 @@ func BuildAdvanceNotice() Composition {
 	return BuildNewComposition(elements)
 }
 
-func BuildNursingHandoff(patient resources.Patient) Composition {
+func BuildNursingHandoff(patient *domain.Patient) Composition {
 	elements := map[string]interface{}{
 		"title": "Nursing handoff",
 		"type":  SnomedNursingHandoffType,
-		"subject": datatypes.Reference{Reference: ToStringPtr(string(*patient.ID))},
+		"subject": datatypes.Reference{Reference: ToStringPtr(string(patient.ObjectID))},
 		"author": eoverdracht.Practitioner{
 			// TODO: Derive from authenticated user?
 			Identifier: datatypes.Identifier{

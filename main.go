@@ -160,7 +160,8 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
-	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, orgRegistry, vcRegistry)
+	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
+	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry)
 	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil

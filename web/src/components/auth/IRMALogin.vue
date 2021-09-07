@@ -42,18 +42,20 @@ export default {
 
           // Define your disclosure request:
           start: {
+            url: o => `${o.url}/session`,
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              // Send the session token in the request which contains the current customerID
+              'Authorization': `Bearer ${localStorage.getItem("session")}`
             },
-            body: JSON.stringify({customerID: this.customer.id})
           },
           mapping: {
             sessionPtr: r => r.sessionPtr.clientPtr,
             sessionToken: r => r.sessionID
           },
           result: {
-            url:           (o, {sessionPtr, sessionToken}) => `${o.url}/session/${sessionToken}/result`,
+            url: (o, {sessionPtr, sessionToken}) => `${o.url}/session/${sessionToken}/result`,
             headers: {
               'Authorization': `Bearer ${localStorage.getItem("session")}`
             },

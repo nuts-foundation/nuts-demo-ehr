@@ -87,7 +87,6 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
-			"/web/auth/irma",
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {

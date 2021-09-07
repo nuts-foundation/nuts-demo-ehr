@@ -86,9 +86,25 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
 }
 
+func (w Wrapper) getCustomerIDFromHeader(ctx echo.Context) (int, error) {
+	token, err := w.APIAuth.extractJWTFromHeader(ctx)
+	if err != nil {
+		ctx.Echo().Logger.Error(err)
+		return 0, echo.NewHTTPError(http.StatusUnauthorized, err)
+	}
+	rawID, ok := token.Get(CustomerID)
+	if !ok {
+		return 0, echo.NewHTTPError(http.StatusUnauthorized, "missing customerID in token")
+	}
+	return int(rawID.(float64)), nil
+}
+
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
-	customerID := ctx.Get(CustomerID)
-	customer, err := w.CustomerRepository.FindByID(customerID.(int))
+	customerID, err := w.getCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
@@ -106,7 +122,10 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
-	customerID := ctx.Get(CustomerID)
+	customerID, err := w.getCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
 
 	// forward to node
 	bytes, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
@@ -115,9 +134,9 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	sessionID := w.APIAuth.StoreVP(customerID.(int), base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(int), sessionID, true)
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

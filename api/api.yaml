@@ -43,16 +43,11 @@ paths:
   # IRMA authentication
   /auth/irma/session:
     post:
+      description: Create an IRMA signing session.
       operationId: authenticateWithIRMA
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/IRMAAuthenticationRequest"
       responses:
         '200':
-          description: A session was succesfully created
+          description: An IRMA signing session was succesfully created
           content:
             application/json:
               schema:
@@ -66,6 +61,8 @@ paths:
         schema:
           type: string
     get:
+      description: |
+        After a successful IRMA signing session the resulting signature can be fetched using his endpoint.
       operationId: getIRMAAuthenticationResult
       responses:
         '200':

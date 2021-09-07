@@ -22,6 +22,7 @@ import (
 const MaxSessionAge = time.Hour
 const CustomerID = "cid"
 const SessionID = "sid"
+const Elevated = "elv"
 
 type Auth struct {
 	// sessions maps session identifiers to base64 encoded VPs
@@ -65,12 +66,13 @@ func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(customerId int, session string) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(customerId int, session string, elevated bool) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
 	t.Set(SessionID, session)
+	t.Set(Elevated, elevated)
 
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
@@ -85,6 +87,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
+			"/web/auth/irma",
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {

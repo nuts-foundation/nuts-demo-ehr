@@ -78,7 +78,7 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
-	token, err := w.APIAuth.CreateSessionJWT(req.CustomerID, sessionId)
+	token, err := w.APIAuth.CreateSessionJWT(req.CustomerID, sessionId, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -87,12 +87,8 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 }
 
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
-	req := domain.IRMAAuthenticationRequest{}
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
-	}
-
-	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
+	customerID := ctx.Get(CustomerID)
+	customer, err := w.CustomerRepository.FindByID(customerID.(int))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
@@ -110,16 +106,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
-	// current customerID
-	token, err := w.APIAuth.extractJWTFromHeader(ctx)
-	if err != nil {
-		ctx.Echo().Logger.Error(err)
-		return ctx.NoContent(http.StatusUnauthorized)
-	}
-	customerID, ok := customerIDFromToken(token)
-	if !ok {
-		return ctx.NoContent(http.StatusUnauthorized)
-	}
+	customerID := ctx.Get(CustomerID)
 
 	// forward to node
 	bytes, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
@@ -128,9 +115,9 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+	sessionID := w.APIAuth.StoreVP(customerID.(int), base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID)
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(int), sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

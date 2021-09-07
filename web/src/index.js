@@ -22,6 +22,7 @@ import TransferRequest from "./ehr/transfer/TransferRequest.vue"
 import Inbox from "./ehr/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
+import Elevation from "./components/auth/SessionElevation.vue"
 
 const routes = [
   {path: '/', component: Login},
@@ -67,6 +68,12 @@ const routes = [
         component: NewPatient
       },
       {
+        path: 'elevate',
+        name: 'ehr.elevate',
+        component: Elevation,
+        props: route => ({redirectPath: route.query.redirect})
+      },
+      {
         path: 'patient/:id',
         name: 'ehr.patient',
         component: Patient,
@@ -108,6 +115,7 @@ const routes = [
         path: 'inbox',
         name: 'ehr.inbox',
         component: Inbox,
+        meta: {requiresElevation: true}
       },
       {
         path: 'settings',
@@ -129,16 +137,25 @@ const router = createRouter({
 
 const app = createApp(App)
 
-router.beforeEach((to, from) => {
+router.beforeEach((to, from, next) => {
   console.log("from: ", from.path, from.name, "to: ", to.path, to.name)
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
-    if (localStorage.getItem("session")) {
-      return true
+    if (!localStorage.getItem("session")) {
+      console.log("no cookie found, redirect to login")
+      return '/login'
     }
-    console.log("no cookie found, redirect to login")
-    return '/login'
   }
+  if (to.meta.requiresElevation === true) {
+    let sessionStr = localStorage.getItem("session")
+    let rawToken = atob(sessionStr.split('.')[1])
+    let token = JSON.parse(rawToken)
+    if (!token["elv"]) {
+      console.log("route requires elevation, redirect to elevate")
+      next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
+    }
+  }
+  next()
 })
 
 app.use(router)

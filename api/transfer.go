@@ -145,55 +145,6 @@ func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-// todo: AssignTransfer is for assigning a single negotiation when multiple are accepted. Is never called from JS.
-//func (w Wrapper) AssignTransfer(ctx echo.Context, transferID string) error {
-//	var negotiation *domain.TransferNegotiation
-//	request := domain.AssignTransferRequest{}
-//	if err := ctx.Bind(&request); err != nil {
-//		return err
-//	}
-//	cid, err := w.getCustomerID(ctx)
-//	if err != nil {
-//		return err
-//	}
-//	_, err = w.TransferRepository.Update(ctx.Request().Context(), cid, transferID, func(transfer domain.Transfer) (*domain.Transfer, error) {
-//		// Validate transfer
-//		if transfer.Status == domain.TransferStatusRequested {
-//			return nil, errors.New("can't assign transfer to care organization when status is not 'requested'")
-//		}
-//		senderDID := w.getCustomerDID(ctx)
-//		if senderDID == nil {
-//			return nil, errors.New("transferring care organization isn't registered on Nuts Network")
-//		}
-//		// Make sure the negotiation is accepted by the receiving care organization
-//		var err error
-//		negotiation, err = w.findNegotiation(ctx.Request().Context(), cid, transferID, string(request.NegotiationID))
-//		if err != nil {
-//			return nil, err
-//		}
-//		if negotiation.Status != domain.TransferNegotiationStatusStatusAccepted {
-//			return nil, errors.New("can't assign transfer to care organization when it hasn't accepted the transfer")
-//		}
-//		// TODO: All is fine, update task
-//		//task := domainTransfer.EOverdrachtTask{
-//		//	SenderNutsDID:   *senderDID,
-//		//	ReceiverNutsDID: negotiation.OrganizationDID,
-//		//	Status:          domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatusInProgress},
-//		//}
-//		//err = w.FHIRGateway.CreateTask(task)
-//		if err != nil {
-//			return nil, err
-//		}
-//		// Update transfer.Status = assigned
-//		transfer.Status = domain.TransferStatusAssigned
-//		return &transfer, nil
-//	})
-//	if err != nil {
-//		return err
-//	}
-//	return ctx.JSON(http.StatusOK, negotiation)
-//}
-
 func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) error {
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {

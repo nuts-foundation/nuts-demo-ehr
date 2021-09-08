@@ -86,21 +86,8 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
 }
 
-func (w Wrapper) getCustomerIDFromHeader(ctx echo.Context) (int, error) {
-	token, err := w.APIAuth.extractJWTFromHeader(ctx)
-	if err != nil {
-		ctx.Echo().Logger.Error(err)
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, err)
-	}
-	rawID, ok := token.Get(CustomerID)
-	if !ok {
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, "missing customerID in token")
-	}
-	return int(rawID.(float64)), nil
-}
-
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
-	customerID, err := w.getCustomerIDFromHeader(ctx)
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
 	}
@@ -122,7 +109,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error {
-	customerID, err := w.getCustomerIDFromHeader(ctx)
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
 	}
@@ -145,7 +132,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 }
 
 func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
-	customerID, err := w.getCustomerIDFromHeader(ctx)
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
 	}
@@ -165,7 +152,7 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error {
-	customerID, err := w.getCustomerIDFromHeader(ctx)
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
 	}

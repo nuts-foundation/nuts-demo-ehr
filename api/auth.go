@@ -97,18 +97,11 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get sessionID from token")
 				}
 
-				var (
-					customerId interface{}
-					fid float64
-					ok bool
-				)
-				if customerId, ok = token.Get(CustomerID); !ok {
+				customerId, ok := customerIDFromToken(token)
+				if !ok {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get customerID from token")
 				}
-				if fid, ok = customerId.(float64); !ok {
-					return echo.NewHTTPError(http.StatusUnauthorized, "could not convert customerID from token")
-				}
-				ctx.Set(CustomerID, int(fid))
+				ctx.Set(CustomerID, customerId)
 			}
 		}
 		return next(ctx)

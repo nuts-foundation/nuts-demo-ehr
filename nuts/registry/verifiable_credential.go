@@ -10,7 +10,10 @@ import (
 )
 
 type VerifiableCredentialRegistry interface {
+	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
 	CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error
+	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
+	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 }
 
 type httpVerifiableCredentialRegistry struct {
@@ -44,4 +47,24 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 	}
 
 	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
+}
+
+func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
+	// may be extended by issuanceDate for even faster results.
+	params := map[string]string{
+		"credentialSubject.id": subjectID,
+		"credentialSubject.purposeOfUse": purposeOfUse,
+		"credentialSubject.resources.#.path": resourcePath,
+	}
+	credentialIDs, err := registry.nutsClient.FindAuthorizationCredentialIDs(ctx, params)
+	if err != nil {
+		return err
+	}
+	for _, ID := range credentialIDs {
+		if err = registry.nutsClient.RevokeCredential(ctx, ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

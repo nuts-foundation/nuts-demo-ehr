@@ -6,7 +6,9 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
@@ -25,7 +27,14 @@ type Service interface {
 	// The updates the status to ACCEPTED_STATE.
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
 	// by setting their status to CANCELLED_STATE.
-	ConfirmNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+	ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error)
+
+	// CancelNegotiation withdraws the negotiation/organization from the transfer. This is done by the sending party
+	// It updates the status to CANCELLED_STATE, updates the FHIR Task and sends out a notification
+	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+
+	// RejectNegotiation rejects the proposed transfer. This is done by the receiving party
+	RejectNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
@@ -38,18 +47,22 @@ type service struct {
 	transferRepo           Repository
 	auth                   auth.Service
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
-	customerRepo customers.Repository
-	registry     registry.OrganizationRegistry
-	vcr          registry.VerifiableCredentialRegistry
-	notifier     Notifier
+	customerRepo           customers.Repository
+	dossierRepo            dossier.Repository
+	patientRepo            patients.Repository
+	registry               registry.OrganizationRegistry
+	vcr                    registry.VerifiableCredentialRegistry
+	notifier               Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository Repository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) *service {
 	return &service{
 		auth:                   authService,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferRepo:           transferRepository,
 		customerRepo:           customerRepository,
+		dossierRepo:            dossierRepo,
+		patientRepo:            patientRepo,
 		registry:               organizationRegistry,
 		vcr:                    vcr,
 		notifier:               fireAndForgetNotifier{},

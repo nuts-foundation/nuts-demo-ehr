@@ -26,7 +26,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	task, err := s.getTransferTask(ctx, client, fhirTaskID)
+	task, err := s.getRemoteTransferTask(ctx, client, fhirTaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requ
 		return err
 	}
 
-	task, err := s.getTransferTask(ctx, client, fhirTaskID)
+	task, err := s.getRemoteTransferTask(ctx, client, fhirTaskID)
 	if err != nil {
 		return err
 	}
@@ -65,6 +65,10 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requ
 }
 
 func (s service) ProposeAlternateDate(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
+	panic("implement me")
+}
+
+func (s service) RejectNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error){
 	panic("implement me")
 }
 
@@ -80,12 +84,12 @@ func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, l
 	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken)), nil
 }
 
-func (s service) getTransferTask(ctx context.Context, client fhir.Factory, fhirTaskID string) (resources.Task, error) {
+func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory, fhirTaskID string) (resources.Task, error) {
 	// TODO: Read AdvanceNotification here instead of the transfer task
 	task := resources.Task{}
 	err := client().ReadOne(ctx, "/Task/"+fhirTaskID, &task)
 	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task (task-id=%s): %w", fhirTaskID, err)
+		return resources.Task{}, fmt.Errorf("error while looking up transfer task remotely(task-id=%s): %w", fhirTaskID, err)
 	}
 	return task, nil
 }

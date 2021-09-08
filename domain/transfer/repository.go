@@ -21,7 +21,12 @@ type Repository interface {
 	FindByID(ctx context.Context, customerID int, transferID string) (*domain.Transfer, error)
 	FindByPatientID(ctx context.Context, customerID int, patientID string) ([]domain.Transfer, error)
 	Create(ctx context.Context, customerID int, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error)
-	Update(ctx context.Context, customerID int, transferID string, updateFn func(c domain.Transfer) (*domain.Transfer, error)) (*domain.Transfer, error)
+
+	FindNegotiationByID(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+
+	// Update finds the correct Transfer applies the updateFn and then stores the Transfer
+	// it uses the Transaction from the context but does not commit it.
+	Update(ctx context.Context, customerID int, transferID string, updateFn func(c *domain.Transfer) (*domain.Transfer, error)) (*domain.Transfer, error)
 
 	// Cancel cancels the indicated domain.Transfer and all its domain.TransferNegotiation`s
 	Cancel(ctx context.Context, customerID int, transferID string) (*domain.Transfer, error)
@@ -45,6 +50,7 @@ type Repository interface {
 
 	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 
+	// UpdateNegotiationState updates the negotiation with the new state.
 	UpdateNegotiationState(ctx context.Context, customerID int, negotiationID string, newState domain.TransferNegotiationStatusStatus) (*domain.TransferNegotiation, error)
 
 	// ListNegotiations returns a list of negotiations for the indicated transfer

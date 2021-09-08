@@ -43,7 +43,7 @@
         <td colspan="2" v-if="!!requestedOrganization">
           {{ requestedOrganization.name }}
         </td>
-        <td v-if="!!requestedOrganization">
+        <td v-if="!!requestedOrganization" class="space-x-2">
           <button class="btn btn-primary" @click="assignOrganization">Assign</button>
           <button class="btn" @click="startNegotiation">Request</button>
           <button class="btn" @click="cancelOrganization">Cancel</button>

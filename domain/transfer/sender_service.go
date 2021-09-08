@@ -146,7 +146,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		for _, n := range negotiations {
 			if negotiationID != string(n.Id) {
 				// this also handles the FHIR and notification stuff
-				_, notification, err := s.cancelNegotiation(ctx, customerID, string(negotiation.Id), advanceNoticePath)
+				_, notification, err := s.cancelNegotiation(ctx, customerID, string(n.Id), advanceNoticePath)
 				if err != nil {
 					return nil, err
 				}

@@ -20,7 +20,7 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>
 
-  <irma-login v-if="means === 'irma'" @success="onIRMASuccess"></irma-login>
+  <irma-login v-if="means === 'irma'" @success="onElevationSuccess"></irma-login>
 </template>
 
 <script>
@@ -37,18 +37,29 @@ export default {
     }
   },
   methods: {
-    elevateWithIRMA() {
-      this.means = "irma"
-    },
-    onIRMASuccess(token) {
-      console.log("irma success!", token)
+    onElevationSuccess(token) {
+      console.log("elevation success!", token)
       localStorage.setItem("session", token)
       this.$router.push(this.redirectPath)
+    },
+    elevateWithIRMA() {
+      this.means = "irma"
     },
     elevateWithBONO() {
       this.means = "bono"
     },
     elevateWithDummy() {
+      console.log("elevate with Dummy")
+      this.$api.authenticateWithDummy()
+          .then((res) => {
+            console.log(res)
+            return this.$api.getDummyAuthenticationResult({sessionToken: res.sessionID})
+                .then((responseData) => {
+                  this.onElevationSuccess(responseData.token)
+                })
+                .catch(err => console.log(err))
+          })
+          .catch(err => console.log(err))
 
     }
   }

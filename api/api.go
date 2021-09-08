@@ -144,6 +144,49 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	return ctx.JSON(200, domain.SessionToken{Token: string(newToken)})
 }
 
+func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
+	customerID, err := w.getCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
+	}
+	bytes, err := w.NutsAuth.CreateDummySession(*customer)
+	if err != nil {
+		return err
+	}
+
+	// convert to map so echo rendering doesn't escape double quotes
+	j := map[string]interface{}{}
+	json.Unmarshal(bytes, &j)
+	return ctx.JSON(http.StatusOK, j)
+}
+
+func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error {
+	customerID, err := w.getCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+
+	// forward to node
+	bytes, err := w.NutsAuth.GetDummySessionResult(sessionToken)
+	if err != nil {
+		return err
+	}
+
+	base64String := base64.StdEncoding.EncodeToString(bytes)
+	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, domain.SessionToken{Token: string(newToken)})
+}
+
 func (w Wrapper) GetCustomer(ctx echo.Context) error {
 	customerID := ctx.Get(CustomerID)
 

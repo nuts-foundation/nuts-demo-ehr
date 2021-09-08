@@ -17,6 +17,12 @@ type ServerInterface interface {
 	// (POST /auth)
 	SetCustomer(ctx echo.Context) error
 
+	// (POST /auth/dummy)
+	AuthenticateWithDummy(ctx echo.Context) error
+
+	// (GET /auth/dummy/session/{sessionToken}/result)
+	GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error
+
 	// (POST /auth/irma/session)
 	AuthenticateWithIRMA(ctx echo.Context) error
 
@@ -112,6 +118,35 @@ func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.SetCustomer(ctx)
+	return err
+}
+
+// AuthenticateWithDummy converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthenticateWithDummy(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AuthenticateWithDummy(ctx)
+	return err
+}
+
+// GetDummyAuthenticationResult converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDummyAuthenticationResult(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sessionToken" -------------
+	var sessionToken string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "sessionToken", runtime.ParamLocationPath, ctx.Param("sessionToken"), &sessionToken)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetDummyAuthenticationResult(ctx, sessionToken)
 	return err
 }
 
@@ -592,6 +627,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.POST(baseURL+"/auth", wrapper.SetCustomer)
+	router.POST(baseURL+"/auth/dummy", wrapper.AuthenticateWithDummy)
+	router.GET(baseURL+"/auth/dummy/session/:sessionToken/result", wrapper.GetDummyAuthenticationResult)
 	router.POST(baseURL+"/auth/irma/session", wrapper.AuthenticateWithIRMA)
 	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)

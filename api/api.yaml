@@ -71,6 +71,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SessionToken"
+  /auth/dummy:
+    post:
+      description: Create a dummy signing session.
+      operationId: authenticateWithDummy
+      responses:
+        '200':
+          description: A Dummy signing session was succesfully created
+          content:
+            application/json:
+              schema:
+                type: object
+  /auth/dummy/session/{sessionToken}/result:
+    parameters:
+      - name: sessionToken
+        in: path
+        description: Dummy session ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: |
+        After a successful Dummy signing session the resulting token can be fetched using his endpoint.
+      operationId: getDummyAuthenticationResult
+      responses:
+        '200':
+          description: Session result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
 
   /private:
     get:

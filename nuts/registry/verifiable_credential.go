@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
@@ -14,6 +15,8 @@ type VerifiableCredentialRegistry interface {
 	CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
+	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
+	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vcr.VerifiableCredential, error)
 }
 
 type httpVerifiableCredentialRegistry struct {
@@ -67,4 +70,8 @@ func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(
 	}
 
 	return nil
+}
+
+func (registry *httpVerifiableCredentialRegistry) ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vcr.VerifiableCredential, error) {
+	return registry.nutsClient.ResolveVerifiableCredential(ctx, credentialID, true)
 }

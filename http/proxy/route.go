@@ -1,9 +1,12 @@
 package proxy
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+)
 
 type fhirRoute struct {
-	path      string
+	url       url.URL
 	operation string
 }
 
@@ -26,5 +29,9 @@ func parseRoute(request *http.Request) *fhirRoute {
 		operation = "delete"
 	}
 
-	return &fhirRoute{path: request.URL.Path, operation: operation}
+	return &fhirRoute{url: *request.URL, operation: operation}
+}
+
+func (fr fhirRoute) path() string {
+	return fr.url.Path
 }

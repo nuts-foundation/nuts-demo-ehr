@@ -74,14 +74,17 @@ func main() {
 		logrus.Fatal("Invalid FHIR server type, valid options are: 'hapi-multi-tenant', 'hapi' or 'other'")
 	}
 
+	// init node API nutsClient
+	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
+	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 
 	server := createServer()
 
-	registerEHR(server, config, customerRepository)
+	registerEHR(server, config, customerRepository, vcRegistry)
 
 	if config.FHIR.Proxy.Enable {
-		registerFHIRProxy(server, config, customerRepository)
+		registerFHIRProxy(server, config, customerRepository, vcRegistry)
 	}
 
 	// Start server
@@ -113,7 +116,7 @@ func createServer() *echo.Echo {
 	return server
 }
 
-func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository) {
+func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry) {
 	authService, err := httpAuth.NewService(config.NutsNodeAddress)
 	if err != nil {
 		log.Fatal(err)
@@ -123,7 +126,7 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 	if err != nil {
 		log.Fatal(err)
 	}
-	proxyServer := proxy.NewServer(authService, customerRepository, *fhirURL, config.FHIR.Proxy.Path, config.FHIR.Server.SupportsMultiTenancy())
+	proxyServer := proxy.NewServer(authService, customerRepository, vcRegistry, *fhirURL, config.FHIR.Proxy.Path, config.FHIR.Server.SupportsMultiTenancy())
 
 	// set security filter
 	server.Use(proxyServer.AuthMiddleware())
@@ -134,7 +137,7 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 	}, proxyServer.Handler)
 }
 
-func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository) {
+func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry) {
 	// init node API nutsClient
 	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
 
@@ -159,7 +162,6 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
 	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
-	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry)
 	tenantInitializer := func(tenant int) error {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,8 +11,11 @@ import (
 	"strings"
 
 	"github.com/nuts-foundation/go-did/vc"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
@@ -27,14 +31,16 @@ type Server struct {
 	auth                auth.Service
 	path                string
 	customerRepository  customers.Repository
+	vcRegistry          registry.VerifiableCredentialRegistry
 	multiTenancyEnabled bool
 }
 
-func NewServer(authService auth.Service, customerRepository customers.Repository, targetURL url.URL, path string, multiTenancyEnabled bool) *Server {
+func NewServer(authService auth.Service, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry, targetURL url.URL, path string, multiTenancyEnabled bool) *Server {
 	server := &Server{
 		path:                path,
 		auth:                authService,
 		customerRepository:  customerRepository,
+		vcRegistry: 		 vcRegistry,
 		multiTenancyEnabled: multiTenancyEnabled,
 	}
 
@@ -113,73 +119,106 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+/*
+
+6.2.2 Persoonsgebonden resources
+Het ophalen van het overdrachtsbericht en alle aanverwante gegevens vereisen een geregistreerde autorisatie in de vorm van een Nuts Authorization Credential. Het credential moet voldoen aan de volgende eisen:
+De issuer moet het DID bevatten van de versturende partij.
+credentialSubject.id moet het DID van de ontvangende partij bevatten.
+credentialSubject.purposeOfUse moet gelijk zijn aan eOverdracht-sender.
+credentialSubject.legalBase.consentType moet gelijk zijn aan implied.
+credentialSubject.subject moet het BSN bevatten als OID: urn:oid:2.16.840.1.113883.2.4.6.3:999999990.
+De eOverdracht-sender policy geeft geen toegang tot gegevens anders dan die onder resources vermeld staan in het credential. resources moet in ieder geval de volgende waardes bevatten:
+path: /task/[ID], operations: ["read", "update"], userContext: false. [ID] moet hierbij vervangen worden door een echt ID. Deze waarde geeft lees en update rechten op de task resource.
+path: /compositon/[id], operations: ["read", "document"], userContext: true. [ID] moet hierbij vervangen worden door een echt ID. De document operatie wordt in FHIR vertaald naar het pad: /Compositon/[id]/$document. Dit betreft lees rechten op het overdrachtsbericht.
+path: /[path], operations: ["read"], userContext: true. Voor elke FHIR reference die voorkomt in het overdrachtsbericht moet een waarde worden opgenomen. /[path] moet daarbij vervangen worden door de FHIR reference.
+Bij de aanvraag van het access token moet het credential volgens bovenstaande eisen meegestuurd worden in het vcs veld. Daarnaast moet er gebruikersinformatie meegestuurd worden in het usi veld. Het purposeOfUse veld moet de waarde eOverdracht-sender bevatten.
+ */
+
+// verifyAccess checks the access policy rules. The token has already been checked and the introspected token is used.
 func (server *Server) verifyAccess(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
+	// todo: delegate to access_policy.go
+
 	route := parseRoute(request)
 
-	// check purposeOfUse/service
+	// check purposeOfUse/service according to §6.2 eOverdracht-sender policy
 	service := token.Service
 	if service == nil {
 		return errors.New("access-token doesn't contain 'service' claim")
 	}
-	if *service != "eOverdracht-sender" {
-		return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be eOverdracht-sender", *service)
+	if *service != transfer.SenderServiceName {
+		return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be %s", *service, transfer.SenderServiceName)
 	}
 
-	// TODO: Assert that token.subject equals the requester?
-	// NutsAuthorizationCredential is only required for:
-	// 1. Retrieving FHIR resources that contain personal information (for the sake of simplicity; everything other than the Task for now)
-	// 2. Updating a task resource (so everything other than a HTTP GET/read)
-	if route.operation == "read" && strings.HasPrefix(route.path, server.path+"/Task") {
+	// task specific access
+	serverTaskPath := server.path+"/Task"
+	if route.path() == serverTaskPath {
+		// §6.2.1.1 retrieving tasks via a search operation
+		// validate GET [base]/Task?code=http://snomed.info/sct|308292007&_lastUpdated=[time of last request]
+		if route.operation != "read" {
+			return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
+		}
+		// query params(code and _lastUpdated) are optional
+		// ok for Task search
 		return nil
 	}
 
-	authCredential, err := findNutsAuthorizationCredential(token)
-	if err != nil {
-		return err
+	// §6.2.1.2 Updating the Task
+	// and
+	// §6.2.2 other resources that require a credential and a user contract
+	// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
+	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err!= nil {
+		fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
 	}
-
-	subject := &credential.NutsAuthorizationCredentialSubject{}
-
-	if err := authCredential.UnmarshalCredentialSubject(subject); err != nil {
-		return fmt.Errorf("invalid type for NutsAuthorizationCredential subject: %w", err)
-	}
-
-	allowed := false
-
-	for _, resource := range subject.Resources {
-		if route.path != resource.Path {
-			continue
-		}
-
-		for _, operation := range resource.Operations {
-			if operation == route.operation {
-				allowed = true
-				break
-			}
-		}
-	}
-
-	if !allowed {
-		return fmt.Errorf("access denied for path '%s' with operation: %s", route.path, route.operation)
-	}
-
 	return nil
 }
 
-func findNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionResponse) (*vc.VerifiableCredential, error) {
+func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse, route fhirRoute) error {
+	hasUser := token.Usi != nil
 	if token.Vcs != nil {
-		for _, verifiableCredential := range *token.Vcs {
-			types := credential.ExtractTypes(verifiableCredential)
+		for _, credentialID := range *token.Vcs {
+			// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
+			vc, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
+			if err != nil {
+				return fmt.Errorf("invalid credential: %w", err)
+			}
 
-			for _, typeName := range types {
-				if typeName == credential.NutsAuthorizationCredentialType {
-					return &verifiableCredential, nil
+			didVC, err := convertCredential(*vc)
+			if err != nil {
+				return fmt.Errorf("invalid credential format: %w", err)
+			}
+			if !validCredentialType(*didVC) {
+				continue
+			}
+
+			subject := &credential.NutsAuthorizationCredentialSubject{}
+			if err := didVC.UnmarshalCredentialSubject(subject); err != nil {
+				return fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
+			}
+			for _, resource := range subject.Resources {
+				// path should match
+				if route.path() != resource.Path {
+					continue
+				}
+
+				// usi must be present when resource requires user context
+				if resource.UserContext && !hasUser {
+					continue
+				}
+
+				// operation must match
+				for _, operation := range resource.Operations {
+					if operation == route.operation {
+						// all is ok, no need to continue after a match
+						return nil
+					}
 				}
 			}
 		}
+		return errors.New("no matching NutsAuthorizationCredential found in access-token")
 	}
 
-	return nil, errors.New("NutsAuthorizationCredential was not found in the access-token")
+	return errors.New("no NutsAuthorizationCredential in access-token")
 }
 
 func (server *Server) getTenant(requesterDID string) (int, error) {
@@ -191,4 +230,20 @@ func (server *Server) getTenant(requesterDID string) (int, error) {
 		return 0, errors.New("unknown tenant")
 	}
 	return customer.Id, nil
+}
+
+func convertCredential(verifiableCredential vcr.VerifiableCredential) (*vc.VerifiableCredential, error) {
+	data, err := json.Marshal(verifiableCredential)
+	if err != nil {
+		return nil, err
+	}
+	didVC := vc.VerifiableCredential{}
+	if err = json.Unmarshal(data, &didVC); err != nil {
+		return nil, err
+	}
+	return &didVC, nil
+}
+
+func validCredentialType(verifiableCredential vc.VerifiableCredential) bool {
+	return verifiableCredential.IsType(*credential.NutsAuthorizationCredentialTypeURI)
 }

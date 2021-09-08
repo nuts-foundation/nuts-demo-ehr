@@ -630,14 +630,6 @@ components:
         token:
           type: string
           description: the result from a signing session. It's an updated JWT.
-    IRMAAuthenticationRequest:
-      required:
-        - customerID
-      properties:
-        customerID:
-          description: Internal ID of the customer for which is being logged in
-          type: integer
-          example: 1
     PasswordAuthenticateRequest:
       required:
         - customerID

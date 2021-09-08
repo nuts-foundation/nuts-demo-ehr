@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 
 	"github.com/labstack/echo/v4"
@@ -114,7 +116,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		ctx.Echo().Logger.Error(err)
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
-	customerID, ok := token.Get(CustomerID)
+	customerID, ok := customerIDFromToken(token)
 	if !ok {
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
@@ -126,9 +128,9 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	base64String := base64.StdEncoding.EncodeToString(bytes)
-	sessionID := w.APIAuth.StoreVP(customerID.(int), base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID.(int), sessionID)
+	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -152,4 +154,27 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 	return ctx.JSON(http.StatusOK, customers)
+}
+
+// customerIDFromToken gets the customerID from the jwt
+// given some libs it can happen the customerID is returned as a float64...
+func customerIDFromToken(token jwt.Token) (int, bool) {
+	rawCustomerID, ok := token.Get(CustomerID)
+	if !ok {
+		return 0, false
+	}
+	switch customerID := rawCustomerID.(type) {
+	case float64:
+		return int(customerID), true
+	case int:
+		return customerID, true
+	case string:
+		i, err := strconv.Atoi(customerID)
+		if err != nil {
+			return 0, false
+		}
+		return i, true
+	}
+
+	return 0, false
 }

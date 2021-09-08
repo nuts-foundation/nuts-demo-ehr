@@ -119,22 +119,6 @@ func (server *Server) Handler(_ echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-/*
-
-6.2.2 Persoonsgebonden resources
-Het ophalen van het overdrachtsbericht en alle aanverwante gegevens vereisen een geregistreerde autorisatie in de vorm van een Nuts Authorization Credential. Het credential moet voldoen aan de volgende eisen:
-De issuer moet het DID bevatten van de versturende partij.
-credentialSubject.id moet het DID van de ontvangende partij bevatten.
-credentialSubject.purposeOfUse moet gelijk zijn aan eOverdracht-sender.
-credentialSubject.legalBase.consentType moet gelijk zijn aan implied.
-credentialSubject.subject moet het BSN bevatten als OID: urn:oid:2.16.840.1.113883.2.4.6.3:999999990.
-De eOverdracht-sender policy geeft geen toegang tot gegevens anders dan die onder resources vermeld staan in het credential. resources moet in ieder geval de volgende waardes bevatten:
-path: /task/[ID], operations: ["read", "update"], userContext: false. [ID] moet hierbij vervangen worden door een echt ID. Deze waarde geeft lees en update rechten op de task resource.
-path: /compositon/[id], operations: ["read", "document"], userContext: true. [ID] moet hierbij vervangen worden door een echt ID. De document operatie wordt in FHIR vertaald naar het pad: /Compositon/[id]/$document. Dit betreft lees rechten op het overdrachtsbericht.
-path: /[path], operations: ["read"], userContext: true. Voor elke FHIR reference die voorkomt in het overdrachtsbericht moet een waarde worden opgenomen. /[path] moet daarbij vervangen worden door de FHIR reference.
-Bij de aanvraag van het access token moet het credential volgens bovenstaande eisen meegestuurd worden in het vcs veld. Daarnaast moet er gebruikersinformatie meegestuurd worden in het usi veld. Het purposeOfUse veld moet de waarde eOverdracht-sender bevatten.
- */
-
 // verifyAccess checks the access policy rules. The token has already been checked and the introspected token is used.
 func (server *Server) verifyAccess(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 	// todo: delegate to access_policy.go

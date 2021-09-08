@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
-
-	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -115,12 +114,17 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	// forward to node
-	bytes, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
+	sessionStatus, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
 	if err != nil {
 		return err
 	}
 
-	base64String := base64.StdEncoding.EncodeToString(bytes)
+	if sessionStatus.Status != "DONE" {
+		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
+	}
+
+	sessionBytes, _ := json.Marshal(sessionStatus)
+	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
 	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
 	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)
@@ -157,13 +161,26 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return err
 	}
 
-	// forward to node
-	bytes, err := w.NutsAuth.GetDummySessionResult(sessionToken)
-	if err != nil {
-		return err
+	var (
+		sessionStatus string
+	)
+
+	// for dummy, it takes a few request to get to status completed.
+	for i := 0; i < 4 && sessionStatus != "completed"; i++ {
+		// forward to node
+		sessionResult, err := w.NutsAuth.GetDummySessionResult(sessionToken)
+		if err != nil {
+			return err
+		}
+		sessionStatus = sessionResult.Status
 	}
 
-	base64String := base64.StdEncoding.EncodeToString(bytes)
+	if sessionStatus != "completed" {
+		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
+	}
+	sessionBytes, _ := json.Marshal(sessionStatus)
+	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
+
 	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
 	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)

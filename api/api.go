@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"net/http"
 	"strconv"
 
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
@@ -33,16 +34,18 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 }
 
 type Wrapper struct {
-	APIAuth              *Auth
-	NutsAuth             nutsClient.Auth
-	CustomerRepository   customers.Repository
-	PatientRepository    patients.Repository
-	DossierRepository    dossier.Repository
-	TransferRepository   transfer.Repository
-	OrganizationRegistry registry.OrganizationRegistry
-	TransferService      transfer.Service
-	Inbox                *inbox.Service
-	TenantInitializer    func(tenant int) error
+	APIAuth                 *Auth
+	NutsAuth                nutsClient.Auth
+	CustomerRepository      customers.Repository
+	PatientRepository       patients.Repository
+	DossierRepository       dossier.Repository
+	OrganizationRegistry    registry.OrganizationRegistry
+	TransferSenderRepo      sender.TransferRepository
+	TransferSenderService   sender.TransferService
+	TransferReceiverService receiver.TransferService
+	TransferReceiverRepo    receiver.TransferRepository
+	NotificationHandler     notification.Handler
+	TenantInitializer       func(tenant int) error
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {

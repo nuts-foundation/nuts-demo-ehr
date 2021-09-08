@@ -1,4 +1,4 @@
-package transfer
+package sender
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	transfer2 "github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"time"
 
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
@@ -158,7 +159,7 @@ const negotiationSchema = `
 type SQLiteTransferRepository struct {
 }
 
-func NewSQLiteTransferRepository(db *sqlx.DB) *SQLiteTransferRepository {
+func NewTransferRepository(db *sqlx.DB) *SQLiteTransferRepository {
 	if db == nil {
 		panic("missing db")
 	}
@@ -343,7 +344,7 @@ func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID int, tr
 	if err != nil {
 		return nil, nil
 	}
-	transfer.Status = CANCELLED_STATE
+	transfer.Status = transfer2.CancelledState
 
 	if err := r.updateTransfer(ctx, tx, customerID, *transfer); err != nil {
 		return nil, err
@@ -354,7 +355,7 @@ func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID int, tr
 		return nil, err
 	}
 	for _, negotiation := range negotiations {
-		negotiation.Status = CANCELLED_STATE
+		negotiation.Status = transfer2.CancelledState
 		if err := r.updateNegotiation(ctx, tx, customerID, negotiation); err != nil {
 			return nil, err
 		}
@@ -374,8 +375,8 @@ func (r SQLiteTransferRepository) UpdateNegotiationState(ctx context.Context, cu
 	}
 	wrongStateErrStr := "could not update status: invalid state transition from: %s to: %s"
 	switch negotiation.Status {
-	case CANCELLED_STATE:
-	case COMPLETED_STATE:
+	case transfer2.CancelledState:
+	case transfer2.CompletedState:
 		return nil, fmt.Errorf(wrongStateErrStr, negotiation.Status, newState)
 	}
 	negotiation.Status = newState
@@ -394,7 +395,7 @@ func (r SQLiteTransferRepository) CancelNegotiation(ctx context.Context, custome
 	if err != nil {
 		return nil, err
 	}
-	negotiation.Status = CANCELLED_STATE
+	negotiation.Status = transfer2.CancelledState
 	if err := r.updateNegotiation(ctx, tx, customerID, *negotiation); err != nil {
 		return nil, err
 	}
@@ -414,7 +415,7 @@ func (r SQLiteTransferRepository) ConfirmNegotiation(ctx context.Context, custom
 	if err != nil {
 		return nil, err
 	}
-	negotiation.Status = IN_PROGRESS_STATE
+	negotiation.Status = transfer2.InProgressState
 	if err := r.updateNegotiation(ctx, tx, customerID, *negotiation); err != nil {
 		return nil, err
 	}
@@ -422,7 +423,6 @@ func (r SQLiteTransferRepository) ConfirmNegotiation(ctx context.Context, custom
 }
 
 func (r SQLiteTransferRepository) updateNegotiation(ctx context.Context, tx *sqlx.Tx, customerID int, negotiation domain.TransferNegotiation) error {
-
 	const query = `
 	UPDATE transfer_negotiation SET
 		date = :date,
@@ -447,23 +447,25 @@ func (r SQLiteTransferRepository) CreateNegotiation(ctx context.Context, custome
 	if err != nil {
 		return nil, err
 	}
+
 	negotiation := sqlNegotiation{
 		ID:              uuid.NewString(),
 		TransferID:      transferID,
 		OrganizationDID: organizationDID,
 		CustomerID:      customerID,
 		Date:            transferDate,
-		Status:          REQUESTED_STATE,
+		Status:          transfer2.RequestedState,
 		TaskID:          taskID,
 	}
+
 	const query = `INSERT INTO transfer_negotiation 
 		(id, transfer_id, organization_did, customer_id, date, status, task_id)
-		values(:id, :transfer_id, :organization_did, :customer_id, :date, :status, :task_id)
-`
+		values(:id, :transfer_id, :organization_did, :customer_id, :date, :status, :task_id)`
 
 	if _, err := tx.NamedExecContext(ctx, query, negotiation); err != nil {
 		return nil, err
 	}
+
 	return negotiation.MarshalToDomainNegotiation()
 }
 

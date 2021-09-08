@@ -8,6 +8,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"io/fs"
 	"log"
 	"net/http"
@@ -22,9 +25,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/inbox"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
@@ -164,10 +165,12 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 
 	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address), fhir.WithMultiTenancyEnabled(config.FHIR.Server.SupportsMultiTenancy()))
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
-	transferRepository := transfer.NewSQLiteTransferRepository(sqlDB)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
-	transferService := transfer.NewTransferService(authService, fhirClientFactory, transferRepository, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry)
+	transferSenderRepo := sender.NewTransferRepository(sqlDB)
+	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)
+	transferSenderService := sender.NewTransferService(authService, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry)
+	transferReceiverService := receiver.NewTransferService(authService, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry)
 	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil
@@ -192,16 +195,18 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
-		APIAuth:              auth,
-		NutsAuth:             nodeClient,
-		CustomerRepository:   customerRepository,
-		PatientRepository:    patientRepository,
-		DossierRepository:    dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
-		TransferRepository:   transferRepository,
-		OrganizationRegistry: orgRegistry,
-		TransferService:      transferService,
-		Inbox:                inbox.NewService(customerRepository, inbox.NewRepository(sqlDB), orgRegistry, authService),
-		TenantInitializer:    tenantInitializer,
+		APIAuth:                 auth,
+		NutsAuth:                nodeClient,
+		CustomerRepository:      customerRepository,
+		PatientRepository:       patientRepository,
+		DossierRepository:       dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
+		TransferSenderRepo:      transferSenderRepo,
+		OrganizationRegistry:    orgRegistry,
+		TransferSenderService:   transferSenderService,
+		TransferReceiverService: transferReceiverService,
+		TransferReceiverRepo:    transferReceiverRepo,
+		TenantInitializer:       tenantInitializer,
+		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry),
 	}
 
 	// JWT checking for correct claims

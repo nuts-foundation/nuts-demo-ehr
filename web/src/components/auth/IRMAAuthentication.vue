@@ -6,7 +6,6 @@ import irma from "@privacybydesign/irma-frontend";
 
 export default {
   props: {
-    customer: Object,
     headerMessage: {
       type: String,
       default: "Authenticate",

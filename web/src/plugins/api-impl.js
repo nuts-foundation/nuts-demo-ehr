@@ -72,10 +72,37 @@ function createApi(options) {
 
         });
     },
+    authenticateWithDummy(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'authenticateWithDummy');
+      return fetch(endpoint + basePath + '/auth/dummy'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+        });
+    },
+    getDummyAuthenticationResult(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getDummyAuthenticationResult');
+      return fetch(endpoint + basePath + '/auth/dummy/session/' + params['sessionToken'] + '/result'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     authenticateWithIRMA(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
-        'content-type': 'application/json',
 
       };
       handleSecurity([{"bearerAuth":[]}]
@@ -85,8 +112,6 @@ function createApi(options) {
           method: 'POST',
           headers,
           mode,
-          body: JSON.stringify(params['body']),
-
         });
     },
     getIRMAAuthenticationResult(parameters) {

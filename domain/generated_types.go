@@ -112,12 +112,6 @@ type Dossier struct {
 	PatientID ObjectID `json:"patientID"`
 }
 
-// IRMAAuthenticationRequest defines model for IRMAAuthenticationRequest.
-type IRMAAuthenticationRequest struct {
-	// Internal ID of the customer for which is being logged in
-	CustomerID int `json:"customerID"`
-}
-
 // InboxEntry defines model for InboxEntry.
 type InboxEntry struct {
 	// Date/time of the entry.
@@ -297,9 +291,6 @@ type TransferRequest struct {
 // SetCustomerJSONBody defines parameters for SetCustomer.
 type SetCustomerJSONBody Customer
 
-// AuthenticateWithIRMAJSONBody defines parameters for AuthenticateWithIRMA.
-type AuthenticateWithIRMAJSONBody IRMAAuthenticationRequest
-
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
@@ -356,9 +347,6 @@ type UpdateTransferNegotiationStatusJSONBody TransferNegotiationStatus
 
 // SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.
 type SetCustomerJSONRequestBody SetCustomerJSONBody
-
-// AuthenticateWithIRMAJSONRequestBody defines body for AuthenticateWithIRMA for application/json ContentType.
-type AuthenticateWithIRMAJSONRequestBody AuthenticateWithIRMAJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody

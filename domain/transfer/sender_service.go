@@ -38,7 +38,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	}
 
 	var (
-		negotiation          *domain.TransferNegotiation
+		negotiation *domain.TransferNegotiation
 	)
 
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transfer *domain.Transfer) (*domain.Transfer, error) {
@@ -64,7 +64,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			OwnerID:     organizationDID,
 			Status:      REQUESTED_STATE,
 			Input: []resources.TaskInputOutput{
-			{
+				{
 					Type:           &fhir.LoincAdvanceNoticeType,
 					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
 				},
@@ -78,13 +78,13 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 
 		if err := s.vcr.CreateAuthorizationCredential(ctx, SenderServiceName, *customer.Did, organizationDID, []credential.Resource{
 			{
-				Path:       fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
-				Operations: []string{"read", "update"},
+				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
+				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
 			{
-				Path:       compositionPath,
-				Operations: []string{"read", "document"},
+				Path:        compositionPath,
+				Operations:  []string{"read", "document"},
 				UserContext: true,
 			},
 		}); err != nil {
@@ -204,13 +204,13 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 		if err := s.vcr.CreateAuthorizationCredential(ctx, SenderServiceName, *customer.Did, negotiation.OrganizationDID, []credential.Resource{
 			{
-				Path:       fmt.Sprintf("/Task/%s", fhir.FromIDPtr(task.ID)),
-				Operations: []string{"read", "update"},
+				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(task.ID)),
+				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
 			{
-				Path:       compositionPath,
-				Operations: []string{"read", "document"},
+				Path:        compositionPath,
+				Operations:  []string{"read", "document"},
 				UserContext: true,
 			},
 		}); err != nil {
@@ -250,7 +250,7 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	}
 
 	// update DB, Task and credential state
-	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID,transfer.FhirAdvanceNoticeComposition)
+	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID, transfer.FhirAdvanceNoticeComposition)
 	if err != nil {
 		return nil, err
 	}
@@ -258,8 +258,8 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID)
 }
 
-func (s service) UpdateTask(ctx context.Context, customer domain.Customer, taskID string, newState string) error {
-	// find transfer
+func (s service) UpdateTaskState(ctx context.Context, customer domain.Customer, taskID string, newState string) error {
+	// find negotiation
 	negotiation, err := s.transferRepo.FindNegotiationByTaskID(ctx, customer.Id, taskID)
 	if err != nil {
 		return err
@@ -386,7 +386,6 @@ func (s service) sendNotification(ctx context.Context, customer *domain.Customer
 
 	return s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint)
 }
-
 
 func (s service) getLocalTransferTask(ctx context.Context, customerID int, fhirTaskID string) (resources.Task, error) {
 	task := resources.Task{}

@@ -43,7 +43,7 @@ type Service interface {
 	AcceptTransferRequest(ctx context.Context, customerID int, requestorDID, fhirTaskID string) error
 
 	// UpdateTask updates the Task resource at the sender side. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
-	UpdateTask(ctx context.Context, customer domain.Customer, taskID string, newState string) error
+	UpdateTaskState(ctx context.Context, customer domain.Customer, taskID string, newState string) error
 }
 
 type service struct {

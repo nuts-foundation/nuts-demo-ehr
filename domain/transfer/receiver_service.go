@@ -14,7 +14,6 @@ import (
 // ReceiverServiceName contains the name of the eOverdracht receiver compound-service
 const ReceiverServiceName = "eOverdracht-receiver"
 
-
 func (s service) GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
@@ -68,7 +67,7 @@ func (s service) ProposeAlternateDate(ctx context.Context, customerID int, negot
 	panic("implement me")
 }
 
-func (s service) RejectNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error){
+func (s service) RejectNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
 	panic("implement me")
 }
 

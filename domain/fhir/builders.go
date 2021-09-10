@@ -87,8 +87,8 @@ func BuildAdvanceNotice() Composition {
 func BuildNursingHandoff(patient *domain.Patient) Composition {
 	patientPath := fmt.Sprintf("Patient/%s", string(patient.ObjectID))
 	elements := map[string]interface{}{
-		"title": "Nursing handoff",
-		"type":  SnomedNursingHandoffType,
+		"title":   "Nursing handoff",
+		"type":    SnomedNursingHandoffType,
 		"subject": datatypes.Reference{Reference: ToStringPtr(patientPath)},
 		"author": eoverdracht.Practitioner{
 			// TODO: Derive from authenticated user?

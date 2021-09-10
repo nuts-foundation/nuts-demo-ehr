@@ -31,7 +31,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 type sqlNotification struct {
 	ID         string    `db:"id"`
-	CustomerID int        `db:"customer_id"`
+	CustomerID int       `db:"customer_id"`
 	SenderDID  string    `db:"sender_did"`
 	Date       time.Time `db:"date"`
 }

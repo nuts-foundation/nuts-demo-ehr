@@ -3,11 +3,15 @@ package proxy
 import (
 	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/hashicorp/go-uuid"
 )
 
 type fhirRoute struct {
-	url       url.URL
-	operation string
+	url        url.URL
+	operation  string
+	resourceID string
 }
 
 // parseRoute maps the HTTP request to a FHIR route. It can differentiate between read and vread only by looking at the route.
@@ -29,7 +33,14 @@ func parseRoute(request *http.Request) *fhirRoute {
 		operation = "delete"
 	}
 
-	return &fhirRoute{url: *request.URL, operation: operation}
+	var resourceID string
+	split := strings.Split(request.URL.Path, "/")
+	last := split[len(split)-1]
+	if _, err := uuid.ParseUUID(last); err != nil {
+		resourceID = last
+	}
+
+	return &fhirRoute{url: *request.URL, operation: operation, resourceID: resourceID}
 }
 
 func (fr fhirRoute) path() string {

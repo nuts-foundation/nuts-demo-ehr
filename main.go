@@ -132,7 +132,11 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 	server.Use(proxyServer.AuthMiddleware())
 
 	server.Any(config.FHIR.Proxy.Path+"/*", func(c echo.Context) error {
-		// Logic performed by middleware
+		// For all non-Task updates, logic is performed by middleware
+
+		// For the Task update it does not proxy the call but forwards it to here.
+		// The request is altered to /web/internal/{customerID}/Task/{ID}
+		server.ServeHTTP(c.Response(), c.Request())
 		return nil
 	}, proxyServer.Handler)
 }
@@ -316,7 +320,7 @@ func authMiddleware(authService httpAuth.Service) echo.MiddlewareFunc {
 		Skipper: func(e echo.Context) bool {
 			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")
 		},
-		AccessF: func(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
+		AccessF: func(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 			service := token.Service
 			if service == nil {
 				return errors.New("access-token doesn't contain 'service' claim")

@@ -230,6 +230,24 @@ func (r SQLiteTransferRepository) findNegotiationByID(ctx context.Context, tx *s
 	return dbNegotiation.MarshalToDomainNegotiation()
 }
 
+func (r SQLiteTransferRepository) FindNegotiationByTaskID(ctx context.Context, customerID int, taskID string) (*domain.TransferNegotiation, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	const query = `SELECT * FROM transfer_negotiation WHERE customer_id = ? AND task_id = ?`
+
+	dbNegotiation := sqlNegotiation{}
+	err = tx.GetContext(ctx, &dbNegotiation, query, customerID, taskID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("unable to find negotiation by task_id: %w", err)
+	}
+
+	return dbNegotiation.MarshalToDomainNegotiation()
+}
+
 func (r SQLiteTransferRepository) FindByID(ctx context.Context, customerID int, id string) (*domain.Transfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {

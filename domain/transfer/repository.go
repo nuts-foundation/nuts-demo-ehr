@@ -23,6 +23,7 @@ type Repository interface {
 	Create(ctx context.Context, customerID int, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error)
 
 	FindNegotiationByID(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+	FindNegotiationByTaskID(ctx context.Context, customerID int, taskID string) (*domain.TransferNegotiation, error)
 
 	// Update finds the correct Transfer applies the updateFn and then stores the Transfer
 	// it uses the Transaction from the context but does not commit it.

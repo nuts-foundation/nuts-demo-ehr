@@ -235,8 +235,6 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 	}
 
-
-
 	return negotiation, err
 }
 
@@ -258,6 +256,84 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	}
 
 	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID)
+}
+
+func (s service) UpdateTask(ctx context.Context, customer domain.Customer, taskID string, newState string) error {
+	// find transfer
+	negotiation, err := s.transferRepo.FindNegotiationByTaskID(ctx, customer.Id, taskID)
+	if err != nil {
+		return err
+	}
+
+	// check state transition
+	// todo this only allows for direct assigned transfers
+	if !(negotiation.Status == IN_PROGRESS_STATE && newState == COMPLETED_STATE) {
+		// invalid state change
+		return fmt.Errorf("invalid task state change: from %s to %s", negotiation.Status, newState)
+	}
+
+	return s.completeTask(ctx, customer, negotiation)
+}
+
+// completeTask will also complete the transfer, revoke credential and send a notification
+func (s service) completeTask(ctx context.Context, customer domain.Customer, negotiation *domain.TransferNegotiation) error {
+	transferID := string(negotiation.TransferID)
+
+	// find transfer
+	transfer, err := s.transferRepo.FindByID(ctx, customer.Id, transferID)
+	if err != nil {
+		return err
+	}
+	if transfer == nil {
+		return fmt.Errorf("transfer with ID: %s, not found", transferID)
+	}
+
+	var not notification
+
+	_, err = s.transferRepo.Update(ctx, customer.Id, transferID, func(transfer *domain.Transfer) (*domain.Transfer, error) {
+		// alter state to completed in DB for Task
+		if negotiation, err = s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), COMPLETED_STATE); err != nil {
+			return nil, err
+		}
+		// alter state for transfer to completed as well
+		transfer.Status = domain.TransferStatusCompleted
+
+		// update FHIR task
+		task, err := s.getLocalTransferTask(ctx, customer.Id, negotiation.TaskID)
+		if err != nil {
+			return nil, err
+		}
+		task.Status = fhir.ToCodePtr(COMPLETED_STATE)
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customer.Id)).CreateOrUpdate(ctx, task); err != nil {
+			return nil, err
+		}
+
+		// reconstruct composition path
+		compositionPath := fmt.Sprintf("/Composition/%s", *transfer.FhirNursingHandoffComposition)
+		// revoke authorization credential
+		if err = s.vcr.RevokeAuthorizationCredential(ctx, SenderServiceName, negotiation.OrganizationDID, compositionPath); err != nil {
+			return nil, err
+		}
+
+		// create notification
+		not = notification{
+			customer:        &customer,
+			organizationDID: negotiation.OrganizationDID,
+		}
+
+		return transfer, nil
+	})
+	if err == nil {
+		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
+		tm, _ := sqlUtil.GetTransactionManager(ctx)
+		if commitErr := tm.Commit(); commitErr != nil {
+			return commitErr
+		}
+
+		s.sendNotification(ctx, not.customer, not.organizationDID)
+	}
+
+	return err
 }
 
 type notification struct {

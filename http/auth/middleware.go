@@ -18,9 +18,9 @@ func DefaultErrorFunc(c echo.Context, err error) error {
 	return err
 }
 
-type AccessFunc func(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error
+type AccessFunc func(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error
 
-func DefaultAccessFunc(request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
+func DefaultAccessFunc(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
 	return nil
 }
 
@@ -51,6 +51,14 @@ func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
 				return next(c)
 			}
 
+			if internalValue := c.Get("internal"); internalValue != nil {
+				if value, ok := internalValue.(bool); ok && value {
+					// this call has already been validated, it must be a Task update
+					return next(c)
+				}
+			}
+
+
 			c.Logger().Debugf("Checking access token on %s %s", c.Request().Method, c.Request().RequestURI)
 			token, err := filter.parseAccessToken(c)
 			if err != nil {
@@ -59,7 +67,7 @@ func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
 
 			c.Set(AccessToken, *token)
 
-			if err := config.AccessF(c.Request(), token); err != nil {
+			if err := config.AccessF(c, c.Request(), token); err != nil {
 				return config.ErrorF(c, errors.New("not authorized"))
 			}
 

@@ -508,6 +508,35 @@ paths:
       responses:
         204:
           description: Notification processed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: "#/components/schemas/Dossier"
+
+  /internal/customer/{customerID}/task/{taskID}:
+    parameters:
+      - name: customerID
+        in: path
+        description: ID of the customer.
+        required: true
+        schema:
+          type: integer
+      - name: taskID
+        in: path
+        description: ID of the task.
+        required: true
+        schema:
+          type: string
+    put:
+      description: >
+        This endpoint acts as a proxy for updating the Task resource. Internal checks have to be done first before updating.
+        After updating, a notification has to be send. If the status == "completed" then also the NutsAuthorizationCredential needs to be revoked.
+      operationId: taskUpdate
+      responses:
+        202:
+          description: Task updated successfully.
 
 components:
   schemas:

@@ -7,6 +7,7 @@ require (
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/go-uuid v1.0.1
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/knadh/koanf v0.16.0
 	github.com/labstack/echo/v4 v4.5.0

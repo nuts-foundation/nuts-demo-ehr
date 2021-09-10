@@ -32,6 +32,9 @@ type ServerInterface interface {
 	// (POST /external/transfer/notify)
 	NotifyTransferUpdate(ctx echo.Context) error
 
+	// (PUT /internal/customer/{customerID}/task/{taskID})
+	TaskUpdate(ctx echo.Context, customerID int, taskID string) error
+
 	// (GET /private)
 	CheckSession(ctx echo.Context) error
 
@@ -174,6 +177,32 @@ func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.NotifyTransferUpdate(ctx)
+	return err
+}
+
+// TaskUpdate converts echo context to params.
+func (w *ServerInterfaceWrapper) TaskUpdate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerID" -------------
+	var customerID int
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "customerID", runtime.ParamLocationPath, ctx.Param("customerID"), &customerID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerID: %s", err))
+	}
+
+	// ------------- Path parameter "taskID" -------------
+	var taskID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "taskID", runtime.ParamLocationPath, ctx.Param("taskID"), &taskID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter taskID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.TaskUpdate(ctx, customerID, taskID)
 	return err
 }
 
@@ -597,6 +626,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
 	router.POST(baseURL+"/external/transfer/notify", wrapper.NotifyTransferUpdate)
+	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.GET(baseURL+"/private/dossier", wrapper.GetDossier)

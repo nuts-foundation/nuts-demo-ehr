@@ -43,16 +43,11 @@ paths:
   # IRMA authentication
   /auth/irma/session:
     post:
+      description: Create an IRMA signing session.
       operationId: authenticateWithIRMA
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/IRMAAuthenticationRequest"
       responses:
         '200':
-          description: A session was succesfully created
+          description: An IRMA signing session was succesfully created
           content:
             application/json:
               schema:
@@ -66,7 +61,39 @@ paths:
         schema:
           type: string
     get:
+      description: |
+        After a successful IRMA signing session the resulting signature can be fetched using his endpoint.
       operationId: getIRMAAuthenticationResult
+      responses:
+        '200':
+          description: Session result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+  /auth/dummy:
+    post:
+      description: Create a dummy signing session.
+      operationId: authenticateWithDummy
+      responses:
+        '200':
+          description: A Dummy signing session was succesfully created
+          content:
+            application/json:
+              schema:
+                type: object
+  /auth/dummy/session/{sessionToken}/result:
+    parameters:
+      - name: sessionToken
+        in: path
+        description: Dummy session ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: |
+        After a successful Dummy signing session the resulting token can be fetched using his endpoint.
+      operationId: getDummyAuthenticationResult
       responses:
         '200':
           description: Session result
@@ -633,14 +660,6 @@ components:
         token:
           type: string
           description: the result from a signing session. It's an updated JWT.
-    IRMAAuthenticationRequest:
-      required:
-        - customerID
-      properties:
-        customerID:
-          description: Internal ID of the customer for which is being logged in
-          type: integer
-          example: 1
     PasswordAuthenticateRequest:
       required:
         - customerID

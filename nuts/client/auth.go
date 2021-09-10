@@ -12,10 +12,45 @@ import (
 
 type Auth interface {
 	CreateIrmaSession(customer domain.Customer) ([]byte, error)
-	GetIrmaSessionResult(sessionToken string) ([]byte, error)
+	GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
+
+	CreateDummySession(customer domain.Customer) ([]byte, error)
+	GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
+}
+
+func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := c.auth().GetSignSessionStatus(ctx, sessionToken)
+	if err != nil {
+		return nil, err
+	}
+	respData, err := testAndReadResponse(http.StatusOK, resp)
+	if err != nil {
+		return nil, err
+	}
+	sessionResponse := &nutsAuthClient.SignSessionStatusResponse{}
+	json.Unmarshal(respData, sessionResponse)
+	return sessionResponse, nil
 }
 
 func (c HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) {
+	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansIrma)
+}
+
+func (c HTTPClient) GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
+	return c.getSessionResult(sessionToken)
+}
+
+func (c HTTPClient) CreateDummySession(customer domain.Customer) ([]byte, error) {
+	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansDummy)
+}
+
+func (c HTTPClient) GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
+	return c.getSessionResult(sessionToken)
+}
+
+func (c HTTPClient) createSession(customer domain.Customer, means nutsAuthClient.SignSessionRequestMeans) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -43,7 +78,7 @@ func (c HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) 
 	}
 
 	body := nutsAuthClient.CreateSignSessionJSONRequestBody{
-		Means:   "irma",
+		Means:   means,
 		Payload: contract.Message,
 	}
 
@@ -52,18 +87,6 @@ func (c HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) 
 		return nil, err
 	}
 	return testAndReadResponse(http.StatusCreated, resp)
-}
-
-func (c HTTPClient) GetIrmaSessionResult(sessionToken string) ([]byte, error) {
-	// todo set user session
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := c.auth().GetSignSessionStatus(ctx, sessionToken)
-	if err != nil {
-		return nil, err
-	}
-	return testAndReadResponse(http.StatusOK, resp)
 }
 
 func (c HTTPClient) auth() nutsAuthClient.ClientInterface {

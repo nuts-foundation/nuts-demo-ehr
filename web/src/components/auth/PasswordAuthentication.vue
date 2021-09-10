@@ -28,6 +28,7 @@
 
 <script>
 export default {
+  props: ['redirectPath'],
   data() {
     return {
       loginError: "",
@@ -48,8 +49,10 @@ export default {
   },
   methods: {
     redirectAfterLogin() {
-      console.log('logged in, redirecting!')
-      this.$router.push({name: "ehr.home"})
+      if (this.redirectPath) {
+        return this.$router.push(this.redirectPath)
+      }
+      this.$router.push("/ehr/")
     },
     login() {
       this.$api.authenticateWithPassword({body: this.credentials})

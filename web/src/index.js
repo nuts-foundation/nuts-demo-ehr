@@ -5,7 +5,7 @@ import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
 import PasswordAuthentication from './components/auth/PasswordAuthentication.vue'
-import IRMAAuthentication from './components/auth/IRMAAuthentication.vue'
+import IRMALogin from './components/auth/IRMALogin.vue'
 import Logout from './Logout.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
@@ -22,13 +22,15 @@ import TransferRequest from "./ehr/transfer/TransferRequest.vue"
 import Inbox from "./ehr/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
+import Elevation from "./components/auth/SessionElevation.vue"
 
 const routes = [
   {path: '/', component: Login},
   {
     name: 'login',
     path: '/login',
-    component: Login
+    component: Login,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     name: 'logout',
@@ -39,11 +41,13 @@ const routes = [
     name: 'auth.passwd',
     path: '/auth/passwd/',
     component: PasswordAuthentication,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     name: 'auth.irma',
     path: '/auth/irma/',
-    component: IRMAAuthentication,
+    component: IRMALogin,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     path: '/ehr',
@@ -65,6 +69,12 @@ const routes = [
         path: 'patients/new',
         name: 'ehr.patients.new',
         component: NewPatient
+      },
+      {
+        path: 'elevate',
+        name: 'ehr.elevate',
+        component: Elevation,
+        props: route => ({redirectPath: route.query.redirect})
       },
       {
         path: 'patient/:id',
@@ -108,6 +118,7 @@ const routes = [
         path: 'inbox',
         name: 'ehr.inbox',
         component: Inbox,
+        meta: {requiresElevation: true}
       },
       {
         path: 'settings',
@@ -129,16 +140,25 @@ const router = createRouter({
 
 const app = createApp(App)
 
-router.beforeEach((to, from) => {
+router.beforeEach((to, from, next) => {
   console.log("from: ", from.path, from.name, "to: ", to.path, to.name)
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
-    if (localStorage.getItem("session")) {
-      return true
+    if (!localStorage.getItem("session")) {
+      console.log("no active session found, redirect to login")
+      return next({name: 'login', props: true, query: {redirect: to.path }})
     }
-    console.log("no cookie found, redirect to login")
-    return '/login'
   }
+  if (to.meta.requiresElevation === true) {
+    let sessionStr = localStorage.getItem("session")
+    let rawToken = atob(sessionStr.split('.')[1])
+    let token = JSON.parse(rawToken)
+    if (!token["elv"]) {
+      console.log("route requires elevation, redirect to elevate")
+      return next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
+    }
+  }
+  next()
 })
 
 app.use(router)

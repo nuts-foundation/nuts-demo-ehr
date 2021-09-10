@@ -208,7 +208,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	server.Use(auth.JWTHandler)
 	server.Use(sql.Transactional(sqlDB))
 
-	// for requests that require Nuts AccesToken
+	// for requests that require Nuts AccessToken
 	server.Use(authMiddleware(authService))
 
 	api.RegisterHandlersWithBaseURL(server, apiWrapper, "/web")

@@ -39,6 +39,7 @@ import irma from "@privacybydesign/irma-frontend";
 import irmaLogo from './img/irma-logo.png';
 
 export default {
+  props: ['redirectPath'],
   data() {
     return {
       loginError: "",
@@ -66,9 +67,6 @@ export default {
     }
   },
   methods: {
-    redirectAfterLogin() {
-      this.$router.push("/ehr/")
-    },
     fetchData() {
       this.$api.listCustomers()
           .then(data => this.customers = data)
@@ -84,24 +82,14 @@ export default {
     },
     loginWithPassword() {
       if (this.selectedCustomer) {
-        this.$router.push({name: 'auth.passwd', params: {customer: JSON.stringify(this.selectedCustomer)}})
+        this.$router.push({name: 'auth.passwd', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
       }
     },
     loginWithIRMA() {
       if (this.selectedCustomer) {
-        this.$router.push({name: 'auth.irma', params: {customer: JSON.stringify(this.selectedCustomer)}})
+        this.$router.push({name: 'auth.irma', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
       }
     }
   },
-  mounted() {
-    // Disabled since it causes infinite loops since the $api service is redirecting to this page when a 401 is returned.
-    // Can be enabled when switching back to a JWT. Only perform when it is present.
-    // Check if session still valid, if so just redirect to application
-    // this.$api.get('web/private')
-    //     .then(() => this.redirectAfterLogin())
-    //     .catch(() => {
-    //       // session is invalid, need to authenticate
-    //     })
-  }
 }
 </script>

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,6 +15,7 @@ type VCRClient interface {
 	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
 	FindAuthorizationCredentialIDs(ctx context.Context, params map[string]string) ([]string, error)
 	RevokeCredential(ctx context.Context, credentialID string) error
+	ResolveVerifiableCredential(ctx context.Context, credentialID string, untrusted bool) (*vcr.VerifiableCredential, error)
 }
 
 func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
@@ -90,6 +92,22 @@ func (c HTTPClient) RevokeCredential(ctx context.Context, credentialID string) e
 	}
 	_, err = testAndReadResponse(http.StatusOK, response)
 	return err
+}
+
+func (c HTTPClient) ResolveVerifiableCredential(ctx context.Context, credentialID string, untrusted bool) (*vcr.VerifiableCredential, error) {
+	response, err := c.vcr().Resolve(ctx, credentialID, nil)
+	if err != nil {
+		return nil, err
+	}
+	data, err := testAndReadResponse(http.StatusOK, response)
+	result := vcr.ResolutionResult{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	if !untrusted && result.CurrentStatus != "trusted" {
+		return nil, fmt.Errorf("credential with ID %s is not trusted (but %s)", credentialID, result.CurrentStatus)
+	}
+	return &result.VerifiableCredential, nil
 }
 
 func (c HTTPClient) searchVCR(ctx context.Context, concept string, params []vcr.KeyValuePair) ([]map[string]interface{}, error) {

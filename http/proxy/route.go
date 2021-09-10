@@ -36,7 +36,7 @@ func parseRoute(request *http.Request) *fhirRoute {
 	var resourceID string
 	split := strings.Split(request.URL.Path, "/")
 	last := split[len(split)-1]
-	if _, err := uuid.Parse(last); err != nil {
+	if _, err := uuid.Parse(last); err == nil {
 		resourceID = last
 	}
 

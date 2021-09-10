@@ -54,8 +54,8 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 			requestURL.RawPath = "" // Not required?
 
 			if server.multiTenancyEnabled {
-				tenant := req.Context().Value(fhirServerTenant).(string) // this shouldn't/can't fail, because the middleware handler should've set it.
-				requestURL.Path = targetURL.Path + "/" + tenant + req.URL.Path[len(path):]
+				tenant := req.Context().Value(fhirServerTenant).(int) // this shouldn't/can't fail, because the middleware handler should've set it.
+				requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path,tenant, req.URL.Path[len(path):])
 			} else {
 				requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
 			}
@@ -173,9 +173,10 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 		}
 		// task handling
 		req := ctx.Request()
-		path := fmt.Sprintf("/web/internal/%d/Task/%s", tenant, route.resourceID)
+		path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
 		req.URL.Path = path
 		req.URL.RawPath = path
+		req.RequestURI = path
 		ctx.SetRequest(req)
 
 		ctx.Set("internal", true)

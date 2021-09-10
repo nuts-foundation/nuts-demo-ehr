@@ -196,20 +196,24 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 		return errors.New("missing access-token")
 	}
 
-	customerDID := token.Sub
-	if customerDID == nil {
+	senderDID := token.Sub
+	if senderDID == nil {
 		return errors.New("missing 'sub' in access-token")
+	}
+	customerDID := token.Iss
+	if customerDID == nil {
+		return errors.New("missing 'Iss' in access-token")
 	}
 	customer, err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
 		return err
 	}
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *customerDID)
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
 		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
 
-	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, *customerDID)
+	err = w.Inbox.RegisterNotification(ctx.Request().Context(), customer.Id, *senderDID)
 	if err != nil {
 		return err
 	}

@@ -536,12 +536,6 @@ paths:
       responses:
         204:
           description: Notification processed successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                items:
-                  $ref: "#/components/schemas/Dossier"
 
   /internal/customer/{customerID}/task/{taskID}:
     parameters:

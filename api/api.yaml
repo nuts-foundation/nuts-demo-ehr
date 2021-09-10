@@ -244,7 +244,8 @@ paths:
     put:
       description: >
         Assign the transfer of a patient to a care organization that accepted the transfer negotiation.
-        Calling this operation will update the state of the negotiation to "inProgress" and the transfer to "assigned".
+        Calling this operation will update the state of the negotiation to "in-progress" and the transfer to "assigned".
+        This operation is performed by the sending organization.
       operationId: assignTransferDirect
       requestBody:
         required: true

@@ -67,8 +67,8 @@ func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(c
 func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
 	// may be extended by issuanceDate for even faster results.
 	params := map[string]string{
-		"credentialSubject.id": subjectID,
-		"credentialSubject.purposeOfUse": purposeOfUse,
+		"credentialSubject.id":               subjectID,
+		"credentialSubject.purposeOfUse":     purposeOfUse,
 		"credentialSubject.resources.#.path": resourcePath,
 	}
 	credentialIDs, err := registry.nutsClient.FindAuthorizationCredentialIDs(ctx, params)

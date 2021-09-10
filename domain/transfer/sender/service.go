@@ -42,8 +42,8 @@ type TransferService interface {
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
 
-	// UpdateTask updates the Task resource at the sender side. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
-	UpdateTask(ctx context.Context, customer domain.Customer, taskID string, newState string) error
+	// UpdateTaskState updates the Task resource at the sender side. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
+	UpdateTaskState(ctx context.Context, customer domain.Customer, taskID string, newState string) error
 }
 
 type service struct {
@@ -341,8 +341,8 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID)
 }
 
-func (s service) UpdateTask(ctx context.Context, customer domain.Customer, taskID string, newState string) error {
-	// find transfer
+func (s service) UpdateTaskState(ctx context.Context, customer domain.Customer, taskID string, newState string) error {
+	// find negotiation
 	negotiation, err := s.transferRepo.FindNegotiationByTaskID(ctx, customer.Id, taskID)
 	if err != nil {
 		return err

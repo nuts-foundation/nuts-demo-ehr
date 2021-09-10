@@ -193,7 +193,8 @@ func (r SQLiteTransferRepository) updateTransfer(ctx context.Context, tx *sqlx.T
 	UPDATE transfer SET
 		date = :date,
 		status = :status,
-		description = :description
+		description = :description,
+		fhir_nursinghandoff_composition = :fhir_nursinghandoff_composition
 	WHERE customer_id = :customer_id AND id = :id
 `
 	dbEntity := sqlTransfer{}

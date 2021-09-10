@@ -32,7 +32,7 @@ func (w Wrapper) TaskUpdate(ctx echo.Context, customerID int, taskID string) err
 	status := *task.Status
 
 	// update existing task
-	err = w.TransferService.UpdateTask(ctx.Request().Context(), *customer, taskID, string(status))
+	err = w.TransferSenderService.UpdateTask(ctx.Request().Context(), *customer, taskID, string(status))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return echo.NewHTTPError(http.StatusNotFound, err)

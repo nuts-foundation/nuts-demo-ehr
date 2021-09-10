@@ -2,9 +2,11 @@ package receiver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/go-did/vc"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
@@ -14,7 +16,7 @@ import (
 
 type TransferService interface {
 	CreateOrUpdate(ctx context.Context, customerID int, senderDID, fhirTaskID string) error
-	AcceptTransferRequest(ctx context.Context, customerID int, requesterDID, fhirTaskID string) error
+	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
 }
 
 type service struct {
@@ -48,13 +50,14 @@ func (s service) CreateOrUpdate(ctx context.Context, customerID int, senderDID, 
 	return nil
 }
 
-func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requesterDID, fhirTaskID string) error {
+func (s service) UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return err
 	}
 
-	client, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did)
+	taskPath := fmt.Sprintf("Task/%s", fhirTaskID)
+	client, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath)
 	if err != nil {
 		return err
 	}
@@ -63,17 +66,38 @@ func (s service) AcceptTransferRequest(ctx context.Context, customerID int, requ
 	if err != nil {
 		return err
 	}
-	task.Status = fhir.ToCodePtr(transfer.AcceptedState)
-	// TODO: This doesn't work yet: the access token is missing NutsAuthorizationCredential
-	return client().CreateOrUpdate(ctx, task)
+
+	// state machine
+	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) || (*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
+		task.Status = fhir.ToCodePtr(newState)
+		return client().CreateOrUpdate(ctx, task)
+	}
+
+	return fmt.Errorf("invalid state change from %s to %s", *task.Status, newState)
+
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string) (fhir.Factory, error) {
+func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string, resource string) (fhir.Factory, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, custodianDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", custodianDID, err)
 	}
-	accessToken, err := s.auth.RequestAccessToken(ctx, localActorDID, custodianDID, transfer.SenderServiceName, nil)
+	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, transfer.SenderServiceName, localActorDID, resource)
+
+	var transformed = make([]vc.VerifiableCredential ,len(credentials))
+	for i, c := range credentials {
+		bytes, err := json.Marshal(c)
+		if err != nil {
+			return nil, err
+		}
+		tCred := vc.VerifiableCredential{}
+		if err = json.Unmarshal(bytes, &tCred); err != nil {
+			return nil, err
+		}
+		transformed[i] = tCred
+	}
+
+	accessToken, err := s.auth.RequestAccessToken(ctx, localActorDID, custodianDID, transfer.SenderServiceName, transformed)
 	if err != nil {
 		return nil, err
 	}

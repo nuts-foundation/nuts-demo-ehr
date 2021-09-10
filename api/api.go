@@ -4,11 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
-	"net/http"
-	"strconv"
 
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"

@@ -333,6 +333,9 @@ type GetPatientTransfersParams struct {
 // CreateTransferJSONBody defines parameters for CreateTransfer.
 type CreateTransferJSONBody CreateTransferRequest
 
+// ChangeTransferRequestStateJSONBody defines parameters for ChangeTransferRequestState.
+type ChangeTransferRequestStateJSONBody TransferNegotiationStatus
+
 // UpdateTransferJSONBody defines parameters for UpdateTransfer.
 type UpdateTransferJSONBody TransferProperties
 
@@ -362,6 +365,9 @@ type NewPatientJSONRequestBody NewPatientJSONBody
 
 // CreateTransferJSONRequestBody defines body for CreateTransfer for application/json ContentType.
 type CreateTransferJSONRequestBody CreateTransferJSONBody
+
+// ChangeTransferRequestStateJSONRequestBody defines body for ChangeTransferRequestState for application/json ContentType.
+type ChangeTransferRequestStateJSONRequestBody ChangeTransferRequestStateJSONBody
 
 // UpdateTransferJSONRequestBody defines body for UpdateTransfer for application/json ContentType.
 type UpdateTransferJSONRequestBody UpdateTransferJSONBody

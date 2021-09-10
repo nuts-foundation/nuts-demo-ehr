@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"net/http"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
@@ -68,12 +68,19 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	return ctx.JSON(http.StatusOK, transferRequest)
 }
 
-func (w Wrapper) AcceptTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+
+func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+	updateRequest := &domain.TransferNegotiationStatus{}
+	err := ctx.Bind(updateRequest)
+	if err != nil {
+		return err
+	}
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {
 		return err
 	}
-	err = w.TransferReceiverService.AcceptTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
+
+	err = w.TransferReceiverService.UpdateTransferRequestState(ctx.Request().Context(), cid, requestorDID, fhirTaskID, string(updateRequest.Status))
 	if err != nil {
 		return err
 	}
@@ -197,9 +204,13 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 		return errors.New("missing access-token")
 	}
 
-	customerDID := token.Sub
-	if customerDID == nil {
+	senderDID := token.Sub
+	if senderDID == nil {
 		return errors.New("missing 'sub' in access-token")
+	}
+	customerDID := token.Iss
+	if customerDID == nil {
+		return errors.New("missing 'Iss' in access-token")
 	}
 
 	customer, err := w.CustomerRepository.FindByDID(*customerDID)
@@ -217,7 +228,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
-		SenderDID:   *token.Iss,
+		SenderDID:   *senderDID,
 		CustomerDID: *customerDID,
 		CustomerID:  customer.Id,
 	}); err != nil {

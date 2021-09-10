@@ -84,7 +84,7 @@ type ServerInterface interface {
 	GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error
 
 	// (POST /private/transfer-request/{requestorDID}/{fhirTaskID})
-	AcceptTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error
+	ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error
 
 	// (DELETE /private/transfer/{transferID})
 	CancelTransfer(ctx echo.Context, transferID string) error
@@ -467,8 +467,8 @@ func (w *ServerInterfaceWrapper) GetTransferRequest(ctx echo.Context) error {
 	return err
 }
 
-// AcceptTransferRequest converts echo context to params.
-func (w *ServerInterfaceWrapper) AcceptTransferRequest(ctx echo.Context) error {
+// ChangeTransferRequestState converts echo context to params.
+func (w *ServerInterfaceWrapper) ChangeTransferRequestState(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "requestorDID" -------------
 	var requestorDID string
@@ -489,7 +489,7 @@ func (w *ServerInterfaceWrapper) AcceptTransferRequest(ctx echo.Context) error {
 	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AcceptTransferRequest(ctx, requestorDID, fhirTaskID)
+	err = w.Handler.ChangeTransferRequestState(ctx, requestorDID, fhirTaskID)
 	return err
 }
 
@@ -678,7 +678,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/transfer", wrapper.GetPatientTransfers)
 	router.POST(baseURL+"/private/transfer", wrapper.CreateTransfer)
 	router.GET(baseURL+"/private/transfer-request/:requestorDID/:fhirTaskID", wrapper.GetTransferRequest)
-	router.POST(baseURL+"/private/transfer-request/:requestorDID/:fhirTaskID", wrapper.AcceptTransferRequest)
+	router.POST(baseURL+"/private/transfer-request/:requestorDID/:fhirTaskID", wrapper.ChangeTransferRequestState)
 	router.DELETE(baseURL+"/private/transfer/:transferID", wrapper.CancelTransfer)
 	router.GET(baseURL+"/private/transfer/:transferID", wrapper.GetTransfer)
 	router.PUT(baseURL+"/private/transfer/:transferID", wrapper.UpdateTransfer)

@@ -65,7 +65,6 @@ func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
-
 func (auth Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 	token, err := auth.extractJWTFromHeader(ctx)
 	if err != nil {

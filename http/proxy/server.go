@@ -40,7 +40,7 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 		path:                path,
 		auth:                authService,
 		customerRepository:  customerRepository,
-		vcRegistry: 		 vcRegistry,
+		vcRegistry:          vcRegistry,
 		multiTenancyEnabled: multiTenancyEnabled,
 	}
 
@@ -55,7 +55,7 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 
 			if server.multiTenancyEnabled {
 				tenant := req.Context().Value(fhirServerTenant).(int) // this shouldn't/can't fail, because the middleware handler should've set it.
-				requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path,tenant, req.URL.Path[len(path):])
+				requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path, tenant, req.URL.Path[len(path):])
 			} else {
 				requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
 			}
@@ -145,7 +145,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	}
 
 	// task specific access
-	serverTaskPath := server.path+"/Task"
+	serverTaskPath := server.path + "/Task"
 	if route.path() == serverTaskPath {
 		// §6.2.1.1 retrieving tasks via a search operation
 		// validate GET [base]/Task?code=http://snomed.info/sct|308292007&_lastUpdated=[time of last request]
@@ -161,7 +161,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	// and
 	// §6.2.2 other resources that require a credential and a user contract
 	// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
-	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err!= nil {
+	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err != nil {
 		fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
 	}
 

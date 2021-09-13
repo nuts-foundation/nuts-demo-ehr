@@ -58,7 +58,6 @@ func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
 				}
 			}
 
-
 			c.Logger().Debugf("Checking access token on %s %s", c.Request().Method, c.Request().RequestURI)
 			token, err := filter.parseAccessToken(c)
 			if err != nil {

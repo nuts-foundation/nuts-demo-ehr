@@ -25,7 +25,7 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, string(request.DossierID), request.Description, request.TransferDate.Time)
+	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, string(request.DossierID), request.CarePlan.PatientProblems[0].Problem.Name, request.TransferDate.Time)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 		return err
 	}
 	transfer, err := w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
-		t.Description = updateRequest.Description
+		//t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
 		return t, nil
 	})

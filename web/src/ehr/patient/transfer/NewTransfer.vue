@@ -19,8 +19,9 @@ export default {
     return {
       transfer: {
         id: undefined,
-        transferDate: "",
-        description: "",
+        carePlan: {
+          problems: []
+        }
       },
     }
   },

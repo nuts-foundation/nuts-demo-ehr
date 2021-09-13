@@ -69,7 +69,7 @@ func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID int, trans
 		DossierID:                     string(transfer.DossierID),
 		Date:                          sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
 		Status:                        string(transfer.Status),
-		Description:                   transfer.Description,
+		Description:                   transfer.CarePlan.PatientProblems[0].Problem.Name,
 		FHIRAdvanceNoticeComposition:  transfer.FhirAdvanceNoticeComposition,
 		FHIRNursingHandoffComposition: toNullString(transfer.FhirNursingHandoffComposition),
 	}
@@ -103,7 +103,7 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 		DossierID: domain.ObjectID(dbTransfer.DossierID),
 		Status:    status,
 		TransferProperties: domain.TransferProperties{
-			Description:  dbTransfer.Description,
+			CarePlan: domain.CarePlan{PatientProblems: []domain.PatientProblem{{Problem: domain.Problem{Name: dbTransfer.Description}}}},
 			TransferDate: transferTime,
 		},
 		FhirAdvanceNoticeComposition:  dbTransfer.FHIRAdvanceNoticeComposition,
@@ -297,7 +297,7 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		Status:                       domain.TransferStatusCreated,
 		FhirAdvanceNoticeComposition: fhirAdvanceNoticeComposition,
 		TransferProperties: domain.TransferProperties{
-			Description:  description,
+			CarePlan: domain.CarePlan{PatientProblems: []domain.PatientProblem{{Problem: domain.Problem{Name: description}}}},
 			TransferDate: openapi_types.Date{Time: date},
 		},
 	}

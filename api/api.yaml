@@ -742,16 +742,58 @@ components:
         Properties of a transfer. These values can be updated over time.
       required:
         - transferDate
-        - description
+        - carePlan
       properties:
-        description:
-          description: >
-            Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
-          type: string
+        carePlan:
+          $ref: '#/components/schemas/CarePlan'
         transferDate:
           description: Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
           type: string
           format: date
+
+    CarePlan:
+      description: >
+        CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+      required:
+        - patientProblems
+      properties:
+        patientProblems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientProblem'
+
+    PatientProblem:
+      description: A problem as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.531_20210126000000
+      required:
+        - problem
+        - interventions
+      properties:
+        problem:
+          $ref: '#/components/schemas/Problem'
+        interventions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Intervention'
+    Problem:
+      required:
+        - name
+        - status
+        - comment
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ active, inactive ]
+    Intervention:
+      required:
+        - comment
+      properties:
+        commment:
+          type: string
+
+
+
     CreateTransferRequest:
       description: >
         Create a new transfer for a specific dossier with a date and description.

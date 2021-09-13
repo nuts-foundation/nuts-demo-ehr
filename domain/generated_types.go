@@ -27,6 +27,13 @@ const (
 	PatientPropertiesGenderUnknown PatientPropertiesGender = "unknown"
 )
 
+// Defines values for ProblemStatus.
+const (
+	ProblemStatusActive ProblemStatus = "active"
+
+	ProblemStatusInactive ProblemStatus = "inactive"
+)
+
 // Defines values for TransferStatus.
 const (
 	TransferStatusAssigned TransferStatus = "assigned"
@@ -54,6 +61,11 @@ const (
 
 	TransferNegotiationStatusStatusRequested TransferNegotiationStatusStatus = "requested"
 )
+
+// CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+type CarePlan struct {
+	PatientProblems []PatientProblem `json:"patientProblems"`
+}
 
 // API request to create a dossier for a patient.
 type CreateDossierRequest struct {
@@ -142,6 +154,11 @@ type InboxInfo struct {
 	MessageCount int `json:"messageCount"`
 }
 
+// Intervention defines model for Intervention.
+type Intervention struct {
+	Commment *string `json:"commment,omitempty"`
+}
+
 // An internal object UUID which can be used as unique identifier for entities.
 type ObjectID string
 
@@ -174,6 +191,12 @@ type Patient struct {
 	AvatarUrl *string `json:"avatar_url,omitempty"`
 }
 
+// A problem as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.531_20210126000000
+type PatientProblem struct {
+	Interventions []Intervention `json:"interventions"`
+	Problem       Problem        `json:"problem"`
+}
+
 // A patient in the EHR system. Containing the basic information about the like name, adress, dob etc.
 type PatientProperties struct {
 	// Date of birth.
@@ -200,6 +223,15 @@ type PatientProperties struct {
 
 // Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
 type PatientPropertiesGender string
+
+// Problem defines model for Problem.
+type Problem struct {
+	Name   string        `json:"name"`
+	Status ProblemStatus `json:"status"`
+}
+
+// ProblemStatus defines model for Problem.Status.
+type ProblemStatus string
 
 // Result of a signing session.
 type SessionToken struct {
@@ -266,8 +298,8 @@ type TransferNegotiationStatusStatus string
 
 // Properties of a transfer. These values can be updated over time.
 type TransferProperties struct {
-	// Accompanying text sent to care organizations to assess the patient transfer. It is populated/updated by the last negotiation that was started.
-	Description string `json:"description"`
+	// CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+	CarePlan CarePlan `json:"carePlan"`
 
 	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
 	TransferDate openapi_types.Date `json:"transferDate"`

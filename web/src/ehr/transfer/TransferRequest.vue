@@ -32,8 +32,9 @@
       </div>
 
       <div class="mt-4">
-        <button class="btn btn-primary m-1" @click="accept">Accept</button>
-        <button class="btn btn-secondary m-1" @click="reject">Reject</button>
+        <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">Complete</button>
+        <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept</button>
+        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject</button>
       </div>
     </div>
   </div>
@@ -58,9 +59,19 @@ export default {
           .catch(error => this.$status.error(error))
     },
     accept() {
-      this.$api.acceptTransferRequest({
+      this.$api.changeTransferRequestState({
         requestorDID: this.$route.params.requestorDID,
-        fhirTaskID: this.$route.params.fhirTaskID
+        fhirTaskID: this.$route.params.fhirTaskID,
+        body: {status: 'accepted'}
+      })
+          .then(() => this.fetchData())
+          .catch(error => this.$status.error(error))
+    },
+    complete() {
+      this.$api.changeTransferRequestState({
+        requestorDID: this.$route.params.requestorDID,
+        fhirTaskID: this.$route.params.fhirTaskID,
+        body: {status: 'completed'}
       })
           .then(() => this.fetchData())
           .catch(error => this.$status.error(error))

@@ -13,12 +13,12 @@ type Notifier interface {
 	Notify(token, endpoint string) error
 }
 
-// fireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
+// FireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
 // It just sends the notification and assumes the receiver is available.
-type fireAndForgetNotifier struct {
+type FireAndForgetNotifier struct {
 }
 
-func (f fireAndForgetNotifier) Notify(token, endpoint string) error {
+func (f FireAndForgetNotifier) Notify(token, endpoint string) error {
 	response, err := resty.New().
 		R().
 		SetBody([]byte{}).

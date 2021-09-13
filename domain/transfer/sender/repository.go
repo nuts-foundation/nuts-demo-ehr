@@ -1,4 +1,4 @@
-package transfer
+package sender
 
 import (
 	"context"
@@ -7,22 +7,13 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
-// All possible states as described by the Nictiz eOverdracht v4.0:
-// https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow
-const REQUESTED_STATE = "requested"
-const ACCEPTED_STATE = "accepted"
-const REJECTED_STATE = "rejected"
-const ON_HOLD_STATE = "on-hold"
-const CANCELLED_STATE = "cancelled"
-const IN_PROGRESS_STATE = "in-progress"
-const COMPLETED_STATE = "completed"
-
-type Repository interface {
+type TransferRepository interface {
 	FindByID(ctx context.Context, customerID int, transferID string) (*domain.Transfer, error)
 	FindByPatientID(ctx context.Context, customerID int, patientID string) ([]domain.Transfer, error)
 	Create(ctx context.Context, customerID int, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error)
 
 	FindNegotiationByID(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+	FindNegotiationByTaskID(ctx context.Context, customerID int, taskID string) (*domain.TransferNegotiation, error)
 
 	// Update finds the correct Transfer applies the updateFn and then stores the Transfer
 	// it uses the Transaction from the context but does not commit it.

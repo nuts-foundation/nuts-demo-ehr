@@ -35,8 +35,8 @@ var LoincAdvanceNoticeType = datatypes.CodeableConcept{
 
 var SnomedNursingHandoffType = datatypes.CodeableConcept{
 	Coding: []datatypes.Coding{{
-		System: &SnomedCodingSystem,
-		Code:   &SnomedNursingHandoffCode,
+		System:  &SnomedCodingSystem,
+		Code:    &SnomedNursingHandoffCode,
 		Display: &NursingHandoffDisplay,
 	}},
 }

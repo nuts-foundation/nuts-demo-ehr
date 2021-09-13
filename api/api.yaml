@@ -389,14 +389,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/TransferRequest"
     post:
-      operationId: acceptTransferRequest
+      operationId: changeTransferRequestState
       description: >
-        Accepts the patient transfer from another care organization.
-        If the sending organization decides to assign the patient to the local organization,
-        the patient will automatically be registered in the local EHR.
+        Change the state of the transfer request [accept, cancel, complete].
+        This call is made from the inbox by the receiving organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferNegotiationStatus"
       responses:
         204:
-          description: Transfer request has been accepted.
+          description: Transfer request state change has been accepted.
 
   /private/patients:
     get:
@@ -535,6 +540,29 @@ paths:
       responses:
         204:
           description: Notification processed successfully.
+
+  /internal/customer/{customerID}/task/{taskID}:
+    parameters:
+      - name: customerID
+        in: path
+        description: ID of the customer.
+        required: true
+        schema:
+          type: integer
+      - name: taskID
+        in: path
+        description: ID of the task.
+        required: true
+        schema:
+          type: string
+    put:
+      description: >
+        This endpoint acts as a proxy for updating the Task resource. Internal checks have to be done first before updating.
+        After updating, a notification has to be send. If the status == "completed" then also the NutsAuthorizationCredential needs to be revoked.
+      operationId: taskUpdate
+      responses:
+        202:
+          description: Task updated successfully.
 
 components:
   schemas:
@@ -770,23 +798,6 @@ components:
             fhirNursingHandoffComposition:
               description: Reference to the FHIR composition resource that describes the nursing handoff, according to the Nictiz eOverdracht FHIR specification.
               type: string
-    AssignTransferRequest:
-      description: >
-        Request used to assign a transfer to a specific negotiation indicated by the negotiationID.
-      required:
-        - negotiationID
-      properties:
-        negotiationID:
-          $ref: '#/components/schemas/ObjectID'
-    AcceptTransferRequest:
-      description: >
-        API request to accept the transfer of a patient, to a care organization that accepted transfer.
-        negotiationID contains the ID of the negotiation that will complete the transfer.
-      required:
-        - negotiationID
-      properties:
-        negotiationID:
-          $ref: '#/components/schemas/ObjectID'
     CreateDossierRequest:
       description: API request to create a dossier for a patient.
       required:

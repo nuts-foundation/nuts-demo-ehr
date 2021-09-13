@@ -17,6 +17,8 @@ type VerifiableCredentialRegistry interface {
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
 	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vcr.VerifiableCredential, error)
+	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
+	FindAuthorizationCredentials(ctx context.Context, purposeOfUse, subjectID, resourcePath string) ([]vcr.VerifiableCredential, error)
 }
 
 type httpVerifiableCredentialRegistry struct {
@@ -52,11 +54,21 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
 }
 
-func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
+func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, purposeOfUse, subjectID, resourcePath string) ([]vcr.VerifiableCredential, error) {
 	// may be extended by issuanceDate for even faster results.
 	params := map[string]string{
 		"credentialSubject.id": subjectID,
 		"credentialSubject.purposeOfUse": purposeOfUse,
+		"credentialSubject.resources.#.path": resourcePath,
+	}
+	return registry.nutsClient.FindAuthorizationCredentials(ctx, params)
+}
+
+func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
+	// may be extended by issuanceDate for even faster results.
+	params := map[string]string{
+		"credentialSubject.id":               subjectID,
+		"credentialSubject.purposeOfUse":     purposeOfUse,
 		"credentialSubject.resources.#.path": resourcePath,
 	}
 	credentialIDs, err := registry.nutsClient.FindAuthorizationCredentialIDs(ctx, params)

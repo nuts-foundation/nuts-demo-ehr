@@ -219,10 +219,10 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	}
 
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *customerDID)
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
 		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
 	}
-
+	
 	if token.Iss == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "unknown issuer")
 	}

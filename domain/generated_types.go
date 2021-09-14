@@ -156,7 +156,7 @@ type InboxInfo struct {
 
 // Intervention defines model for Intervention.
 type Intervention struct {
-	Commment *string `json:"commment,omitempty"`
+	Comment string `json:"comment"`
 }
 
 // An internal object UUID which can be used as unique identifier for entities.

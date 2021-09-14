@@ -25,7 +25,7 @@ import (
 
 type TransferService interface {
 	// Create creates a new transfer
-	Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID int, dossierID string, request domain.CreateTransferRequest) (*domain.Transfer, error)
 
 	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
@@ -72,16 +72,17 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
+func (s service) Create(ctx context.Context, customerID int, dossierID string, request domain.CreateTransferRequest) (*domain.Transfer, error) {
 	composition := fhir.BuildAdvanceNotice()
 	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition)
 	if err != nil {
 		return nil, err
 	}
-	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
-	if err != nil {
-		return nil, err
-	}
+	transfer := &domain.Transfer{}
+	//transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
+	//if err != nil {
+	//	return nil, err
+	//}
 	return transfer, nil
 }
 

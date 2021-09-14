@@ -789,7 +789,7 @@ components:
       required:
         - comment
       properties:
-        commment:
+        comment:
           type: string
 
 

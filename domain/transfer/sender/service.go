@@ -73,12 +73,28 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 }
 
 func (s service) Create(ctx context.Context, customerID int, dossierID string, request domain.CreateTransferRequest) (*domain.Transfer, error) {
-	composition := fhir.BuildAdvanceNotice()
-	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition)
+	advanceNotice := fhir.BuildAdvanceNotice2(request)
+	logrus.WithFields(logrus.Fields{"advanceNotice": advanceNotice}).Info("advance notice build")
+
+	for _, problem := range advanceNotice.Problems {
+		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, problem)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, intervention := range advanceNotice.Problems {
+		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, intervention)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, advanceNotice.Composition)
 	if err != nil {
 		return nil, err
 	}
+
 	transfer := &domain.Transfer{}
+	//s.transferRepo.Create(ctx, customerID, dossierID)
 	//transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
 	//if err != nil {
 	//	return nil, err

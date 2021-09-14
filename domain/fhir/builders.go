@@ -61,6 +61,106 @@ func BuildNewComposition(elements map[string]interface{}) Composition {
 	return fhirData
 }
 
+func BuildAdvanceNotice2(createRequest domain.CreateTransferRequest) eoverdracht.AdvanceNotice {
+	problems, interventions := buildCarePlan(createRequest.CarePlan)
+
+	an := eoverdracht.AdvanceNotice{
+		Patient:       resources.Patient{},
+		Problems:      problems,
+		Interventions: interventions,
+	}
+
+	composition := buildAdvanceNoticeComposition(an)
+	an.Composition = composition
+
+	return an
+}
+
+func buildAdvanceNoticeComposition(an eoverdracht.AdvanceNotice) eoverdracht.Composition {
+
+	// new patientProblems
+	patientProblems := eoverdracht.CompositionSection{
+		Title: ToStringPtr("Current patient problems"),
+		Code: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{
+				System:  &SnomedCodingSystem,
+				Code:    ToCodePtr("86644006"),
+				Display: ToStringPtr("Nursing diagnosis"),
+			}},
+		},
+	}
+
+	// Add the problems as a section
+	for _, p := range an.Problems {
+		patientProblems.Entry = append(patientProblems.Entry, datatypes.Reference{Reference: ToStringPtr("Condition/" + FromIDPtr(p.ID))})
+	}
+	for _, i := range an.Interventions {
+		patientProblems.Entry = append(patientProblems.Entry, datatypes.Reference{Reference: ToStringPtr("Procedure/" + FromIDPtr(i.ID))})
+	}
+
+	// Start with empty care plan
+	careplan := eoverdracht.CompositionSection{
+		Code: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{
+				System:  &SnomedCodingSystem,
+				Code:    ToCodePtr("773130005"),
+				Display: ToStringPtr("Nursing care plan (record artifact)"),
+			}}},
+		Section: []eoverdracht.CompositionSection{
+			patientProblems,
+		},
+	}
+
+
+	return eoverdracht.Composition{
+		Base: resources.Base{
+			ResourceType: "Composition",
+			ID:           ToIDPtr(generateResourceID()),
+		},
+		Type: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{System: &LoincCodingSystem, Code: ToCodePtr("57830-2")}},
+		},
+		Title:   "Advance notice",
+		Section: []eoverdracht.CompositionSection{careplan},
+	}
+}
+
+func buildCarePlan(carePlan domain.CarePlan) (problems []resources.Condition, interventions []eoverdracht.Procedure) {
+	for _, cpPatientProblems := range carePlan.PatientProblems {
+		newProblem := buildConditionFromProblem(cpPatientProblems.Problem)
+		problems = append(problems, newProblem)
+		for _, i := range cpPatientProblems.Interventions {
+			interventions = append(interventions, buildProcedureFromIntervention(i, FromIDPtr(newProblem.ID)))
+		}
+	}
+	return problems, interventions
+}
+
+func buildProcedureFromIntervention(intervention domain.Intervention, problemID string) eoverdracht.Procedure {
+	return eoverdracht.Procedure{
+		Domain: resources.Domain{
+			Base: resources.Base{
+				ResourceType: "Procedure",
+				ID:           ToIDPtr(generateResourceID()),
+			},
+		},
+		ReasonReference: datatypes.Reference{Reference: ToStringPtr("Condition/" + problemID)},
+		Note:            []datatypes.Annotation{{Text: ToStringPtr(intervention.Comment)}},
+	}
+}
+
+func buildConditionFromProblem(problem domain.Problem) resources.Condition {
+	return resources.Condition{
+		Domain: resources.Domain{
+			Base: resources.Base{
+				ResourceType: "Condition",
+				ID:           ToIDPtr(generateResourceID()),
+			},
+		},
+		Note: []datatypes.Annotation{{Text: ToStringPtr(problem.Name)}},
+	}
+}
+
 func BuildAdvanceNotice() Composition {
 	elements := map[string]interface{}{
 		"title": "Advance notice",

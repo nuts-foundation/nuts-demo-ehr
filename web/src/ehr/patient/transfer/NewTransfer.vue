@@ -20,7 +20,7 @@ export default {
       transfer: {
         id: undefined,
         carePlan: {
-          problems: []
+          patientProblems: []
         }
       },
     }
@@ -39,8 +39,7 @@ export default {
       return this.$api.createTransfer({
         body: {
           dossierID: dossierID,
-          transferDate: this.transfer.transferDate,
-          description: this.transfer.description,
+          ...this.transfer
         }
       })
     },

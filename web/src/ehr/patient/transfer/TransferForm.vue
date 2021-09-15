@@ -1,9 +1,9 @@
 <template>
   <div class="mt-4" v-if="transfer">
     <div class="bg-gray-50 font-bold">Problems</div>
-    <button @click="transfer.carePlan.problems.push({name: '', interventions: []})" class="btn btn-secondary">Add problem</button>
+    <button @click="transfer.carePlan.patientProblems.push({name: '', interventions: []})" class="btn btn-secondary">Add problem</button>
     <ul>
-      <li v-for="problem in transfer.carePlan.problems" class="border pl-4">
+      <li v-for="problem in transfer.carePlan.patientProblems" class="border pl-4">
         <b>Problem:</b>
         <div>
           <textarea v-model="problem.name" class="border min-w-full h-8" required></textarea>
@@ -29,7 +29,7 @@ export default {
   props: {
     transfer: {
       carePlan: {
-        problems: [{
+        patientProblems: [{
           name: String,
           interventions: [
             {comment: String}

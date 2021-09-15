@@ -25,7 +25,7 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, string(request.DossierID), request)
+	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, request)
 	if err != nil {
 		return err
 	}

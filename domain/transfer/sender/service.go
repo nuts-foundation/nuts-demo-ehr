@@ -25,7 +25,7 @@ import (
 
 type TransferService interface {
 	// Create creates a new transfer
-	Create(ctx context.Context, customerID int, dossierID string, request domain.CreateTransferRequest) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error)
 
 	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
@@ -47,15 +47,15 @@ type TransferService interface {
 }
 
 type service struct {
-	transferRepo TransferRepository
-	auth         auth.Service
+	transferRepo           TransferRepository
+	auth                   auth.Service
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
 	customerRepo           customers.Repository
 	dossierRepo            dossier.Repository
 	patientRepo            patients.Repository
 	registry               registry.OrganizationRegistry
-	vcr      registry.VerifiableCredentialRegistry
-	notifier transfer.Notifier
+	vcr                    registry.VerifiableCredentialRegistry
+	notifier               transfer.Notifier
 }
 
 func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) TransferService {
@@ -72,9 +72,9 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) Create(ctx context.Context, customerID int, dossierID string, request domain.CreateTransferRequest) (*domain.Transfer, error) {
+func (s service) Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error) {
 	advanceNotice := fhir.BuildAdvanceNotice2(request)
-	logrus.WithFields(logrus.Fields{"advanceNotice": advanceNotice}).Info("advance notice build")
+	//logrus.WithFields(logrus.Fields{"advanceNotice": advanceNotice}).Info("advance notice build")
 
 	for _, problem := range advanceNotice.Problems {
 		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, problem)
@@ -93,12 +93,10 @@ func (s service) Create(ctx context.Context, customerID int, dossierID string, r
 		return nil, err
 	}
 
-	transfer := &domain.Transfer{}
-	//s.transferRepo.Create(ctx, customerID, dossierID)
-	//transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
-	//if err != nil {
-	//	return nil, err
-	//}
+	transfer, err := s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
+	if err != nil {
+		return nil, err
+	}
 	return transfer, nil
 }
 

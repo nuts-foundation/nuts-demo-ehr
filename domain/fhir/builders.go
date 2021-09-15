@@ -62,7 +62,8 @@ func BuildNewComposition(elements map[string]interface{}) Composition {
 }
 
 func BuildAdvanceNotice2(createRequest domain.CreateTransferRequest) eoverdracht.AdvanceNotice {
-	problems, interventions := buildCarePlan(createRequest.CarePlan)
+	problems, interventions, careplan := buildCarePlan(createRequest.CarePlan)
+	administrativeData := buildAdministrativeData(createRequest)
 
 	an := eoverdracht.AdvanceNotice{
 		Patient:       resources.Patient{},
@@ -70,13 +71,57 @@ func BuildAdvanceNotice2(createRequest domain.CreateTransferRequest) eoverdracht
 		Interventions: interventions,
 	}
 
-	composition := buildAdvanceNoticeComposition(an)
+	composition := buildAdvanceNoticeComposition(administrativeData, careplan)
 	an.Composition = composition
 
 	return an
 }
 
-func buildAdvanceNoticeComposition(an eoverdracht.AdvanceNotice) eoverdracht.Composition {
+func buildAdministrativeData(request domain.CreateTransferRequest) eoverdracht.CompositionSection {
+	transferDate := request.TransferDate.Format(time.RFC3339)
+	return eoverdracht.CompositionSection{
+		BackboneElement: datatypes.BackboneElement{
+			Element: datatypes.Element{
+				Extension: []datatypes.Extension{{
+					URL:           (*datatypes.URI)(ToStringPtr("http://nictiz.nl/fhir/StructureDefinition/eOverdracht-TransferDate")),
+					ValueDateTime: (*datatypes.DateTime)(ToStringPtr(transferDate)),
+				}},
+			},
+		},
+		Title: ToStringPtr("Administrative data"),
+		Code: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{
+				System:  &SnomedCodingSystem,
+				Code:    ToCodePtr("405624007"),
+				Display: ToStringPtr("Administrative documentation (record artifact)"),
+			}}},
+	}
+
+}
+
+func buildAdvanceNoticeComposition(administrativeData, careplan eoverdracht.CompositionSection) eoverdracht.Composition {
+
+	return eoverdracht.Composition{
+		Base: resources.Base{
+			ResourceType: "Composition",
+			ID:           ToIDPtr(generateResourceID()),
+		},
+		Type: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{System: &LoincCodingSystem, Code: ToCodePtr("57830-2")}},
+		},
+		Title:   "Advance notice",
+		Section: []eoverdracht.CompositionSection{administrativeData,careplan},
+	}
+}
+
+func buildCarePlan(carePlan domain.CarePlan) (problems []resources.Condition, interventions []eoverdracht.Procedure, section eoverdracht.CompositionSection) {
+	for _, cpPatientProblems := range carePlan.PatientProblems {
+		newProblem := buildConditionFromProblem(cpPatientProblems.Problem)
+		problems = append(problems, newProblem)
+		for _, i := range cpPatientProblems.Interventions {
+			interventions = append(interventions, buildProcedureFromIntervention(i, FromIDPtr(newProblem.ID)))
+		}
+	}
 
 	// new patientProblems
 	patientProblems := eoverdracht.CompositionSection{
@@ -91,10 +136,10 @@ func buildAdvanceNoticeComposition(an eoverdracht.AdvanceNotice) eoverdracht.Com
 	}
 
 	// Add the problems as a section
-	for _, p := range an.Problems {
+	for _, p := range problems {
 		patientProblems.Entry = append(patientProblems.Entry, datatypes.Reference{Reference: ToStringPtr("Condition/" + FromIDPtr(p.ID))})
 	}
-	for _, i := range an.Interventions {
+	for _, i := range interventions {
 		patientProblems.Entry = append(patientProblems.Entry, datatypes.Reference{Reference: ToStringPtr("Procedure/" + FromIDPtr(i.ID))})
 	}
 
@@ -110,29 +155,7 @@ func buildAdvanceNoticeComposition(an eoverdracht.AdvanceNotice) eoverdracht.Com
 			patientProblems,
 		},
 	}
-
-	return eoverdracht.Composition{
-		Base: resources.Base{
-			ResourceType: "Composition",
-			ID:           ToIDPtr(generateResourceID()),
-		},
-		Type: datatypes.CodeableConcept{
-			Coding: []datatypes.Coding{{System: &LoincCodingSystem, Code: ToCodePtr("57830-2")}},
-		},
-		Title:   "Advance notice",
-		Section: []eoverdracht.CompositionSection{careplan},
-	}
-}
-
-func buildCarePlan(carePlan domain.CarePlan) (problems []resources.Condition, interventions []eoverdracht.Procedure) {
-	for _, cpPatientProblems := range carePlan.PatientProblems {
-		newProblem := buildConditionFromProblem(cpPatientProblems.Problem)
-		problems = append(problems, newProblem)
-		for _, i := range cpPatientProblems.Interventions {
-			interventions = append(interventions, buildProcedureFromIntervention(i, FromIDPtr(newProblem.ID)))
-		}
-	}
-	return problems, interventions
+	return problems, interventions, careplan
 }
 
 func buildProcedureFromIntervention(intervention domain.Intervention, problemID string) eoverdracht.Procedure {

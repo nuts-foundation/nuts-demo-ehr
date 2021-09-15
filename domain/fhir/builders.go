@@ -92,7 +92,7 @@ func buildAdministrativeData(request domain.CreateTransferRequest) eoverdracht.C
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
 				System:  &SnomedCodingSystem,
-				Code:    ToCodePtr("405624007"),
+				Code:    ToCodePtr(eoverdracht.AdministrativeDocCode),
 				Display: ToStringPtr("Administrative documentation (record artifact)"),
 			}}},
 	}

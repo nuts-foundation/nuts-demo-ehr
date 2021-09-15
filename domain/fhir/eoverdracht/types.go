@@ -5,6 +5,8 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 )
 
+const AdministrativeDocCode = "405624007"
+
 // Practitioner models https://simplifier.net/packages/nictiz.fhir.nl.stu3.zib2017/2.1.1/files/361872
 type Practitioner struct {
 	datatypes.Element

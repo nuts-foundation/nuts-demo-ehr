@@ -56,6 +56,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
+// GetTransferRequest handles requests to receive a transfer request.
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {

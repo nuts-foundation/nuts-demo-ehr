@@ -116,12 +116,24 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	if err != nil {
 		return nil, err
 	}
+
+	if len(task.Input) != 1 || *task.Input[0].Type.Coding[0].Code != fhir.LoincAdvanceNoticeCode {
+		return nil, fmt.Errorf("wrong amount of inputs in the transfer Task")
+	}
+
+	advanceNotice, err := s.getRemoteAdvanceNotice(ctx, client, fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+
 	organization, err := s.registry.Get(ctx, requesterDID)
 	if err != nil {
 		return nil, err
 	}
+	adminData, err := eoverdracht.FilterCompositionSectionByType(advanceNotice, eoverdracht.AdministrativeDocCode)
+	if err != nil {
+		return nil, fmt.Errorf("administrativeData section missing in advance notice: %w", err)
+	}
 	// TODO: Do we need nil checks?
-	transferDate, _ := time.Parse(time.RFC3339, string(*task.Meta.LastUpdated))
+	// TODO: Filter extension by "http://nictiz.nl/fhir/StructureDefinition/eOverdracht-TransferDate"
+	transferDate, _ := time.Parse(time.RFC3339, *(*string)(adminData.Extension[0].ValueDateTime))
 	return &domain.TransferRequest{
 		Description:  "TODO",
 		Sender:       *organization,
@@ -551,4 +563,13 @@ func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory,
 		return resources.Task{}, fmt.Errorf("error while looking up transfer task remotely(task-id=%s): %w", fhirTaskID, err)
 	}
 	return task, nil
+}
+
+func (s service) getRemoteAdvanceNotice(ctx context.Context, client fhir.Factory, fhirCompositionID string) (eoverdracht.Composition, error) {
+	composition := eoverdracht.Composition{}
+	err := client().ReadOne(ctx, "/"+fhirCompositionID, &composition)
+	if err != nil {
+		return eoverdracht.Composition{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionID, err)
+	}
+	return composition, nil
 }

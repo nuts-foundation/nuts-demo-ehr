@@ -111,7 +111,6 @@ func buildAdvanceNoticeComposition(an eoverdracht.AdvanceNotice) eoverdracht.Com
 		},
 	}
 
-
 	return eoverdracht.Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
@@ -144,7 +143,7 @@ func buildProcedureFromIntervention(intervention domain.Intervention, problemID 
 				ID:           ToIDPtr(generateResourceID()),
 			},
 		},
-		ReasonReference: datatypes.Reference{Reference: ToStringPtr("Condition/" + problemID)},
+		ReasonReference: []datatypes.Reference{{Reference: ToStringPtr("Condition/" + problemID)}},
 		Note:            []datatypes.Annotation{{Text: ToStringPtr(intervention.Comment)}},
 	}
 }

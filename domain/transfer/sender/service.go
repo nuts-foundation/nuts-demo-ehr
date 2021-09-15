@@ -82,7 +82,7 @@ func (s service) Create(ctx context.Context, customerID int, dossierID string, r
 			return nil, err
 		}
 	}
-	for _, intervention := range advanceNotice.Problems {
+	for _, intervention := range advanceNotice.Interventions {
 		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, intervention)
 		if err != nil {
 			return nil, err

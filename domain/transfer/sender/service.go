@@ -9,6 +9,7 @@ import (
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -156,7 +157,19 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, err
 		}
 
+		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+
 		compositionPath := fmt.Sprintf("/Composition/%s", transferRecord.FhirAdvanceNoticeComposition)
+		composition := eoverdracht.Composition{}
+		fhirClient.ReadOne(ctx, compositionPath, &composition)
+		if err != nil {
+			return nil, fmt.Errorf("could not create FHIR Task: %w", err)
+		}
+
+		// A list to store all the paths to FHIR resources associated with this advance notice
+		// These paths must be included in the authorization credential
+		resourcePaths := resourcePathsFromSection(composition.Section, []string{})
+
 		transferTask := fhir.BuildNewTask(fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
@@ -169,12 +182,11 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			},
 		})
 
-		err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, transferTask)
+		err = fhirClient.CreateOrUpdate(ctx, transferTask)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create FHIR Task: %w", err)
 		}
-
-		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, organizationDID, []credential.Resource{
+		authorizedResources := []credential.Resource{
 			{
 				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
 				Operations:  []string{"read", "update"},
@@ -185,7 +197,17 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 				Operations:  []string{"read", "document"},
 				UserContext: true,
 			},
-		}); err != nil {
+		}
+
+		for _, path := range resourcePaths {
+			authorizedResources = append(authorizedResources, credential.Resource{
+				Path:        path,
+				Operations:  []string{"read", "document"},
+				UserContext: true,
+			})
+		}
+
+		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, organizationDID, authorizedResources); err != nil {
 			return nil, err
 		}
 
@@ -212,6 +234,20 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	}
 
 	return negotiation, err
+}
+
+func resourcePathsFromSection(sections []eoverdracht.CompositionSection, paths []string) []string {
+	for _, s := range sections {
+		paths = append(paths, resourcePathsFromSection(s.Section, paths)...)
+		for _, e := range s.Entry {
+			path := fhir.FromStringPtr(e.Reference)
+			if path != "" {
+				// paths in authorization credential need a / prefix
+				paths = append(paths, "/"+path)
+			}
+		}
+	}
+	return paths
 }
 
 func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {

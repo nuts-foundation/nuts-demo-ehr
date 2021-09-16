@@ -49,7 +49,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderRepo.FindByID(ctx.Request().Context(), cid, transferID)
+	transfer, err := w.TransferSenderService.GetTransferByID(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}

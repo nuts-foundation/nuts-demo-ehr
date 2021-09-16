@@ -30,6 +30,8 @@ type TransferService interface {
 
 	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
 
+	GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error)
+
 	// ConfirmNegotiation confirms the negotiation indicated by the negotiationID.
 	// The updates the status to ACCEPTED_STATE.
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
@@ -101,6 +103,37 @@ func (s service) Create(ctx context.Context, customerID int, request domain.Crea
 	return transfer, nil
 }
 
+func (s service) GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error) {
+	transfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
+	if err != nil {
+		return domain.Transfer{}, err
+	}
+
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+	client := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+
+	advanceNotice, err := s.getAdvanceNotice(ctx, client, "Composition/"+transfer.FhirAdvanceNoticeComposition)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+	domainTransfer, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+
+	return domain.Transfer{
+		TransferProperties:            domainTransfer,
+		DossierID:                     transfer.DossierID,
+		FhirAdvanceNoticeComposition:  transfer.FhirAdvanceNoticeComposition,
+		FhirNursingHandoffComposition: transfer.FhirNursingHandoffComposition,
+		Id:                            transfer.Id,
+		Status:                        transfer.Status,
+	}, nil
+}
+
 func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {
 	for _, input := range task.Input {
 		if fhir.FromCodePtr(input.Type.Coding[0].Code) == string(code) {
@@ -131,7 +164,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, fmt.Errorf("invalid task, expected an advanceNotice composition")
 	}
 
-	advanceNotice, err := s.getRemoteAdvanceNotice(ctx, client, fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+	advanceNotice, err := s.getAdvanceNotice(ctx, client(), fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
 
 	organization, err := s.registry.Get(ctx, requesterDID)
 	if err != nil {
@@ -570,12 +603,13 @@ func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory,
 	return task, nil
 }
 
-func (s service) getRemoteAdvanceNotice(ctx context.Context, client fhir.Factory, fhirCompositionID string) (eoverdracht.AdvanceNotice, error) {
+// getAdvanceNotice fetches a complete advance notice from the a FHIR server
+func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirCompositionPath string) (eoverdracht.AdvanceNotice, error) {
 	advanceNotice := eoverdracht.AdvanceNotice{}
 
-	err := client().ReadOne(ctx, "/"+fhirCompositionID, &advanceNotice.Composition)
+	err := client.ReadOne(ctx, "/"+fhirCompositionPath, &advanceNotice.Composition)
 	if err != nil {
-		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionID, err)
+		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
 	}
 
 	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
@@ -593,7 +627,7 @@ func (s service) getRemoteAdvanceNotice(ctx context.Context, client fhir.Factory
 		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
 			conditionID := fhir.FromStringPtr(entry.Reference)
 			condition := resources.Condition{}
-			err := client().ReadOne(ctx, "/"+conditionID, &condition)
+			err := client.ReadOne(ctx, "/"+conditionID, &condition)
 			if err != nil {
 				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
 			}
@@ -602,7 +636,7 @@ func (s service) getRemoteAdvanceNotice(ctx context.Context, client fhir.Factory
 		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
 			procedureID := fhir.FromStringPtr(entry.Reference)
 			procedure := eoverdracht.Procedure{}
-			err := client().ReadOne(ctx, "/"+procedureID, &procedure)
+			err := client.ReadOne(ctx, "/"+procedureID, &procedure)
 			if err != nil {
 				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
 			}

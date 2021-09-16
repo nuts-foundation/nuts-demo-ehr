@@ -14,9 +14,17 @@ import (
 const transferSchema = `
 	CREATE TABLE IF NOT EXISTS incoming_transfers (
 		id char(36) NOT NULL,
+		status VARCHAR(100) CHECK (status IN (
+		    'accepted',
+			'cancelled',
+		    'completed',
+		    'in-progress',
+		    'on-hold',
+		    'requested'
+		)) NOT NULL DEFAULT 'requested',
 	    task_id VARCHAR(100) NOT NULL,
-		customer_id varchar(100) NOT NULL,
-		sender_did varchar(100) NOT NULL,
+		customer_id VARCHAR(100) NOT NULL,
+		sender_did VARCHAR(100) NOT NULL,
 		updated_at DATETIME NOT NULL,
 		PRIMARY KEY (id),
 		
@@ -27,7 +35,7 @@ const transferSchema = `
 type TransferRepository interface {
 	GetCount(ctx context.Context, customerID int) (int, error)
 	GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error)
-	CreateOrUpdate(ctx context.Context, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error)
+	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error)
 }
 
 func NewTransferRepository(db *sqlx.DB) TransferRepository {
@@ -44,6 +52,7 @@ func NewTransferRepository(db *sqlx.DB) TransferRepository {
 type sqlTransfer struct {
 	ID         string    `db:"id"`
 	TaskID     string    `db:"task_id"`
+	Status     string    `db:"status"`
 	CustomerID int       `db:"customer_id"`
 	SenderDID  string    `db:"sender_did"`
 	UpdatedAt  time.Time `db:"updated_at"`
@@ -57,6 +66,7 @@ func (transfer sqlTransfer) marshalToDomain() domain.IncomingTransfer {
 		Sender: domain.Organization{
 			Did: transfer.SenderDID,
 		},
+		Status: domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(transfer.Status)},
 	}
 }
 
@@ -65,7 +75,7 @@ type repository struct {
 }
 
 func (f repository) GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error) {
-	const query = `SELECT * FROM incoming_transfers WHERE customer_id = ?`
+	const query = `SELECT * FROM incoming_transfers WHERE customer_id = ? ORDER BY updated_at DESC`
 
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
@@ -108,19 +118,20 @@ func (f repository) GetCount(ctx context.Context, customerID int) (int, error) {
 	return count, nil
 }
 
-func (f repository) CreateOrUpdate(ctx context.Context, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error) {
+func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	const query = `INSERT INTO incoming_transfers (id, task_id, customer_id, sender_did, updated_at)
-		VALUES(:id, :task_id, :customer_id, :sender_did, :updated_at)
+	const query = `INSERT INTO incoming_transfers (id, status, task_id, customer_id, sender_did, updated_at)
+		VALUES(:id, :status, :task_id, :customer_id, :sender_did, :updated_at)
 		ON CONFLICT(task_id) DO
 		UPDATE SET updated_at = :updated_at`
 
 	transfer := &sqlTransfer{
 		ID:         uuid.New().String(),
+		Status:     status,
 		TaskID:     taskID,
 		CustomerID: customerID,
 		SenderDID:  senderDID,

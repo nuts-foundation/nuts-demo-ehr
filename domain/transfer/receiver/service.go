@@ -15,7 +15,7 @@ import (
 )
 
 type TransferService interface {
-	CreateOrUpdate(ctx context.Context, customerID int, senderDID, fhirTaskID string) error
+	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
 }
 
@@ -41,8 +41,8 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) CreateOrUpdate(ctx context.Context, customerID int, senderDID, fhirTaskID string) error {
-	_, err := s.transferRepo.CreateOrUpdate(ctx, fhirTaskID, customerID, senderDID)
+func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error {
+	_, err := s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
 	if err != nil {
 		return err
 	}
@@ -70,6 +70,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	// state machine
 	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) || (*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
 		task.Status = fhir.ToCodePtr(newState)
+
 		return client().CreateOrUpdate(ctx, task)
 	}
 
@@ -84,7 +85,7 @@ func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, l
 	}
 	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, transfer.SenderServiceName, localActorDID, resource)
 
-	var transformed = make([]vc.VerifiableCredential ,len(credentials))
+	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {
 		bytes, err := json.Marshal(c)
 		if err != nil {

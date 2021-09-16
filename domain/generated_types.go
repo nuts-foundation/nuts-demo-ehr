@@ -138,6 +138,9 @@ type InboxEntry struct {
 	// A care organization available through the Nuts Network to exchange information.
 	Sender Organization `json:"sender"`
 
+	// A valid transfer negotiation state.
+	Status TransferNegotiationStatus `json:"status"`
+
 	// Descriptive title.
 	Title string `json:"title"`
 

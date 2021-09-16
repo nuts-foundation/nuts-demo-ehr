@@ -890,6 +890,7 @@ components:
     InboxEntry:
       required:
         - title
+        - status
         - sender
         - date
         - type
@@ -899,6 +900,8 @@ components:
         title:
           description: Descriptive title.
           type: string
+        status:
+          $ref: "#/components/schemas/TransferNegotiationStatus"
         sender:
           $ref: "#/components/schemas/Organization"
         date:

@@ -90,7 +90,7 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 			continue
 		}
 
-		err = service.transferService.CreateOrUpdate(ctx, notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
+		err = service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
 		if err != nil {
 			return err
 		}

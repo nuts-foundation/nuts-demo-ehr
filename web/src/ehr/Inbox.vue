@@ -7,6 +7,7 @@
       <tr>
         <th></th>
         <th>Subject</th>
+        <th>Status</th>
         <th>Sender</th>
         <th>Date</th>
       </tr>
@@ -17,7 +18,7 @@
           style="display: contents;"
           v-for="item in items"
       >
-        <tr class="hover:bg-gray-100 cursor-pointer">
+        <tr v-bind:class="{ 'hover:bg-gray-100': true, 'cursor-pointer': true, 'none': item.requiresAttention }">
           <td>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24"
                  stroke="currentColor" v-if="item.requiresAttention">
@@ -30,12 +31,15 @@
                     d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76"/>
             </svg>
           </td>
-          <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.title }}</td>
-          <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.sender.name }}, {{
+          <td>{{ item.title }}</td>
+          <td>
+            <transfer-status :status="item.status"/>
+          </td>
+          <td>{{ item.sender.name }}, {{
               item.sender.city
             }}
           </td>
-          <td v-bind:class="{ 'font-extrabold': item.requiresAttention }">{{ item.date }}</td>
+          <td>{{ item.date }}</td>
         </tr>
       </router-link>
       </tbody>
@@ -43,7 +47,10 @@
   </div>
 </template>
 <script>
+import TransferStatus from "../components/TransferStatus.vue";
+
 export default {
+  components: {TransferStatus},
   data() {
     return {
       items: [],

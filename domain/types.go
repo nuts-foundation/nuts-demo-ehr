@@ -12,9 +12,10 @@ import (
 )
 
 type IncomingTransfer struct {
-	Id         ObjectID     `json:"id"`
-	FhirTaskID string       `json:"fhirTaskID"`
-	Sender     Organization `json:"sender"`
+	Id         ObjectID                  `json:"id"`
+	FhirTaskID string                    `json:"fhirTaskID"`
+	Sender     Organization              `json:"sender"`
+	Status     TransferNegotiationStatus `json:"status"`
 }
 
 // Transfer data types as described by the ART Decor app from the Nictiz

@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -36,6 +37,7 @@ func NewHandler(auth auth.Service, localFHIRClientFactory fhir.Factory, tranferR
 		registry:               registry,
 	}
 }
+
 // Handle handles an incoming notification about an updated Task for one of its customers.
 func (service *handler) Handle(ctx context.Context, notification Notification) error {
 	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, "eOverdracht-sender", "fhir")
@@ -54,7 +56,9 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 
 	// FIXME: add query params to filter on the owner so to only process the customer addressed in the notification
 	err = client().ReadMultiple(ctx, "/Task", map[string]string{
-		"code": fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode),
+		"code":         fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, fhir.SnomedTransferCode), // filter on transfer tasks
+		"_lastUpdated": fmt.Sprintf("ge%sT00:00:00", time.Now().Format("2006-01-02")),          // filter on date
+		"_count":       "80",                                                                   // prevent having to fetch multiple pages
 	}, &tasks)
 	if err != nil {
 		return err
@@ -85,7 +89,6 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 		if ownerDID != notification.CustomerDID {
 			continue
 		}
-
 
 		err = service.transferService.CreateOrUpdate(ctx, notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
 		if err != nil {

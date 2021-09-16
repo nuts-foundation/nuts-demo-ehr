@@ -6,6 +6,8 @@ import (
 )
 
 const AdministrativeDocCode = "405624007"
+const CarePlanCode = "773130005"
+const NursingDiagnosisCode = "86644006"
 
 // Practitioner models https://simplifier.net/packages/nictiz.fhir.nl.stu3.zib2017/2.1.1/files/361872
 type Practitioner struct {
@@ -52,6 +54,7 @@ type Composition struct {
 	Title      datatypes.String          `json:"title,omitempty"`
 	Section    []CompositionSection      `json:"section,omitempty"`
 }
+
 
 type AdministrativeData struct{}
 

@@ -6,8 +6,8 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 )
 
-func FilterCompositionSectionByType(composition Composition, typeFilter string) (CompositionSection, error)  {
-	for _, c := range composition.Section {
+func FilterCompositionSectionByType(sections []CompositionSection, typeFilter string) (CompositionSection, error)  {
+	for _, c := range sections {
 		if *c.Code.Coding[0].Code == datatypes.Code(typeFilter) {
 			return c, nil
 		}

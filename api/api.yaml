@@ -854,12 +854,13 @@ components:
       description: Incoming request from another care organization to transfer a patient.
       required:
         - sender
-        - transferDate
         - status
-        - description
+        - advanceNotice
       properties:
         sender:
           $ref: '#/components/schemas/Organization'
+        advanceNotice:
+          $ref: '#/components/schemas/TransferProperties'
         transferDate:
           description: Requested transfer date.
           type: string
@@ -867,10 +868,6 @@ components:
         status:
           description: State of the transfer request. Maps to FHIR task state.
           type: string
-        description:
-          description: Descriptive text of the transfer request
-          type: string
-
     Dossier:
       required:
         - id

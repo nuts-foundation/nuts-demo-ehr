@@ -307,8 +307,8 @@ type TransferProperties struct {
 
 // Incoming request from another care organization to transfer a patient.
 type TransferRequest struct {
-	// Descriptive text of the transfer request
-	Description string `json:"description"`
+	// Properties of a transfer. These values can be updated over time.
+	AdvanceNotice TransferProperties `json:"advanceNotice"`
 
 	// A care organization available through the Nuts Network to exchange information.
 	Sender Organization `json:"sender"`
@@ -317,7 +317,7 @@ type TransferRequest struct {
 	Status string `json:"status"`
 
 	// Requested transfer date.
-	TransferDate openapi_types.Date `json:"transferDate"`
+	TransferDate *openapi_types.Date `json:"transferDate,omitempty"`
 }
 
 // SetCustomerJSONBody defines parameters for SetCustomer.

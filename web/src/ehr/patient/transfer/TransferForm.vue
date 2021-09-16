@@ -1,14 +1,16 @@
 <template>
   <div class="mt-4" v-if="transfer">
     <div class="bg-gray-50 font-bold">Problems</div>
-    <button @click="transfer.carePlan.patientProblems.push({name: '', interventions: []})" class="btn btn-secondary">Add problem</button>
+    <button @click="transfer.carePlan.patientProblems.push({problem: {name: ''}, interventions: []})" class="btn btn-secondary">Add
+      problem
+    </button>
     <ul>
-      <li v-for="problem in transfer.carePlan.patientProblems" class="border pl-4">
+      <li v-for="patientProblem in transfer.carePlan.patientProblems" class="border pl-4">
         <b>Problem:</b>
         <div>
-          <textarea v-model="problem.name" class="border min-w-full h-8" required></textarea>
-          <button @click="problem.interventions.push({ comment: ''})" class="btn btn-secondary">Add intervention</button>
-          <div v-for="intervention in problem.interventions" class="border">
+          <textarea v-model="patientProblem.problem.name" class="border min-w-full h-8" required></textarea>
+          <button @click="patientProblem.interventions.push({ name: ''})" class="btn btn-secondary">Add intervention</button>
+          <div v-for="intervention in patientProblem.interventions" class="border">
             <b>Intervention:</b>
             <textarea v-model="intervention.comment" class="border min-w-full h-8"></textarea>
           </div>
@@ -30,7 +32,7 @@ export default {
     transfer: {
       carePlan: {
         patientProblems: [{
-          name: String,
+          problem: {name: String},
           interventions: [
             {comment: String}
           ]

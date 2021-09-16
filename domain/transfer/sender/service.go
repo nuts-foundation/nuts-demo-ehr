@@ -101,6 +101,16 @@ func (s service) Create(ctx context.Context, customerID int, request domain.Crea
 	return transfer, nil
 }
 
+func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {
+	for _, input := range task.Input {
+		if fhir.FromCodePtr(input.Type.Coding[0].Code) == string(code) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*domain.TransferRequest, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
@@ -117,8 +127,8 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	if len(task.Input) != 1 || *task.Input[0].Type.Coding[0].Code != fhir.LoincAdvanceNoticeCode {
-		return nil, fmt.Errorf("wrong amount of inputs in the transfer Task")
+	if !s.taskContainsCode(task, fhir.LoincAdvanceNoticeCode) {
+		return nil, fmt.Errorf("invalid task, expected an advanceNotice composition")
 	}
 
 	advanceNotice, err := s.getRemoteAdvanceNotice(ctx, client, fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
@@ -326,16 +336,15 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, err
 		}
 		task.Status = fhir.ToCodePtr(transfer.InProgressState)
-		task.Input = []resources.TaskInputOutput{
-			{
-				Type:           &fhir.SnomedNursingHandoffType,
-				ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
-			},
-		}
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
+		task.Input = append(task.Input, resources.TaskInputOutput{
+			Type:           &fhir.SnomedNursingHandoffType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
+		})
+
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition); err != nil {
 			return nil, err
 		}
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition); err != nil {
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
 			return nil, err
 		}
 

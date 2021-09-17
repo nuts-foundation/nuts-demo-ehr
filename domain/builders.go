@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,20 +47,7 @@ func BuildNewTask(props fhir.TaskProperties) resources.Task {
 	}
 }
 
-func BuildNewComposition(elements map[string]interface{}) fhir.Composition {
-	fhirData := map[string]interface{}{
-		"resourceType": "Composition",
-		"id":           generateResourceID(),
-		"status":       "final",
-		"date":         time.Now().Format(time.RFC3339),
-	}
-	for key, value := range elements {
-		fhirData[key] = value
-	}
-	return fhirData
-}
-
-func BuildAdvanceNotice2(createRequest CreateTransferRequest) eoverdracht.AdvanceNotice {
+func BuildAdvanceNotice(createRequest CreateTransferRequest) eoverdracht.AdvanceNotice {
 	problems, interventions, careplan := buildCarePlan(createRequest.CarePlan)
 	administrativeData := buildAdministrativeData(createRequest)
 
@@ -99,6 +85,21 @@ func buildAdministrativeData(request CreateTransferRequest) eoverdracht.Composit
 
 }
 
+func buildNursingHandoffComposition(administrativeData, careplan eoverdracht.CompositionSection, patient resources.Patient) eoverdracht.Composition {
+	return eoverdracht.Composition{
+		Base: resources.Base{
+			ResourceType: "Composition",
+			ID:           fhir.ToIDPtr(generateResourceID()),
+		},
+		Type: datatypes.CodeableConcept{
+			Coding: []datatypes.Coding{{System: &fhir.SnomedCodingSystem, Code: fhir.ToCodePtr("371535009"), Display: fhir.ToStringPtr("verslag van overdracht")}},
+		},
+		Subject: datatypes.Reference{Reference: fhir.ToStringPtr("Patient/" + fhir.FromIDPtr(patient.ID))},
+		Title:   "Nursing handoff",
+		Section: []eoverdracht.CompositionSection{administrativeData, careplan},
+	}
+}
+
 func buildAdvanceNoticeComposition(administrativeData, careplan eoverdracht.CompositionSection) eoverdracht.Composition {
 
 	return eoverdracht.Composition{
@@ -110,7 +111,7 @@ func buildAdvanceNoticeComposition(administrativeData, careplan eoverdracht.Comp
 			Coding: []datatypes.Coding{{System: &fhir.LoincCodingSystem, Code: fhir.ToCodePtr("57830-2")}},
 		},
 		Title:   "Advance notice",
-		Section: []eoverdracht.CompositionSection{administrativeData,careplan},
+		Section: []eoverdracht.CompositionSection{administrativeData, careplan},
 	}
 }
 
@@ -148,7 +149,7 @@ func buildCarePlan(carePlan CarePlan) (problems []resources.Condition, intervent
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
 				System:  &fhir.SnomedCodingSystem,
-				Code:    fhir.ToCodePtr("773130005"),
+				Code:    fhir.ToCodePtr(eoverdracht.CarePlanCode),
 				Display: fhir.ToStringPtr("Nursing care plan (record artifact)"),
 			}}},
 		Section: []eoverdracht.CompositionSection{
@@ -183,49 +184,21 @@ func buildConditionFromProblem(problem Problem) resources.Condition {
 	}
 }
 
-func BuildAdvanceNotice() fhir.Composition {
-	elements := map[string]interface{}{
-		"title": "Advance notice",
-		"type":  fhir.LoincAdvanceNoticeType,
-		// TODO: patient seems mandatory in the spec, but can only be sent when placer already
-		// has patient in care to protect the identity of the patient during the negotiation phase.
-		//"subject":  fhir.Reference{Reference: "Patient/Anonymous"},
-		"author": eoverdracht.Practitioner{
-			// TODO: Derive from authenticated user?
-			Identifier: datatypes.Identifier{
-				System: &fhir.UZICodingSystem,
-				Value:  fhir.ToStringPtr("12345"),
-			},
-			Name: &datatypes.HumanName{
-				Family: fhir.ToStringPtr("Demo EHR"),
-				Given:  []datatypes.String{"Nuts"},
-			},
-		},
-		// TODO: sections
-	}
-	return BuildNewComposition(elements)
-}
+func BuildNursingHandoffComposition(patient *Patient, advanceNotice eoverdracht.AdvanceNotice) (eoverdracht.Composition, error) {
 
-func BuildNursingHandoff(patient *Patient) fhir.Composition {
-	patientPath := fmt.Sprintf("Patient/%s", string(patient.ObjectID))
-	elements := map[string]interface{}{
-		"title":   "Nursing handoff",
-		"type":    fhir.SnomedNursingHandoffType,
-		"subject": datatypes.Reference{Reference: fhir.ToStringPtr(patientPath)},
-		"author": eoverdracht.Practitioner{
-			// TODO: Derive from authenticated user?
-			Identifier: datatypes.Identifier{
-				System: &fhir.UZICodingSystem,
-				Value:  fhir.ToStringPtr("12345"),
-			},
-			Name: &datatypes.HumanName{
-				Family: fhir.ToStringPtr("Demo EHR"),
-				Given:  []datatypes.String{"Nuts"},
-			},
-		},
-		// TODO: sections
+	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
+	if err != nil {
+		return eoverdracht.Composition{}, err
 	}
-	return BuildNewComposition(elements)
+
+	administrativeData, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.AdministrativeDocCode)
+	if err != nil {
+		return eoverdracht.Composition{}, err
+	}
+
+	fhirPatient := resources.Patient{Domain: resources.Domain{Base: resources.Base{ID: fhir.ToIDPtr(string(patient.ObjectID))}}}
+
+	return buildNursingHandoffComposition(administrativeData, careplan, fhirPatient), nil
 }
 
 func generateResourceID() string {

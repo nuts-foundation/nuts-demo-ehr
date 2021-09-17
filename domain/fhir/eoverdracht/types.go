@@ -24,13 +24,22 @@ type AdvanceNotice struct {
 	Interventions []Procedure
 }
 
+// NursingHandoff is a container to hold all FHIR resources associated with a Transfers Nursing Handoff.
+// Note: Currently it contains exactly the same content as a advance notice, but this can be extended.
+type NursingHandoff struct {
+	Composition   Composition
+	Patient       resources.Patient
+	Problems      []resources.Condition
+	Interventions []Procedure
+}
+
 // Procedure defines a basic FHIR STU3 Procedure resource which is currently not included in the FHIR library.
 type Procedure struct {
 	resources.Domain
 	Identifier      []datatypes.Identifier `json:"identifier,omitempty"`
 	Code            datatypes.Code         `json:"code,omitempty"`
 	Subject         datatypes.Reference    `json:"subject,omitempty"`
-	ReasonReference []datatypes.Reference    `json:"reasonReference,omitempty"`
+	ReasonReference []datatypes.Reference  `json:"reasonReference,omitempty"`
 	Note            []datatypes.Annotation `json:"note,omitempty"`
 }
 
@@ -54,7 +63,6 @@ type Composition struct {
 	Title      datatypes.String          `json:"title,omitempty"`
 	Section    []CompositionSection      `json:"section,omitempty"`
 }
-
 
 type AdministrativeData struct{}
 

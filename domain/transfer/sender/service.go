@@ -76,8 +76,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 }
 
 func (s service) Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error) {
-	advanceNotice := domain.BuildAdvanceNotice2(request)
-	//logrus.WithFields(logrus.Fields{"advanceNotice": advanceNotice}).Info("advance notice build")
+	advanceNotice := domain.BuildAdvanceNotice(request)
 
 	for _, problem := range advanceNotice.Problems {
 		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, problem)
@@ -356,11 +355,17 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, err
 		}
 
+		client := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+		advanceNotice, err := s.getAdvanceNotice(ctx, client, advanceNoticePath)
+
 		// create eTransfer composition connect to transfer
-		composition := domain.BuildNursingHandoff(patient)
-		compositionID := composition["id"].(string)
-		compositionPath := fmt.Sprintf("/Composition/%s", compositionID)
-		transferRecord.FhirNursingHandoffComposition = &compositionID
+		composition, err := domain.BuildNursingHandoffComposition(patient, advanceNotice)
+		if err != nil {
+			return nil, err
+		}
+		compositionID := composition.ID
+		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
+		transferRecord.FhirNursingHandoffComposition = (*string)(compositionID)
 		transferRecord.Status = domain.TransferStatusAssigned
 
 		// update task
@@ -450,8 +455,8 @@ func (s service) UpdateTaskState(ctx context.Context, customer domain.Customer, 
 	}
 
 	// check state transition
-	// todo this only allows for direct assigned transfers
-	if !(negotiation.Status == transfer.InProgressState && newState == transfer.CompletedState) {
+	if !(negotiation.Status == transfer.RequestedState && newState == transfer.AcceptedState ||
+		negotiation.Status == transfer.InProgressState && newState == transfer.CompletedState) {
 		// invalid state change
 		return fmt.Errorf("invalid task state change: from %s to %s", negotiation.Status, newState)
 	}

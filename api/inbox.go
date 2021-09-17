@@ -43,7 +43,7 @@ func (w Wrapper) GetInbox(ctx echo.Context) error {
 		}
 
 		entries = append(entries, domain.InboxEntry{
-			Date:              "TODO",
+			Date:              transfer.CreatedAt.Format("02-01-2006 15:04:05"),
 			RequiresAttention: true,
 			ResourceID:        transfer.FhirTaskID,
 			Sender:            sender,

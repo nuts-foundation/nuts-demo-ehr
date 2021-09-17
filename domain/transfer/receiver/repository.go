@@ -25,6 +25,7 @@ const transferSchema = `
 	    task_id VARCHAR(100) NOT NULL,
 		customer_id VARCHAR(100) NOT NULL,
 		sender_did VARCHAR(100) NOT NULL,
+		created_at DATETIME NOT NULL,
 		updated_at DATETIME NOT NULL,
 		PRIMARY KEY (id),
 		
@@ -55,6 +56,7 @@ type sqlTransfer struct {
 	Status     string    `db:"status"`
 	CustomerID int       `db:"customer_id"`
 	SenderDID  string    `db:"sender_did"`
+	CreatedAt  time.Time `db:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at"`
 }
 
@@ -66,7 +68,8 @@ func (transfer sqlTransfer) marshalToDomain() domain.IncomingTransfer {
 		Sender: domain.Organization{
 			Did: transfer.SenderDID,
 		},
-		Status: domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(transfer.Status)},
+		CreatedAt: transfer.CreatedAt,
+		Status:    domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(transfer.Status)},
 	}
 }
 
@@ -124,8 +127,8 @@ func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, c
 		return nil, err
 	}
 
-	const query = `INSERT INTO incoming_transfers (id, status, task_id, customer_id, sender_did, updated_at)
-		VALUES(:id, :status, :task_id, :customer_id, :sender_did, :updated_at)
+	const query = `INSERT INTO incoming_transfers (id, created_at, status, task_id, customer_id, sender_did, updated_at)
+		VALUES(:id, :created_at, :status, :task_id, :customer_id, :sender_did, :updated_at)
 		ON CONFLICT(task_id) DO
 		UPDATE SET updated_at = :updated_at`
 
@@ -136,6 +139,7 @@ func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, c
 		CustomerID: customerID,
 		SenderDID:  senderDID,
 		UpdatedAt:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	_, err = tx.NamedExecContext(ctx, query, transfer)

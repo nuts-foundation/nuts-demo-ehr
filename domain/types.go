@@ -16,6 +16,7 @@ type IncomingTransfer struct {
 	FhirTaskID string                    `json:"fhirTaskID"`
 	Sender     Organization              `json:"sender"`
 	Status     TransferNegotiationStatus `json:"status"`
+	CreatedAt  time.Time                 `json:"createdAt"`
 }
 
 // Transfer data types as described by the ART Decor app from the Nictiz

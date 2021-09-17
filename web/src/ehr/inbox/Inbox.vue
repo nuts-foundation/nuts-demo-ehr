@@ -47,7 +47,7 @@
   </div>
 </template>
 <script>
-import TransferStatus from "../components/TransferStatus.vue";
+import TransferStatus from "../../components/TransferStatus.vue";
 
 export default {
   components: {TransferStatus},

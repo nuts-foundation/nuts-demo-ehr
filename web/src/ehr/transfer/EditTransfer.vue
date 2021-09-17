@@ -84,7 +84,7 @@
 </template>
 <script>
 import TransferForm from "./TransferForm.vue"
-import AutoComplete from "../../../components/Autocomplete.vue"
+import AutoComplete from "../../components/Autocomplete.vue"
 
 export default {
   components: {TransferForm, AutoComplete},

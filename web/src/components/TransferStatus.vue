@@ -6,7 +6,12 @@
 <script>
 export default {
   props: {
-    status: Object
+    status: {
+      type: Object,
+      default: {
+        status: ""
+      }
+    }
   },
   computed: {
     className() {

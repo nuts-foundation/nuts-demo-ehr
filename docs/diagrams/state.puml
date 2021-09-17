@@ -1,0 +1,37 @@
+@startuml
+'https://plantuml.com/state-diagram
+
+'https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow
+
+hide empty description
+
+state Requested
+state InProgress
+state Accepted
+state OnHold
+state Cancelled
+state Completed
+
+'S: Sender
+'R: Receiver
+
+[*] --> Requested : S: Request
+Requested --> Accepted : R: Accept
+Requested -left-> OnHold : R: Propose \nalternative date
+Requested --> Rejected : R: Reject
+
+OnHold -> Requested : S: Accept alternate\n proposed date
+OnHold --> Cancelled : S: Reject alternate\n proposed date
+'OnHold --> OnHold : S: Propose \nalternative date
+
+Accepted --> InProgress : S: Confirm transfer
+Accepted -[dotted]-> Cancelled : S: Cancel transfer
+
+InProgress -[dotted]-> Completed : Time: elapsed
+InProgress --> Completed : R: Send confirmation\nof nursing handoff
+
+Completed --> [*]
+Cancelled --> [*]
+Rejected --> [*]
+
+@enduml

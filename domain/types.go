@@ -44,7 +44,7 @@ func FHIRAdvanceNoticeToDomainTransfer(notice eoverdracht.AdvanceNotice) (Transf
 
 	domainTransfer := TransferProperties{
 		CarePlan:     CarePlan{PatientProblems: []PatientProblem{}},
-		TransferDate: openapi_types.Date{transferDate},
+		TransferDate: openapi_types.Date{Time: transferDate},
 	}
 	for _, condition := range notice.Problems {
 		var interventions []Intervention

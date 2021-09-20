@@ -308,7 +308,7 @@ type SearchOrganizationsParams struct {
 	// Keyword for finding care organizations.
 	Query string `json:"query"`
 
-	// Filters care organizations on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType. If not supplied, care organizations aren't filtered on service.
+	// Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own. If not supplied, care organizations aren't filtered on service.
 	DidServiceType *string `json:"didServiceType,omitempty"`
 }
 

@@ -26,6 +26,18 @@ import (
 
 var fhirServerTenant = struct{}{}
 
+func patchURL(req *http.Request, patch func(*url.URL)) *http.Request {
+	requestURL := &url.URL{}
+	*requestURL = *req.URL
+
+	patch(requestURL)
+
+	req.URL = requestURL
+	req.Host = requestURL.Host
+
+	return req
+}
+
 type Server struct {
 	proxy               *httputil.ReverseProxy
 	auth                auth.Service
@@ -47,21 +59,18 @@ func NewServer(authService auth.Service, customerRepository customers.Repository
 	server.proxy = &httputil.ReverseProxy{
 		// Does not support query parameters in targetURL
 		Director: func(req *http.Request) {
-			requestURL := &url.URL{}
-			*requestURL = *req.URL
-			requestURL.Scheme = targetURL.Scheme
-			requestURL.Host = targetURL.Host
-			requestURL.RawPath = "" // Not required?
+			patchURL(req, func(requestURL *url.URL) {
+				requestURL.Scheme = targetURL.Scheme
+				requestURL.Host = targetURL.Host
+				requestURL.RawPath = "" // Not required?
 
-			if server.multiTenancyEnabled {
-				tenant := req.Context().Value(fhirServerTenant).(int) // this shouldn't/can't fail, because the middleware handler should've set it.
-				requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path, tenant, req.URL.Path[len(path):])
-			} else {
-				requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
-			}
-
-			req.URL = requestURL
-			req.Host = requestURL.Host
+				if server.multiTenancyEnabled {
+					tenant := req.Context().Value(fhirServerTenant).(int) // this shouldn't/can't fail, because the middleware handler should've set it.
+					requestURL.Path = fmt.Sprintf("%s/%d%s", targetURL.Path, tenant, req.URL.Path[len(path):])
+				} else {
+					requestURL.Path = targetURL.Path + req.URL.Path[len(path):]
+				}
+			})
 
 			logrus.Debugf("Rewritten to: %s", req.URL.Path)
 
@@ -86,9 +95,8 @@ func (server *Server) AuthMiddleware() echo.MiddlewareFunc {
 }
 
 func (server *Server) skipper(ctx echo.Context) bool {
-	requestURI := ctx.Request().RequestURI
 	// everything with /web is handled
-	return !strings.HasPrefix(requestURI, server.path)
+	return !strings.HasPrefix(ctx.Request().URL.Path, server.path)
 }
 
 func errorFunc(ctx echo.Context, err error) error {
@@ -107,7 +115,8 @@ func (server *Server) Handler(other echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// non task FHIR resources
-		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().RequestURI)
+		c.Logger().Debugf("FHIR Proxy: proxying %s %s", c.Request().Method, c.Request().URL.Path)
+
 		accessToken := c.Get(auth.AccessToken).(nutsAuthClient.TokenIntrospectionResponse)
 
 		if server.multiTenancyEnabled {
@@ -152,6 +161,14 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 		if route.operation != "read" {
 			return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
 		}
+
+		ctx.SetRequest(patchURL(ctx.Request(), func(requestURL *url.URL) {
+			query := requestURL.Query()
+			query.Set("owner", fmt.Sprintf("Organization/%s", *token.Sub))
+
+			requestURL.RawQuery = query.Encode()
+		}))
+
 		// query params(code and _lastUpdated) are optional
 		// ok for Task search
 		return nil
@@ -162,22 +179,22 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	// §6.2.2 other resources that require a credential and a user contract
 	// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
 	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err != nil {
-		fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
+		logrus.Errorf("access denied for %s on %s: %#v", route.operation, route.path(), err)
 	}
 
 	// Task updates must be routed internally
 	if route.operation == "update" && strings.HasPrefix(route.path(), serverTaskPath) {
 		tenant, err := server.getTenant(*token.Iss)
 		if err != nil {
-			fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
+			logrus.Errorf("access denied for %s on %s, tenant %s: %#v", route.operation, route.path(), *token.Iss, err)
 		}
-		// task handling
-		req := ctx.Request()
-		path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
-		req.URL.Path = path
-		req.URL.RawPath = path
-		req.RequestURI = path
-		ctx.SetRequest(req)
+
+		ctx.SetRequest(patchURL(ctx.Request(), func(requestURL *url.URL) {
+			path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
+
+			requestURL.Path = path
+			requestURL.RawPath = path
+		}))
 
 		ctx.Set("internal", true)
 	}
@@ -207,6 +224,7 @@ func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Contex
 			if err := didVC.UnmarshalCredentialSubject(subject); err != nil {
 				return fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
 			}
+
 			for _, resource := range subject.Resources {
 				// path should match
 				if route.path() != resource.Path {

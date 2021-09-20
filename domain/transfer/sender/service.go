@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
@@ -28,7 +27,7 @@ type TransferService interface {
 	// Create creates a new transfer
 	Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error)
 
-	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*domain.TransferNegotiation, error)
 
 	GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error)
 
@@ -95,15 +94,11 @@ func (s service) Create(ctx context.Context, customerID int, request domain.Crea
 		return nil, err
 	}
 
-	transfer, err := s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
-	if err != nil {
-		return nil, err
-	}
-	return transfer, nil
+	return s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
 }
 
 func (s service) GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error) {
-	transfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
+	dbTransfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
 	if err != nil {
 		return domain.Transfer{}, err
 	}
@@ -114,7 +109,7 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	}
 	client := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 
-	advanceNotice, err := s.getAdvanceNotice(ctx, client, "Composition/"+transfer.FhirAdvanceNoticeComposition)
+	advanceNotice, err := s.getAdvanceNotice(ctx, client, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
 	if err != nil || customer.Did == nil {
 		return domain.Transfer{}, err
 	}
@@ -125,11 +120,11 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 
 	return domain.Transfer{
 		TransferProperties:            domainTransfer,
-		DossierID:                     transfer.DossierID,
-		FhirAdvanceNoticeComposition:  transfer.FhirAdvanceNoticeComposition,
-		FhirNursingHandoffComposition: transfer.FhirNursingHandoffComposition,
-		Id:                            transfer.Id,
-		Status:                        transfer.Status,
+		DossierID:                     dbTransfer.DossierID,
+		FhirAdvanceNoticeComposition:  dbTransfer.FhirAdvanceNoticeComposition,
+		FhirNursingHandoffComposition: dbTransfer.FhirNursingHandoffComposition,
+		Id:                            dbTransfer.Id,
+		Status:                        dbTransfer.Status,
 	}, nil
 }
 
@@ -181,7 +176,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 }
 
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
-func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
+func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil {
 		return nil, err
@@ -212,9 +207,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 
 		compositionPath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
 		composition := eoverdracht.Composition{}
-		fhirClient.ReadOne(ctx, compositionPath, &composition)
+		err = fhirClient.ReadOne(ctx, compositionPath, &composition)
 		if err != nil {
-			return nil, fmt.Errorf("could not create FHIR Task: %w", err)
+			return nil, fmt.Errorf("could not create transfer negotiation: could not read fhir compositition: %w", err)
 		}
 
 		transferTask := domain.BuildNewTask(fhir.TaskProperties{
@@ -387,7 +382,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		// Revoke the old AuthorizationCredential for the Task and AdvanceNotice
 		if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to confirm negotiation: could not revoke advance notice authorization credential: %w", err)
 		}
 
 		authorizedResources := []credential.Resource{
@@ -396,19 +391,9 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
-			{
-				Path:        advanceNoticePath,
-				Operations:  []string{"read", "document"},
-				UserContext: true,
-			},
-			{
-				Path:        compositionPath,
-				Operations:  []string{"read", "document"},
-				UserContext: true,
-			},
 		}
 		// Add paths of resources of both the advance notice and the nursing handoff
-		resourcePaths := resourcePathsFromSection(composition.Section, []string{})
+		resourcePaths := resourcePathsFromSection(composition.Section, []string{advanceNoticePath, compositionPath})
 		resourcePaths = resourcePathsFromSection(advanceNotice.Composition.Section, resourcePaths)
 
 		// The resourcePaths may contain duplicates, hold a list of processedPaths
@@ -426,8 +411,8 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
-		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, negotiation.OrganizationDID, authorizedResources); err != nil {
-			return nil, err
+		if err = s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, negotiation.OrganizationDID, authorizedResources); err != nil {
+			return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
 		}
 		notifications = append(notifications, &notification{
 			customer:        customer,
@@ -444,7 +429,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		for _, n := range notifications {
-			s.sendNotification(ctx, n.customer, n.organizationDID)
+			_ = s.sendNotification(ctx, n.customer, n.organizationDID)
 		}
 	}
 
@@ -457,13 +442,13 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	if err != nil {
 		return nil, err
 	}
-	transfer, err := s.transferRepo.FindByID(ctx, customerID, string(negotiation.TransferID))
+	dbTransfer, err := s.transferRepo.FindByID(ctx, customerID, string(negotiation.TransferID))
 	if err != nil {
 		return nil, err
 	}
 
 	// update DB, Task and credential state
-	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID, transfer.FhirAdvanceNoticeComposition)
+	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID, dbTransfer.FhirAdvanceNoticeComposition)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +528,7 @@ func (s service) completeTask(ctx context.Context, customer domain.Customer, neg
 			return commitErr
 		}
 
-		s.sendNotification(ctx, not.customer, not.organizationDID)
+		_ = s.sendNotification(ctx, not.customer, not.organizationDID)
 	}
 
 	return err

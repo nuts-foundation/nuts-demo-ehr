@@ -127,7 +127,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID, request.TransferDate.Time)
+	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID, request.TransferDate.Time)
+	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
 	if err != nil {
 		return err
 	}

@@ -1,14 +1,14 @@
 <template>
-  <div class="dossier-container mt-8 flex flex-col">
+  <div class="mt-10 bg-white px-7 py-5 rounded-lg shadow-sm flex flex-col">
+    <div class="flex justify-between items-center mb-3">
+      <h2>Dossiers</h2>
 
-    <div class="dossier-header">
-      <h1 class="text-xl float-left">Dossiers</h1>
-      <button class="float-right inline-flex items-center" @click="$router.push({name: 'ehr.patient.dossier.new'})">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      <button class="inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+              @click="$router.push({name: 'ehr.patient.dossier.new'})">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
+          <path d="M0 0h24v24H0V0z" fill="none"/>
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
-        <span>Add Dossier</span>
       </button>
     </div>
 
@@ -17,9 +17,9 @@
       <table v-if="collaborationDossiers.length > 0" class="min-w-full divide-y divide-gray-200">
         <thead>
         <tr>
-          <th class="text-left">Name</th>
-          <th class="text-left">Status</th>
-          <th class="text-left">Network</th>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Network</th>
         </tr>
         </thead>
         <tbody>
@@ -28,7 +28,11 @@
             v-for="dossier in collaborationDossiers">
           <td>{{ dossier.name }}</td>
           <td>{{ dossier.transfer ? dossier.transfer.status : "" }}</td>
-          <td>{{ dossier.transfer && dossier.transfer.negotiations ? dossier.transfer.negotiations.map(n => n.organization.name).join(', ') : ""}}</td>
+          <td>
+            {{
+              dossier.transfer && dossier.transfer.negotiations ? dossier.transfer.negotiations.map(n => n.organization.name).join(', ') : ""
+            }}
+          </td>
         </tr>
         </tbody>
       </table>
@@ -41,18 +45,18 @@
 
   </div>
 
-  <div class="reports-container mt-8">
+  <div class="bg-white px-7 py-5 rounded-lg shadow-sm mt-8">
+    <div class="flex justify-between items-center mb-3">
+      <h2>Reports</h2>
 
-    <div class="reports-header">
-      <h1 class="text-xl float-left">Reports</h1>
-      <button class="float-right inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      <button
+          class="float-right inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
+          <path d="M0 0h24v24H0V0z" fill="none"/>
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
-        <span>Add Report</span>
       </button>
-
     </div>
 
     <table class="reports-list min-w-full divide-y divide-gray-200">

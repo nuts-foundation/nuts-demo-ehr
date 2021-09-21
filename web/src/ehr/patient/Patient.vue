@@ -1,6 +1,8 @@
 <template>
-  <div>
-    <patient-details :patient="patient"/>
+  <div v-if="Object.keys(patient).length > 0" class="px-10 py-5">
+    <div class="mb-4">
+      <patient-details :patient="patient"/>
+    </div>
 
     <router-view></router-view>
   </div>

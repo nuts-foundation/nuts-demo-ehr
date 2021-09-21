@@ -17,8 +17,11 @@ h2 {
 
 th {
     text-align: left;
-    font-size: 110%;
-    font-weight: bolder;
+    @apply text-gray-600 py-2 text-sm font-semibold;
+}
+
+td {
+    @apply py-2 text-sm;
 }
 
 .vertical-form {

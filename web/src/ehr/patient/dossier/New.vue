@@ -5,7 +5,8 @@
         Do you want to transfer this patient to another care organization?
         You can make a set of predetermined ZIBs available to 1 specific care organization.
       </span>
-      <button class="btn btn-primary block mt-1"
+
+      <button class="btn btn-primary block mt-4"
               @click="$router.push({name: 'ehr.patient.transfer.new', params: {id: this.$route.params.id}})">
         Transfer
       </button>

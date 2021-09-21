@@ -19,6 +19,7 @@
 
       <div class="mt-4">
         <div class="bg-gray-50 font-bold">Transfer date</div>
+
         <div>
           {{ transferRequest.advanceNotice.transferDate }}
         </div>

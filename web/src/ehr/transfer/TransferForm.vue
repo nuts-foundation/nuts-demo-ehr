@@ -1,6 +1,14 @@
 <template>
   <div class="mt-4" v-if="transfer">
-    <div class="flex justify-between items-center mb-4">
+    <div class="mt-6">
+      <label>Transfer date</label>
+
+      <div>
+        <input type="date" v-model="transfer.transferDate" required>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mt-4 mb-4">
       <h2>Problems</h2>
 
       <button
@@ -30,14 +38,6 @@
                     class="min-w-full border"></textarea>
         </div>
       </div>
-    </div>
-  </div>
-
-  <div class="mt-6">
-    <h2 class="mb-2">Transfer date</h2>
-
-    <div>
-      <input type="date" v-model="transfer.transferDate" required>
     </div>
   </div>
 </template>

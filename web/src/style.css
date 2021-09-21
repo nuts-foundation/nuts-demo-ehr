@@ -58,7 +58,6 @@ textarea, input[type=text], input[type=email], input[type=password], input[type=
 }
 
 textarea {
-    min-height: 60px;
     @apply text-sm;
 }
 
@@ -85,6 +84,10 @@ input:focus {
 
 .btn {
     @apply rounded-lg font-normal text-sm py-3 px-8 shadow-lg;
+}
+
+.btn-sm {
+    @apply rounded-lg text-sm py-2 px-6 shadow-md;
 }
 
 .btn-primary {

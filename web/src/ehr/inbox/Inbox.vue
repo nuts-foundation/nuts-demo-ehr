@@ -33,7 +33,9 @@
           </td>
           <td>{{ item.title }}</td>
           <td>
-            <transfer-status :status="item.status"/>
+            <div class="m-1">
+              <transfer-status :status="item.status"/>
+            </div>
           </td>
           <td>{{ item.sender.name }}, {{
               item.sender.city

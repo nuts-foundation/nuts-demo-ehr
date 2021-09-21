@@ -1,27 +1,43 @@
 <template>
   <div class="mt-4" v-if="transfer">
-    <div class="bg-gray-50 font-bold">Problems</div>
-    <button @click="transfer.carePlan.patientProblems.push({problem: {name: ''}, interventions: []})" class="btn btn-secondary">Add
-      problem
-    </button>
-    <ul>
-      <li v-for="patientProblem in transfer.carePlan.patientProblems" class="border pl-4">
-        <b>Problem:</b>
-        <div>
-          <textarea v-model="patientProblem.problem.name" class="border min-w-full h-8" required></textarea>
-          <button @click="patientProblem.interventions.push({ name: ''})" class="btn btn-secondary">Add intervention</button>
-          <div v-for="intervention in patientProblem.interventions" class="border">
-            <b>Intervention:</b>
-            <textarea v-model="intervention.comment" class="border min-w-full h-8"></textarea>
-          </div>
+    <div class="flex justify-between items-center mb-4">
+      <h2>Problems</h2>
+
+      <button
+          @click="transfer.carePlan.patientProblems.push({problem: {name: ''}, interventions: [{comment: ''}]})"
+          class="float-right inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
+          <path d="M0 0h24v24H0V0z" fill="none"/>
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div v-for="patientProblem in transfer.carePlan.patientProblems" class="bg-white p-5 shadow-sm rounded-lg mb-3">
+      <label>Problem</label>
+
+      <div>
+        <textarea placeholder="The problem.." v-model="patientProblem.problem.name" class="min-w-full border" required></textarea>
+
+        <div v-for="(intervention, i) in patientProblem.interventions" class="mt-3">
+          <label>
+            Intervention
+            <span v-if="patientProblem.interventions.length > 1">{{ i + 1 }}</span>
+          </label>
+
+          <textarea placeholder="The intervention.." @input="e => addOrRemoveIntervention(e, patientProblem)" v-model="intervention.comment"
+                    class="min-w-full border"></textarea>
         </div>
-      </li>
-    </ul>
+      </div>
+    </div>
   </div>
-  <div class="mt-4">
-    <div class="bg-gray-50 font-bold">Transfer date</div>
+
+  <div class="mt-6">
+    <h2 class="mb-2">Transfer date</h2>
+
     <div>
-      <td><input type="date" v-model="transfer.transferDate" required></td>
+      <input type="date" v-model="transfer.transferDate" required>
     </div>
   </div>
 </template>
@@ -44,6 +60,24 @@ export default {
       default: 'new'
     }
   },
+  methods: {
+    addOrRemoveIntervention(e, patientProblem) {
+      const isEmpty = value => (value || '').trim().length === 0;
+
+      if (isEmpty(e.target.value) ||
+          isEmpty(patientProblem.interventions[patientProblem.interventions.length - 1].comment)) {
+        if (isEmpty(patientProblem.interventions[patientProblem.interventions.length - 2].comment)) {
+          patientProblem.interventions.pop();
+        }
+
+        return;
+      }
+
+      patientProblem.interventions.push({
+        comment: ''
+      });
+    }
+  },
   emits: ['input'],
   watch: {
     transfer() {
@@ -51,4 +85,8 @@ export default {
     }
   }
 }
+
+/**
+ * <button @click="patientProblem.interventions.push({ name: ''})" class="btn btn-secondary">Add intervention</button>
+ */
 </script>

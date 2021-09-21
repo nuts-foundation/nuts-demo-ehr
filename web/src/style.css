@@ -53,11 +53,16 @@ select {
     width: 35px;
 }
 
-input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
-    @apply w-full bg-white rounded-lg px-4 py-2;
+textarea, input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
+    @apply w-full bg-white border rounded-lg px-4 py-2;
 }
 
-input.alt, select.alt {
+textarea {
+    min-height: 60px;
+    @apply text-sm;
+}
+
+input.alt, select.alt, textarea.alt {
     @apply bg-gray-300;
 }
 
@@ -91,26 +96,26 @@ input:focus {
 }
 
 .form-select {
-     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-     -webkit-appearance: none;
-     -moz-appearance: none;
-     appearance: none;
-     -webkit-print-color-adjust: exact;
-     color-adjust: exact;
-     background-repeat: no-repeat;
-     background-color: #fff;
-     border-color: #d1d5db;
-     border-width: 1px;
-     border-radius: 0.375rem;
-     padding-top: 0.5rem;
-     padding-right: 2.5rem;
-     padding-bottom: 0.5rem;
-     padding-left: 0.75rem;
-     font-size: 1rem;
-     line-height: 1.5rem;
-     background-position: right 0.5rem center;
-     background-size: 1.5em 1.5em;
- }
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+    background-repeat: no-repeat;
+    background-color: #fff;
+    border-color: #d1d5db;
+    border-width: 1px;
+    border-radius: 0.375rem;
+    padding-top: 0.5rem;
+    padding-right: 2.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+}
 
 .form-select:focus {
     outline: none;

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -119,7 +120,12 @@ func buildCarePlan(carePlan CarePlan) (problems []resources.Condition, intervent
 	for _, cpPatientProblems := range carePlan.PatientProblems {
 		newProblem := buildConditionFromProblem(cpPatientProblems.Problem)
 		problems = append(problems, newProblem)
+
 		for _, i := range cpPatientProblems.Interventions {
+			if strings.TrimSpace(i.Comment) == "" {
+				continue
+			}
+
 			interventions = append(interventions, buildProcedureFromIntervention(i, fhir.FromIDPtr(newProblem.ID)))
 		}
 	}

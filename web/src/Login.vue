@@ -9,11 +9,18 @@
 
           <div>
             <label for="customer_select" class="block text-sm font-medium text-gray-700">Organization</label>
-            <select id="customer_select" v-model="selectedCustomer">
-              <option v-for="c in customers" v-bind:value="c">
-                {{ c.name }}
-              </option>
-            </select>
+            <div class="custom-select">
+              <select id="customer_select" v-model="selectedCustomer">
+                <option v-for="c in customers" v-bind:value="c">
+                  {{ c.name }}
+                </option>
+              </select>
+
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#444">
+                <path d="M24 24H0V0h24v24z" fill="none" opacity=".87"/>
+                <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6-1.41-1.41z"/>
+              </svg>
+            </div>
           </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
           <button class="w-full btn btn-submit grid justify-items-center" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">

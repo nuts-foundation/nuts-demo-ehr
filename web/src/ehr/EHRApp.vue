@@ -56,7 +56,7 @@
       <!--</div>-->
     </nav>
 
-    <main class="ml-72 w-full">
+    <main class="ml-72 mb-14 w-full">
       <!-- Main content -->
       <div>
         <status-reporter type="error" :message="errorMessage.value"></status-reporter>

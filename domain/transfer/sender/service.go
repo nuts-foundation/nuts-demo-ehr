@@ -83,6 +83,7 @@ func (s service) Create(ctx context.Context, customerID int, request domain.Crea
 			return nil, err
 		}
 	}
+
 	for _, intervention := range advanceNotice.Interventions {
 		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, intervention)
 		if err != nil {

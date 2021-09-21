@@ -7,16 +7,18 @@
     </ul>
   </div>
   <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
-  <button @click="checkForm"
-          class="bg-blue-400 hover:bg-blue-500 text-white font-medium rounded-md px-3 py-2"
-  >Update Patient
-  </button>
-  <button type="button"
-          class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-          @click="cancel"
-  >
-    Cancel
-  </button>
+  <div class="mt-4">
+    <button @click="checkForm"
+            class="btn btn-primary mr-4"
+    >Update Patient
+    </button>
+    <button type="button"
+            class="btn btn-secondary"
+            @click="cancel"
+    >
+      Cancel
+    </button>
+  </div>
 </template>
 <script>
 

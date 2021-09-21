@@ -440,7 +440,7 @@ paths:
 
   /private/network/organizations:
     get:
-      description: Searches for care organizations on Nuts Network.
+      description: Searches for other care organizations on Nuts Network.
       operationId: searchOrganizations
       parameters:
         - name: query
@@ -452,7 +452,7 @@ paths:
         - name: didServiceType
           in: query
           description: >
-            Filters care organizations on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType.
+            Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own.
             If not supplied, care organizations aren't filtered on service.
           required: false
           schema:

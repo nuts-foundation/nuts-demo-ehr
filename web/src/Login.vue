@@ -1,8 +1,9 @@
 <template>
   <div class="flex justify-center">
 
-    <div class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">
-      <h1 class="text-3xl py-2">Nuts Demo EHR</h1>
+    <div class="mt-12 bg-white shadow-sm border rounded-md max-w-7xl p-8 flex flex-col">
+      <h1>Nuts Demo EHR</h1>
+
       <form class="my-4 flex justify-center" @submit.stop.prevent="">
         <div class="space-y-4">
 
@@ -19,7 +20,8 @@
             <div>Login with IRMA</div>
             <img class="block my-3" v-bind:src="irmaLogo">
           </button>
-          <button class="w-full btn btn-submit grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
+
+          <button class="w-full btn btn-primary grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
             Login with password
           </button>
         </div>

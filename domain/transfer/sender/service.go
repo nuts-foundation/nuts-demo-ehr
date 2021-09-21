@@ -75,26 +75,23 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 }
 
 func (s service) Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error) {
-	advanceNotice := domain.BuildAdvanceNotice(request)
-
-	for _, problem := range advanceNotice.Problems {
-		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, problem)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	for _, intervention := range advanceNotice.Interventions {
-		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, intervention)
-		if err != nil {
-			return nil, err
-		}
-	}
-	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, advanceNotice.Composition)
+	// Fetch the patient
+	patient, err := s.findPatientByDossierID(ctx, customerID, string(request.DossierID))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create transfer: %w", err)
 	}
 
+	// Build the advance notice resources
+	advanceNotice := domain.NewFHIRBuilder().BuildAdvanceNotice(request, patient)
+
+
+	// Save the resources to the fhir storage
+	err = s.saveAdvanceNoticeFHIRResources(ctx, customerID, advanceNotice)
+	if err != nil {
+		return nil, fmt.Errorf("could not create transfer: unable to store advance notification fhir resources: %w", err)
+	}
+
+	// Create the database transfer
 	return s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
 }
 
@@ -213,7 +210,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, fmt.Errorf("could not create transfer negotiation: could not read fhir compositition: %w", err)
 		}
 
-		transferTask := domain.BuildNewTask(fhir.TaskProperties{
+		transferTask := domain.NewFHIRBuilder().BuildNewTask(fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
 			Status:      transfer.RequestedState,
@@ -352,7 +349,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		advanceNotice, err := s.getAdvanceNotice(ctx, fhirClient, advanceNoticePath)
 
 		// Create eTransfer composition based on the advanceNotice and patient
-		composition, err := domain.BuildNursingHandoffComposition(patient, advanceNotice)
+		composition, err := domain.NewFHIRBuilder().BuildNursingHandoffComposition(patient, advanceNotice)
 		if err != nil {
 			return nil, err
 		}
@@ -660,4 +657,52 @@ func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirC
 	}
 
 	return advanceNotice, nil
+}
+
+func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*domain.Patient, error) {
+	transferDossier, err := s.dossierRepo.FindByID(ctx, customerID, dossierID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch dossier: %w", err)
+	}
+	if transferDossier == nil {
+		return nil, fmt.Errorf("dossier with id %s not found", dossierID)
+	}
+	patient, err := s.patientRepo.FindByID(ctx, customerID, string(transferDossier.PatientID))
+	if err != nil {
+		return nil, fmt.Errorf("error while fetching patient: %w", err)
+	}
+	if patient == nil {
+		return nil, fmt.Errorf("patient with id %s not found", string(transferDossier.PatientID))
+	}
+	return patient, nil
+}
+
+func (s service) saveAdvanceNoticeFHIRResources(ctx context.Context, customerID int, advanceNotice eoverdracht.AdvanceNotice) error {
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+
+	// Save the Patient
+	err := fhirClient.CreateOrUpdate(ctx, advanceNotice.Patient)
+	if err != nil {
+		return err
+	}
+	// Save the all the problems
+	for _, problem := range advanceNotice.Problems {
+		err = fhirClient.CreateOrUpdate(ctx, problem)
+		if err != nil {
+			return err
+		}
+	}
+	// Save all the interventions
+	for _, intervention := range advanceNotice.Interventions {
+		err = fhirClient.CreateOrUpdate(ctx, intervention)
+		if err != nil {
+			return err
+		}
+	}
+	// At least save the composition
+	err = fhirClient.CreateOrUpdate(ctx, advanceNotice.Composition)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div v-if="transferRequest">
     <h1 class="page-title">Transfer Request</h1>
 
-    <div v-if="transferRequest">
+    <div>
       <div class="mt-4">
         <div class="bg-gray-50 font-bold">Requesting Care Organization</div>
         <div>
@@ -20,22 +20,38 @@
       <div class="mt-4">
         <div class="bg-gray-50 font-bold">Transfer date</div>
         <div>
-          {{ transferRequest.transferDate }}
+          {{ transferRequest.advanceNotice.transferDate }}
         </div>
       </div>
 
       <div class="mt-4">
         <div class="bg-gray-50 font-bold">Condition</div>
-        <div>
-          {{ transferRequest.description }}
-        </div>
+        <h1>Problems:</h1>
+        <ul class="list-decimal pl-4">
+          <li
+              v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems"
+              class="pl-4"
+          >
+            <p> {{ patientProblem.problem.name }} </p>
+            <div>
+              <h2>Interventions:</h2>
+              <ul class="list-disc">
+                <li v-for="intervention in patientProblem.interventions">
+                  {{ intervention.comment }}
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
       </div>
+    </div>
 
-      <div class="mt-4">
-        <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">Complete</button>
-        <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept</button>
-        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject</button>
-      </div>
+    <div class="mt-4">
+      <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">Complete
+      </button>
+      <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept</button>
+      <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject
+      </button>
     </div>
   </div>
 </template>

@@ -25,7 +25,7 @@ func (w Wrapper) CreateTransfer(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, string(request.DossierID), request.Description, request.TransferDate.Time)
+	transfer, err := w.TransferSenderService.Create(ctx.Request().Context(), cid, request)
 	if err != nil {
 		return err
 	}
@@ -49,13 +49,14 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderRepo.FindByID(ctx.Request().Context(), cid, transferID)
+	transfer, err := w.TransferSenderService.GetTransferByID(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
+// GetTransferRequest handles requests to receive a transfer request.
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {
@@ -98,7 +99,7 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 		return err
 	}
 	transfer, err := w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
-		t.Description = updateRequest.Description
+		//t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
 		return t, nil
 	})
@@ -126,7 +127,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID, request.TransferDate.Time)
+	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
 	if err != nil {
 		return err
 	}
@@ -142,7 +143,7 @@ func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID, request.TransferDate.Time)
+	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
 	if err != nil {
 		return err
 	}

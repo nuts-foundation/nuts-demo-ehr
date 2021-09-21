@@ -14,10 +14,3 @@ type TaskProperties struct {
 	Input   []resources.TaskInputOutput
 	Output  []resources.TaskInputOutput
 }
-
-type Task struct {
-	ID string
-	TaskProperties
-}
-
-type Composition map[string]interface{}

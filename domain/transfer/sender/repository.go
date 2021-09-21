@@ -10,7 +10,7 @@ import (
 type TransferRepository interface {
 	FindByID(ctx context.Context, customerID int, transferID string) (*domain.Transfer, error)
 	FindByPatientID(ctx context.Context, customerID int, patientID string) ([]domain.Transfer, error)
-	Create(ctx context.Context, customerID int, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID int, dossierID string, date time.Time, fhirAdvanceNoticeCompositionID string) (*domain.Transfer, error)
 
 	FindNegotiationByID(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
 	FindNegotiationByTaskID(ctx context.Context, customerID int, taskID string) (*domain.TransferNegotiation, error)

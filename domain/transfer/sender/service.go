@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
+	"strings"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -25,9 +25,11 @@ import (
 
 type TransferService interface {
 	// Create creates a new transfer
-	Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error)
+	Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error)
 
-	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*domain.TransferNegotiation, error)
+
+	GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error)
 
 	// ConfirmNegotiation confirms the negotiation indicated by the negotiationID.
 	// The updates the status to ACCEPTED_STATE.
@@ -47,15 +49,15 @@ type TransferService interface {
 }
 
 type service struct {
-	transferRepo TransferRepository
-	auth         auth.Service
+	transferRepo           TransferRepository
+	auth                   auth.Service
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
 	customerRepo           customers.Repository
 	dossierRepo            dossier.Repository
 	patientRepo            patients.Repository
 	registry               registry.OrganizationRegistry
-	vcr      registry.VerifiableCredentialRegistry
-	notifier transfer.Notifier
+	vcr                    registry.VerifiableCredentialRegistry
+	notifier               transfer.Notifier
 }
 
 func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) TransferService {
@@ -72,17 +74,68 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) Create(ctx context.Context, customerID int, dossierID string, description string, transferDate time.Time) (*domain.Transfer, error) {
-	composition := fhir.BuildAdvanceNotice()
-	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition)
+func (s service) Create(ctx context.Context, customerID int, request domain.CreateTransferRequest) (*domain.Transfer, error) {
+	advanceNotice := domain.BuildAdvanceNotice(request)
+
+	for _, problem := range advanceNotice.Problems {
+		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, problem)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, intervention := range advanceNotice.Interventions {
+		err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, intervention)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, advanceNotice.Composition)
 	if err != nil {
 		return nil, err
 	}
-	transfer, err := s.transferRepo.Create(ctx, customerID, dossierID, description, transferDate, composition["id"].(string))
+
+	return s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
+}
+
+func (s service) GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error) {
+	dbTransfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
 	if err != nil {
-		return nil, err
+		return domain.Transfer{}, err
 	}
-	return transfer, nil
+
+	customer, err := s.customerRepo.FindByID(customerID)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+	client := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+
+	advanceNotice, err := s.getAdvanceNotice(ctx, client, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+	domainTransfer, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	if err != nil || customer.Did == nil {
+		return domain.Transfer{}, err
+	}
+
+	return domain.Transfer{
+		TransferProperties:            domainTransfer,
+		DossierID:                     dbTransfer.DossierID,
+		FhirAdvanceNoticeComposition:  dbTransfer.FhirAdvanceNoticeComposition,
+		FhirNursingHandoffComposition: dbTransfer.FhirNursingHandoffComposition,
+		Id:                            dbTransfer.Id,
+		Status:                        dbTransfer.Status,
+	}, nil
+}
+
+func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {
+	for _, input := range task.Input {
+		if fhir.FromCodePtr(input.Type.Coding[0].Code) == string(code) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*domain.TransferRequest, error) {
@@ -100,49 +153,66 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	if err != nil {
 		return nil, err
 	}
+
+	if !s.taskContainsCode(task, fhir.LoincAdvanceNoticeCode) {
+		return nil, fmt.Errorf("invalid task, expected an advanceNotice composition")
+	}
+
+	advanceNotice, err := s.getAdvanceNotice(ctx, client(), fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+
 	organization, err := s.registry.Get(ctx, requesterDID)
 	if err != nil {
 		return nil, err
 	}
+
+	domainTransfer, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+
 	// TODO: Do we need nil checks?
-	transferDate, _ := time.Parse(time.RFC3339, string(*task.Meta.LastUpdated))
 	return &domain.TransferRequest{
-		Description:  "TODO",
-		Sender:       *organization,
-		TransferDate: openapi_types.Date{Time: transferDate},
-		Status:       fhir.FromCodePtr(task.Status),
+		Sender:        *organization,
+		AdvanceNotice: domainTransfer,
+		Status:        fhir.FromCodePtr(task.Status),
 	}, nil
 }
 
-func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string, transferDate time.Time) (*domain.TransferNegotiation, error) {
+// CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
+func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil {
+	if err != nil {
 		return nil, err
 	}
+	if customer.Did == nil {
+		return nil, fmt.Errorf("unable to create negotiation: customer does not have did")
+	}
 
-	var (
-		negotiation *domain.TransferNegotiation
-	)
+	var negotiation *domain.TransferNegotiation
 
-	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transferRecord *domain.Transfer) (*domain.Transfer, error) {
-		// Validate transfer
-		if transferRecord.Status == domain.TransferStatusCancelled ||
-			transferRecord.Status == domain.TransferStatusCompleted ||
-			transferRecord.Status == domain.TransferStatusAssigned {
+	// Pre-emptively resolve the receiver organization's notification endpoint to check registry configuration.
+	// This reduces cleanup code of FHIR task.
+	_, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
+	if err != nil {
+		return nil, fmt.Errorf("unable to create transfer negotiation: no notification endpoint found: %w", err)
+	}
+
+	// Update the transfer
+	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(dbTransfer *domain.Transfer) (*domain.Transfer, error) {
+		// Validate if transfer is in correct state to allow new negotiations
+		if dbTransfer.Status == domain.TransferStatusCancelled ||
+			dbTransfer.Status == domain.TransferStatusCompleted ||
+			dbTransfer.Status == domain.TransferStatusAssigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
 
-		// Create negotiation and share it to the other party
-		// TODO: Share transaction to this repository call as well
-		var err error
-		// Pre-emptively resolve the receiver organization's notification endpoint to reduce clutter, avoiding to make FHIR tasks when the receiving party eOverdracht registration is faulty.
-		_, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
+		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+
+		compositionPath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
+		composition := eoverdracht.Composition{}
+		err = fhirClient.ReadOne(ctx, compositionPath, &composition)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create transfer negotiation: could not read fhir compositition: %w", err)
 		}
 
-		compositionPath := fmt.Sprintf("/Composition/%s", transferRecord.FhirAdvanceNoticeComposition)
-		transferTask := fhir.BuildNewTask(fhir.TaskProperties{
+		transferTask := domain.BuildNewTask(fhir.TaskProperties{
 			RequesterID: *customer.Did,
 			OwnerID:     organizationDID,
 			Status:      transfer.RequestedState,
@@ -154,12 +224,13 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			},
 		})
 
-		err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, transferTask)
+		err = fhirClient.CreateOrUpdate(ctx, transferTask)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create FHIR Task: %w", err)
 		}
 
-		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, organizationDID, []credential.Resource{
+		// Build the list of resources for the authorization credential:
+		authorizedResources := []credential.Resource{
 			{
 				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
 				Operations:  []string{"read", "update"},
@@ -170,18 +241,31 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 				Operations:  []string{"read", "document"},
 				UserContext: true,
 			},
-		}); err != nil {
+		}
+
+		// A list to store all the paths to FHIR resources associated with this advance notice
+		// These paths must be included in the authorization credential
+		resourcePaths := resourcePathsFromSection(composition.Section, []string{})
+		for _, path := range resourcePaths {
+			authorizedResources = append(authorizedResources, credential.Resource{
+				Path:        path,
+				Operations:  []string{"read", "document"},
+				UserContext: true,
+			})
+		}
+
+		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, organizationDID, authorizedResources); err != nil {
 			return nil, err
 		}
 
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, transferRecord.TransferDate.Time, fhir.FromIDPtr(transferTask.ID))
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, fhir.FromIDPtr(transferTask.ID))
 		if err != nil {
 			return nil, err
 		}
 
 		// Update transfer.Status = requested
 		//transfer.Status = domain.TransferStatusRequested
-		return transferRecord, nil
+		return dbTransfer, nil
 	})
 	if err == nil {
 		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
@@ -199,34 +283,41 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	return negotiation, err
 }
 
-func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
-	// find transfer
-	transferRecord, err := s.transferRepo.FindByID(ctx, customerID, transferID)
-	if err != nil {
-		return nil, err
+func resourcePathsFromSection(sections []eoverdracht.CompositionSection, paths []string) []string {
+	for _, s := range sections {
+		paths = append(paths, resourcePathsFromSection(s.Section, paths)...)
+		for _, e := range s.Entry {
+			path := fhir.FromStringPtr(e.Reference)
+			if path != "" {
+				// paths in authorization credential need a / prefix
+				paths = append(paths, "/"+path)
+			}
+		}
 	}
-	if transferRecord == nil {
-		return nil, fmt.Errorf("transfer with ID: %s, not found", transferID)
-	}
+	return paths
+}
 
+// ConfirmNegotiation is executed by the sending organization. It confirms a transfer negotiation and cancels the others.
+func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
 	var (
 		negotiation   *domain.TransferNegotiation
-		dossier       *domain.Dossier
+		dossierRepo   *domain.Dossier
 		patient       *domain.Patient
 		customer      *domain.Customer
 		notifications []*notification
 	)
 
-	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(transferRecord *domain.Transfer) (*domain.Transfer, error) {
-		negotiations, err := s.transferRepo.ListNegotiations(ctx, customerID, transferID)
+	// Update database transfer
+	_, err := s.transferRepo.Update(ctx, customerID, transferID, func(dbTransfer *domain.Transfer) (*domain.Transfer, error) {
+		allNegotiations, err := s.transferRepo.ListNegotiations(ctx, customerID, transferID)
 		if err != nil {
 			return nil, err
 		}
 
-		advanceNoticePath := fmt.Sprintf("/Composition/%s", transferRecord.FhirAdvanceNoticeComposition)
+		advanceNoticePath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
 
 		// cancel other negotiations + tasks + batch notifications
-		for _, n := range negotiations {
+		for _, n := range allNegotiations {
 			if negotiationID != string(n.Id) {
 				// this also handles the FHIR and notification stuff
 				_, notification, err := s.cancelNegotiation(ctx, customerID, string(n.Id), advanceNoticePath)
@@ -237,84 +328,108 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			}
 		}
 
-		// alter state to in-progress in DB
+		// alter state of this database negotiation to in-progress
 		if negotiation, err = s.transferRepo.ConfirmNegotiation(ctx, customerID, negotiationID); err != nil {
 			return nil, err
 		}
 
-		// retrieve patient
-		if dossier, err = s.dossierRepo.FindByID(ctx, customerID, string(transferRecord.DossierID)); err != nil {
+		// retrieve patient by first fetching the dossier
+		if dossierRepo, err = s.dossierRepo.FindByID(ctx, customerID, string(dbTransfer.DossierID)); err != nil {
 			return nil, err
 		}
-		if patient, err = s.patientRepo.FindByID(ctx, customerID, string(dossier.PatientID)); err != nil {
+		if patient, err = s.patientRepo.FindByID(ctx, customerID, string(dossierRepo.PatientID)); err != nil {
 			return nil, err
 		}
-		// customer
+		// retrieve customer
 		if customer, err = s.customerRepo.FindByID(customerID); err != nil {
 			return nil, err
 		}
 
-		// create eTransfer composition connect to transfer
-		composition := fhir.BuildNursingHandoff(patient)
-		compositionID := composition["id"].(string)
-		compositionPath := fmt.Sprintf("/Composition/%s", compositionID)
-		transferRecord.FhirNursingHandoffComposition = &compositionID
-		transferRecord.Status = domain.TransferStatusAssigned
+		// The advance notice contains a lot of the same resources which should also be used in the Nursing Handoff
+		// Fetch the advanceNotice FHIR resources
+		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+		advanceNotice, err := s.getAdvanceNotice(ctx, fhirClient, advanceNoticePath)
 
-		// update task
+		// Create eTransfer composition based on the advanceNotice and patient
+		composition, err := domain.BuildNursingHandoffComposition(patient, advanceNotice)
+		if err != nil {
+			return nil, err
+		}
+		compositionID := composition.ID
+		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
+		dbTransfer.FhirNursingHandoffComposition = (*string)(compositionID)
+		dbTransfer.Status = domain.TransferStatusAssigned
+
+		// update Task with new status and composition reference
 		task, err := s.getLocalTransferTask(ctx, customerID, negotiation.TaskID)
 		if err != nil {
 			return nil, err
 		}
 		task.Status = fhir.ToCodePtr(transfer.InProgressState)
-		task.Input = []resources.TaskInputOutput{
-			{
-				Type:           &fhir.SnomedNursingHandoffType,
-				ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
-			},
-		}
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
-			return nil, err
-		}
+		task.Input = append(task.Input, resources.TaskInputOutput{
+			Type:           &fhir.SnomedNursingHandoffType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
+		})
+
+		// Create nursing handoff composition in the FHIR store
 		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition); err != nil {
 			return nil, err
 		}
-
-		// update authorization credential
-		// todo referenced resources from within composition
-		if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
+		// Update the task in the FHIR store
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
 			return nil, err
 		}
-		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, negotiation.OrganizationDID, []credential.Resource{
+
+		// Revoke the old AuthorizationCredential for the Task and AdvanceNotice
+		if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
+			return nil, fmt.Errorf("unable to confirm negotiation: could not revoke advance notice authorization credential: %w", err)
+		}
+
+		authorizedResources := []credential.Resource{
 			{
 				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(task.ID)),
 				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
-			{
-				Path:        compositionPath,
+		}
+		// Add paths of resources of both the advance notice and the nursing handoff
+		resourcePaths := resourcePathsFromSection(composition.Section, []string{advanceNoticePath, compositionPath})
+		resourcePaths = resourcePathsFromSection(advanceNotice.Composition.Section, resourcePaths)
+
+		// The resourcePaths may contain duplicates, hold a list of processedPaths
+		processedPaths := map[string]struct{}{}
+		for _, path := range resourcePaths {
+			if _, exists := processedPaths[path]; exists {
+				continue
+			}
+			authorizedResources = append(authorizedResources, credential.Resource{
+				Path:        path,
 				Operations:  []string{"read", "document"},
 				UserContext: true,
-			},
-		}); err != nil {
-			return nil, err
+			})
+			processedPaths[path] = struct{}{}
+		}
+
+		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
+		if err = s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, negotiation.OrganizationDID, authorizedResources); err != nil {
+			return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
 		}
 		notifications = append(notifications, &notification{
 			customer:        customer,
 			organizationDID: negotiation.OrganizationDID,
 		})
 
-		return transferRecord, nil
+		return dbTransfer, nil
 	})
 	if err == nil {
-		// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
+		// Commit db transaction here, otherwise notifications to this server will deadlock.
 		tm, _ := sqlUtil.GetTransactionManager(ctx)
 		if commitErr := tm.Commit(); commitErr != nil {
 			return negotiation, commitErr
 		}
 
 		for _, n := range notifications {
-			s.sendNotification(ctx, n.customer, n.organizationDID)
+			_ = s.sendNotification(ctx, n.customer, n.organizationDID)
 		}
 	}
 
@@ -327,13 +442,13 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiat
 	if err != nil {
 		return nil, err
 	}
-	transfer, err := s.transferRepo.FindByID(ctx, customerID, string(negotiation.TransferID))
+	dbTransfer, err := s.transferRepo.FindByID(ctx, customerID, string(negotiation.TransferID))
 	if err != nil {
 		return nil, err
 	}
 
 	// update DB, Task and credential state
-	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID, transfer.FhirAdvanceNoticeComposition)
+	negotiation, notification, err := s.cancelNegotiation(ctx, customerID, negotiationID, dbTransfer.FhirAdvanceNoticeComposition)
 	if err != nil {
 		return nil, err
 	}
@@ -349,8 +464,8 @@ func (s service) UpdateTaskState(ctx context.Context, customer domain.Customer, 
 	}
 
 	// check state transition
-	// todo this only allows for direct assigned transfers
-	if !(negotiation.Status == transfer.InProgressState && newState == transfer.CompletedState) {
+	if !(negotiation.Status == transfer.RequestedState && newState == transfer.AcceptedState ||
+		negotiation.Status == transfer.InProgressState && newState == transfer.CompletedState) {
 		// invalid state change
 		return fmt.Errorf("invalid task state change: from %s to %s", negotiation.Status, newState)
 	}
@@ -413,7 +528,7 @@ func (s service) completeTask(ctx context.Context, customer domain.Customer, neg
 			return commitErr
 		}
 
-		s.sendNotification(ctx, not.customer, not.organizationDID)
+		_ = s.sendNotification(ctx, not.customer, not.organizationDID)
 	}
 
 	return err
@@ -500,4 +615,48 @@ func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory,
 		return resources.Task{}, fmt.Errorf("error while looking up transfer task remotely(task-id=%s): %w", fhirTaskID, err)
 	}
 	return task, nil
+}
+
+// getAdvanceNotice fetches a complete advance notice from the a FHIR server
+func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirCompositionPath string) (eoverdracht.AdvanceNotice, error) {
+	advanceNotice := eoverdracht.AdvanceNotice{}
+
+	err := client.ReadOne(ctx, "/"+fhirCompositionPath, &advanceNotice.Composition)
+	if err != nil {
+		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
+	}
+
+	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
+	if err != nil {
+		return eoverdracht.AdvanceNotice{}, err
+	}
+
+	nursingDiagnosis, err := eoverdracht.FilterCompositionSectionByType(careplan.Section, eoverdracht.NursingDiagnosisCode)
+	if err != nil {
+		return eoverdracht.AdvanceNotice{}, err
+	}
+
+	// the nursing diagnosis contains both conditions and procedures
+	for _, entry := range nursingDiagnosis.Entry {
+		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
+			conditionID := fhir.FromStringPtr(entry.Reference)
+			condition := resources.Condition{}
+			err := client.ReadOne(ctx, "/"+conditionID, &condition)
+			if err != nil {
+				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
+			}
+			advanceNotice.Problems = append(advanceNotice.Problems, condition)
+		}
+		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
+			procedureID := fhir.FromStringPtr(entry.Reference)
+			procedure := eoverdracht.Procedure{}
+			err := client.ReadOne(ctx, "/"+procedureID, &procedure)
+			if err != nil {
+				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
+			}
+			advanceNotice.Interventions = append(advanceNotice.Interventions, procedure)
+		}
+	}
+
+	return advanceNotice, nil
 }

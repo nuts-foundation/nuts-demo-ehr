@@ -23,7 +23,6 @@ type sqlTransfer struct {
 	Date                          sql.NullTime   `db:"date"`
 	Status                        string         `db:"status"`
 	DossierID                     string         `db:"dossier_id"`
-	Description                   string         `db:"description"`
 	FHIRAdvanceNoticeComposition  string         `db:"fhir_advancenotice_composition"`
 	FHIRNursingHandoffComposition sql.NullString `db:"fhir_nursinghandoff_composition"`
 }
@@ -69,7 +68,6 @@ func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID int, trans
 		DossierID:                     string(transfer.DossierID),
 		Date:                          sql.NullTime{Time: transfer.TransferDate.Time, Valid: !transfer.TransferDate.IsZero()},
 		Status:                        string(transfer.Status),
-		Description:                   transfer.Description,
 		FHIRAdvanceNoticeComposition:  transfer.FhirAdvanceNoticeComposition,
 		FHIRNursingHandoffComposition: toNullString(transfer.FhirNursingHandoffComposition),
 	}
@@ -103,7 +101,6 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*domain.Transfer, error
 		DossierID: domain.ObjectID(dbTransfer.DossierID),
 		Status:    status,
 		TransferProperties: domain.TransferProperties{
-			Description:  dbTransfer.Description,
 			TransferDate: transferTime,
 		},
 		FhirAdvanceNoticeComposition:  dbTransfer.FHIRAdvanceNoticeComposition,
@@ -134,7 +131,6 @@ const transferSchema = `
 		customer_id integer(11) NOT NULL,
 		date DATETIME DEFAULT NULL,
 		status char(10) NOT NULL DEFAULT 'created',
-		description varchar(200) NOT NULL,
 	    dossier_id char(36) NOT NULL,
 	    fhir_advancenotice_composition VARCHAR(100) NOT NULL,
 	    fhir_nursinghandoff_composition VARCHAR(100) NULL,
@@ -194,7 +190,6 @@ func (r SQLiteTransferRepository) updateTransfer(ctx context.Context, tx *sqlx.T
 	UPDATE transfer SET
 		date = :date,
 		status = :status,
-		description = :description,
 		fhir_nursinghandoff_composition = :fhir_nursinghandoff_composition
 	WHERE customer_id = :customer_id AND id = :id
 `
@@ -286,7 +281,7 @@ func (r SQLiteTransferRepository) FindByPatientID(ctx context.Context, customerI
 	return result, nil
 }
 
-func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, dossierID, description string, date time.Time, fhirAdvanceNoticeComposition string) (*domain.Transfer, error) {
+func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, dossierID string, date time.Time, fhirAdvanceNoticeCompositionID string) (*domain.Transfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
@@ -295,9 +290,8 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		Id:                           domain.ObjectID(uuid.NewString()),
 		DossierID:                    domain.ObjectID(dossierID),
 		Status:                       domain.TransferStatusCreated,
-		FhirAdvanceNoticeComposition: fhirAdvanceNoticeComposition,
+		FhirAdvanceNoticeComposition: fhirAdvanceNoticeCompositionID,
 		TransferProperties: domain.TransferProperties{
-			Description:  description,
 			TransferDate: openapi_types.Date{Time: date},
 		},
 	}
@@ -306,8 +300,8 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		return nil, err
 	}
 	const query = `INSERT INTO transfer 
-		(id, customer_id, dossier_id, date, status, description, fhir_advancenotice_composition)
-		values(:id, :customer_id, :dossier_id, :date, :status, :description, :fhir_advancenotice_composition)
+		(id, customer_id, dossier_id, date, status, fhir_advancenotice_composition)
+		values(:id, :customer_id, :dossier_id, :date, :status, :fhir_advancenotice_composition)
 `
 
 	if _, err := tx.NamedExecContext(ctx, query, dbTransfer); err != nil {

@@ -11,7 +11,7 @@ import (
 func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 	customer := w.getCustomer(ctx)
 
-	count, err := w.TransferReceiverRepo.GetCount(ctx.Request().Context(), customer.Id)
+	count, err := w.TransferReceiverRepo.GetNotCompletedCount(ctx.Request().Context(), customer.Id)
 	if err != nil {
 		return err
 	}

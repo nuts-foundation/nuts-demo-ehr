@@ -11,7 +11,7 @@
         </svg>
       </button>
 
-      <input class="bg-transparent border-0 w-full" placeholder="Search.." type="text" v-model="query">
+      <input class="bg-transparent border-0 shadow-none w-full hover:border-0" placeholder="Search.." type="text" v-model="query">
     </form>
 
     <div class="flex justify-between items-center mb-2">

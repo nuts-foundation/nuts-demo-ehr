@@ -18,6 +18,7 @@
         <div v-else class="text-2xl  mb-2 mr-4">Unknown patient</div>
 
         <button
+            v-if="$route.name !== 'ehr.patient.edit'"
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
             class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
         >

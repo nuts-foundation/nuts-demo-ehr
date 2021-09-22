@@ -12,14 +12,16 @@
 
     <h1 class="mb-4">New Patient</h1>
 
-    <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-      <b>Please correct the following error(s):</b>
-      <ul>
-        <li v-for="error in formErrors">* {{ error }}</li>
-      </ul>
-    </div>
+    <div class="bg-white rounded-lg shadow-lg p-5">
+      <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+        <b>Please correct the following error(s):</b>
+        <ul>
+          <li v-for="error in formErrors">* {{ error }}</li>
+        </ul>
+      </div>
 
-    <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+      <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+    </div>
 
     <div class="mt-5">
       <button @click="checkForm"

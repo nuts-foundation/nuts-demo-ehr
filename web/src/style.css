@@ -58,7 +58,7 @@ select {
 }
 
 textarea, input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
-    @apply w-full bg-white border rounded-lg px-4 py-2;
+    @apply w-full bg-white border rounded-lg px-4 py-2 shadow-sm;
 }
 
 textarea {

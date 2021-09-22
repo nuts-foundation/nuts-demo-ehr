@@ -31,6 +31,7 @@ export default {
       console.log(this.$route.name)
       switch (this.$route.name) {
         case 'ehr.patient.transfer.edit':
+        case 'ehr.patient.edit':
           return 'patient';
         default:
           return 'overview';
@@ -49,6 +50,7 @@ export default {
     back() {
       switch (this.$route.name) {
         case 'ehr.patient.transfer.edit':
+        case 'ehr.patient.edit':
           this.$router.push({name: 'ehr.patient', params: {id: this.$route.params.id } })
           break;
         default:

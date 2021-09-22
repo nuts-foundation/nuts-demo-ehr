@@ -1,12 +1,17 @@
 <template>
-  <h1 class="text-2xl">New Patient</h1>
+  <h1 class="mt-10 mb-6">Edit Patient</h1>
+
   <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
     <b>Please correct the following error(s):</b>
     <ul>
       <li v-for="error in formErrors">* {{ error }}</li>
     </ul>
   </div>
-  <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
+
+  <div class="bg-white p-5 rounded-lg shadow-lg">
+    <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
+  </div>
+
   <div class="mt-4">
     <button @click="checkForm"
             class="btn btn-primary mr-4"

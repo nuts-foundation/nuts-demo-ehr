@@ -29,10 +29,10 @@
 
   <div class="px-12 py-8">
     <div class="grid gap-5 grid-cols-4">
-      <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg"
+      <div class="bg-white p-6 shadow-md rounded cursor-pointer transition-shadow hover:shadow-lg"
            v-for="patient in patients"
            @click="$router.push({name: 'ehr.patient', params: {id: patient.ObjectID}})">
-        <div class="inline-flex items-center mb-6">
+        <div class="inline-flex items-center">
           <div class="flex-shrink-0 w-11 h-11 mr-3 rounded-full bg-gray-300 overflow-hidden">
             <avatar
                 :gender="patient.gender"
@@ -40,17 +40,14 @@
             />
           </div>
 
-          <h3 class="font-bold text-gray-900 text-md">
-            {{ patient.firstName }} {{ patient.surname }}
-          </h3>
+          <div>
+            <h3 class="font-bold text-gray-900 text-md">
+              {{ patient.firstName }} {{ patient.surname }}
+            </h3>
+
+            <p :title="patient.dob">{{ calculateAge(patient.dob) }} yr <small class="text-gray-500">/ {{ patient.dob }}</small></p>
+          </div>
         </div>
-
-        <h5 class="font-semibold text-sm">Gender</h5>
-        <div>{{ patient.gender }}</div>
-
-        <h5 class="font-semibold text-sm mt-2">Age</h5>
-        <p :title="patient.dob">{{ calculateAge(patient.dob) }} <small class="text-gray-500">/ {{ patient.dob }}</small>
-        </p>
       </div>
     </div>
 

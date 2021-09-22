@@ -65,11 +65,16 @@
       </div>
 
       <div class="mt-4">
-        <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">
+        <button class="btn btn-primary m-1" @click="complete" :class="{'btn-loading': state === 'completing'}"
+                v-show="transferRequest.status === 'in-progress'">
           Complete
         </button>
-        <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept</button>
-        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject</button>
+
+        <button class="btn btn-primary m-1" @click="accept" :class="{'btn-loading': state === 'accepting'}"
+                v-show="transferRequest.status === 'requested'">Accept
+        </button>
+        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status === 'requested'">Reject
+        </button>
       </div>
     </div>
   </div>
@@ -83,6 +88,7 @@ export default {
   },
   data() {
     return {
+      state: 'init',
       transferRequest: null,
     }
   },
@@ -99,6 +105,8 @@ export default {
           .catch(error => this.$status.error(error))
     },
     accept() {
+      this.state = 'accepting';
+
       this.$api.changeTransferRequestState({
         requestorDID: this.$route.params.requestorDID,
         fhirTaskID: this.$route.params.fhirTaskID,
@@ -106,8 +114,11 @@ export default {
       })
           .then(() => this.fetchData())
           .catch(error => this.$status.error(error))
+          .finally(() => this.state = 'done')
     },
     complete() {
+      this.state = 'completing';
+
       this.$api.changeTransferRequestState({
         requestorDID: this.$route.params.requestorDID,
         fhirTaskID: this.$route.params.fhirTaskID,
@@ -115,6 +126,7 @@ export default {
       })
           .then(() => this.fetchData())
           .catch(error => this.$status.error(error))
+          .finally(() => this.state = 'done')
     },
     reject() {
       alert('Not implemented yet.')

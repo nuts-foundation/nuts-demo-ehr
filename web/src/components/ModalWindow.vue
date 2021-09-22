@@ -80,7 +80,7 @@
           </button>
 
           <button type="button"
-                  class="btn btn-primary mr-2"
+                  class="btn btn-primary mr-3"
                   @click="confirmFn"
                   :class="type === 'warn' ? 'bg-red-600 hover:bg-red-700' : ''"
           >

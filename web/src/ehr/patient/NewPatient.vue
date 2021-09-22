@@ -26,6 +26,7 @@
     <div class="mt-5">
       <button @click="checkForm"
               class="btn btn-primary mr-4"
+              :class="{'btn-loading': loading}"
       >Add Patient
       </button>
 
@@ -46,6 +47,7 @@ export default {
   components: {PatientForm},
   data() {
     return {
+      loading: false,
       formErrors: [],
       patient: {
         id: '',
@@ -78,12 +80,15 @@ export default {
       // e.preventDefault()
     },
     confirm() {
+      this.loading = true;
+
       this.$api.newPatient({body: this.patient})
           .then(response => {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
           .catch(error => this.$status.error(error))
+          .finally(() => this.loading = false)
     }
   }
 }

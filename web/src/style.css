@@ -91,7 +91,7 @@ input:focus {
 }
 
 .btn {
-    @apply inline-flex items-center rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-colors;
+    @apply inline-flex items-center rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-all text-center justify-center;
 }
 
 .btn-sm {
@@ -107,7 +107,7 @@ input:focus {
     background-color: #D15949;
 }
 
-.btn-primary:hover {
+.btn-primary:not(.btn-loading):hover {
     background-color: #984435;
 }
 
@@ -115,34 +115,28 @@ input:focus {
     @apply text-black bg-white hover:bg-gray-100;
 }
 
-.form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    -webkit-print-color-adjust: exact;
-    color-adjust: exact;
-    background-repeat: no-repeat;
-    background-color: #fff;
-    border-color: #d1d5db;
-    border-width: 1px;
-    border-radius: 0.375rem;
-    padding-top: 0.5rem;
-    padding-right: 2.5rem;
-    padding-bottom: 0.5rem;
-    padding-left: 0.75rem;
-    font-size: 1rem;
-    line-height: 1.5rem;
-    background-position: right 0.5rem center;
-    background-size: 1.5em 1.5em;
+.btn-loading {
+    @apply opacity-70 relative overflow-hidden;
 }
 
-.form-select:focus {
-    outline: none;
-    --ring-offset-shadow: 0 0 0 var(--ring-offset-width, 0) var(--ring-offset-color, #fff);
-    --ring-shadow: 0 0 0 calc(1px + var(--ring-offset-width, 0px)) var(--ring-color, #2563eb);
-    box-shadow: var(--ring-offset-shadow), var(--ring-shadow), 0 0 #0000;
-    box-shadow: var(--ring-offset-shadow), var(--ring-shadow), var(--box-shadow, 0 0 #0000);
-    border-color: #2563eb;
+.btn-loading:after {
+    content: '';
+    @apply absolute top-0 left-0 h-2 w-full opacity-0;
+    animation: progress-bar 4s ease-in-out;
 }
 
+.btn-primary.btn-loading:after {
+    background-color: #984435;
+}
+
+@keyframes progress-bar {
+    0% {
+        width: 20%;
+        opacity: 100;
+    }
+
+    100% {
+        width: 100%;
+        opacity: 100;
+    }
+}

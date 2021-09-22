@@ -21,8 +21,8 @@
           <td>{{ negotiation.transferDate }}</td>
           <td><transfer-status :status="{status: negotiation.status}" /></td>
           <td class="space-x-2">
-          <span v-if="negotiation.status != 'cancelled' && negotiation.status != 'completed'"
-                @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer">cancel</span>
+          <span v-if="negotiation.status !== 'cancelled' && negotiation.status !== 'completed'"
+                @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer" :class="{'btn-loading': state === 'cancelling'}">cancel</span>
             <!--          <span @click="updateNegotiation(negotiation)" class="hover:underline cursor-pointer">update</span>-->
           </td>
         </tr>
@@ -41,8 +41,8 @@
             {{ requestedOrganization.name }}
           </td>
           <td v-if="!!requestedOrganization" class="space-x-2">
-            <button class="btn btn-sm btn-primary" @click="assignOrganization">Assign</button>
-            <button class="btn btn-sm btn-primary" @click="startNegotiation">Request</button>
+            <button class="btn btn-sm btn-primary" @click="assignOrganization" :class="{'btn-loading': state === 'assigning'}">Assign</button>
+            <button class="btn btn-sm btn-primary" @click="startNegotiation" :class="{'btn-loading': state === 'requesting'}">Request</button>
             <button class="btn btn-sm btn-secondary" @click="cancelOrganization">Cancel</button>
           </td>
         </tr>
@@ -85,6 +85,7 @@ export default {
   components: {TransferForm, AutoComplete, TransferStatus},
   data() {
     return {
+      state: 'init',
       transfer: null,
       negotiations: [],
       messages: [
@@ -133,38 +134,49 @@ export default {
           .catch(error => this.$status.error(error))
     },
     assignOrganization() {
+      this.state = 'assigning';
+
       const negotiation = {
         transferID: this.transfer.id,
         body: {
           organizationDID: this.requestedOrganization.did
         }
       };
+
       this.$api.assignTransferDirect(negotiation)
           .then(() => {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
           })
+          .finally(() => this.state = 'done')
     },
     startNegotiation() {
+      this.state = 'requesting';
+
       const negotiation = {
         transferID: this.transfer.id,
         body: {
           organizationDID: this.requestedOrganization.did
         }
       };
+
       this.$api.startTransferNegotiation(negotiation)
           .then(() => {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
           })
+          .finally(() => this.state = 'done')
     },
     cancelNegotiation(negotiation) {
+      this.state = 'cancelling';
+
       this.$api.updateTransferNegotiationStatus({
         transferID: negotiation.transferID,
         negotiationID: negotiation.id,
         body: {status: 'cancelled'}
       })
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
+          .finally(() => this.state = 'done')
     },
     updateNegotiation(negotiation) {
     },

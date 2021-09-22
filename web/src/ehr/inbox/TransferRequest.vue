@@ -1,6 +1,6 @@
 <template>
   <div class="px-12 py-8">
-    <button type="button" @click="() => this.$router.push({name: 'ehr.inbox'})" class="btn btn-link mb-10">
+    <button type="button" @click="() => this.$router.push({name: 'ehr.inbox'})" class="btn btn-link mb-12">
       <span class="w-6 mr-1">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z"
                                                                                          fill="none"/><path
@@ -13,16 +13,6 @@
     <div v-if="transferRequest">
       <div class="mb-6 flex items-center justify-between">
         <h1>Transfer Request</h1>
-
-        <div>
-          <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">
-            Complete
-          </button>
-          <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept
-          </button>
-          <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject
-          </button>
-        </div>
       </div>
 
       <div class="bg-white rounded-lg shadow-lg">
@@ -72,6 +62,14 @@
             </ul>
           </div>
         </div>
+      </div>
+
+      <div class="mt-4">
+        <button class="btn btn-primary m-1" @click="complete" v-show="transferRequest.status == 'in-progress'">
+          Complete
+        </button>
+        <button class="btn btn-primary m-1" @click="accept" v-show="transferRequest.status == 'requested'">Accept</button>
+        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status == 'requested'">Reject</button>
       </div>
     </div>
   </div>

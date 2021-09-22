@@ -1,8 +1,6 @@
 <template>
   <div class="px-12 py-8">
-    <h1 class="mb-4">Patients</h1>
-
-    <form @submit.prevent="list" class="inline-flex">
+    <form @submit.prevent="list" class="inline-flex mb-10">
       <button class="btn btn-secondary px-1 bg-transparent shadow-none">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -13,21 +11,25 @@
         </svg>
       </button>
 
-      <input class="bg-transparent border-0 w-48" placeholder="Search.." type="text" v-model="query">
+      <input class="bg-transparent border-0 w-full" placeholder="Search.." type="text" v-model="query">
     </form>
 
-    <button
-        @click="$router.push({name: 'ehr.patients.new'})"
-        class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
-        <path d="M0 0h24v24H0V0z" fill="none"/>
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-      </svg>
-    </button>
+    <div class="flex justify-between items-center mb-2">
+      <h1>Patients</h1>
+
+      <button
+          @click="$router.push({name: 'ehr.patients.new'})"
+          class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
+          <path d="M0 0h24v24H0V0z" fill="none"/>
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
-  <div class="px-12 py-8">
+  <div class="px-12">
     <div class="grid gap-5 grid-cols-4">
       <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg opacity-0 transition-opacity"
            :class="{'opacity-100': state === 'done'}"

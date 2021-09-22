@@ -1,5 +1,4 @@
 <template>
-
   <div class="flex justify-center">
 
     <div v-if="!means" class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">

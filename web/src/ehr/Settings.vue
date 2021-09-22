@@ -1,6 +1,6 @@
 <template>
   <div class="px-12 py-8">
-    <h1>Nuts Presence</h1>
+    <h1 class="mt-12">Nuts Presence</h1>
 
     <p>Your organization registration on the Nuts network.</p>
 

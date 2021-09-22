@@ -22,14 +22,24 @@
             </div>
           </div>
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn btn-submit grid justify-items-center" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
-            <div>Login with IRMA</div>
-            <img class="block my-3" v-bind:src="irmaLogo">
-          </button>
 
-          <button class="w-full btn btn-primary grid justify-items-center" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
-            Login with password
-          </button>
+          <h2>Login with</h2>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button class="btn btn-primary flex justify-center items-center w-full" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
+              <span class="w-8 mr-2">
+                <img class="max-w-full" v-bind:src="irmaLogo">
+              </span>
+
+              <span>
+                IRMA
+              </span>
+            </button>
+
+            <button class="btn btn-primary block w-full" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
+              Password
+            </button>
+          </div>
         </div>
       </form>
     </div>

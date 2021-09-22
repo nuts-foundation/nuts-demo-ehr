@@ -1,6 +1,6 @@
 <template>
   <div class="px-12 py-8">
-    <button type="button" @click="back" class="btn btn-link mb-10">
+    <button type="button" @click="back" class="btn btn-link mb-12">
       <span class="w-6 mr-1">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
       </span>

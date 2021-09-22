@@ -78,11 +78,18 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
+
 	sessionId, err := w.APIAuth.AuthenticatePassword(req.CustomerID, req.Password)
 	if err != nil {
 		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
-	token, err := w.APIAuth.CreateSessionJWT(req.CustomerID, sessionId, false)
+
+	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
+	if err != nil {
+		return err
+	}
+
+	token, err := w.APIAuth.CreateSessionJWT(customer.Name, req.CustomerID, sessionId, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -132,7 +139,12 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
 	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return err
+	}
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -188,7 +200,12 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 
 	sessionID := w.APIAuth.StoreVP(customerID, base64String)
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customerID, sessionID, true)
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return err
+	}
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

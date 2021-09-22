@@ -20,7 +20,7 @@
           </div>
 
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn btn-primary">Login</button>
+          <button class="w-full btn btn-primary text-center">Login</button>
         </div>
       </form>
     </div>

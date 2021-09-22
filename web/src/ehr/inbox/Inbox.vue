@@ -1,6 +1,6 @@
 <template>
   <div class="px-12 py-8">
-    <h1 class="mb-6">Inbox</h1>
+    <h1 class="mb-6 mt-12">Inbox</h1>
 
     <div class="bg-white p-5 shadow-lg rounded-lg">
       <table class="min-w-full divide-y divide-gray-200">

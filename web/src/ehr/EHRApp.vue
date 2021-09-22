@@ -28,6 +28,7 @@
             <router-link
                 :to="{name: 'ehr.patients'}"
                 class="menu-link"
+                :class="{'menu-link-active': $route.name.indexOf('ehr.patient.') > -1}"
                 active-class="menu-link-active">
               <div class="h-5 w-5 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -43,6 +44,7 @@
             <router-link
                 :to="{name: 'ehr.inbox'}"
                 class="menu-link"
+                :class="{'menu-link-active': $route.name === 'ehr.transferRequest.show'}"
                 active-class="menu-link-active">
               <inbox-badge :inbox="inboxInfo"/>
               Inbox

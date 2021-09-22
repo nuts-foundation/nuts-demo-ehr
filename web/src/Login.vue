@@ -1,14 +1,13 @@
 <template>
   <div class="flex justify-center">
 
-    <div class="mt-12 bg-white shadow-sm border rounded-md max-w-7xl p-8 flex flex-col">
+    <div class="mt-12 bg-white shadow-sm border rounded-md w-96 p-8 flex flex-col">
       <h1>Nuts Demo EHR</h1>
 
-      <form class="my-4 flex justify-center" @submit.stop.prevent="">
+      <form class="w-full mt-4" @submit.stop.prevent="">
         <div class="space-y-4">
-
           <div>
-            <label for="customer_select" class="block text-sm font-medium text-gray-700">Organization</label>
+            <label for="customer_select">Organization</label>
             <div class="custom-select">
               <select id="customer_select" v-model="selectedCustomer">
                 <option v-for="c in customers" v-bind:value="c">

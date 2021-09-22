@@ -8,7 +8,7 @@
       </div>
     </div>
 
-    <div class="flex justify-between items-center mt-4 mb-4">
+    <div class="flex justify-between items-center mt-8 mb-4">
       <h2>Problems</h2>
 
       <button

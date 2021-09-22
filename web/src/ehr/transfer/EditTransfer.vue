@@ -56,8 +56,8 @@
     </div>
 
     <div class="mt-4 space-x-2">
-      <button v-if="showUpdateButton()" @click="updateTransfer" class="btn btn-primary">Update</button>
-      <button v-if="transfer && transfer.status !== 'cancelled'" @click="cancelTransfer" class="btn btn-secondary">
+      <button v-if="showUpdateButton" @click="updateTransfer" class="btn btn-primary">Update</button>
+      <button v-if="transfer && transfer.status !== 'cancelled'" @click="cancelTransfer" class="btn" :class="{'btn-secondary': showUpdateButton, 'btn-primary': !showUpdateButton}">
         Cancel transfer
       </button>
     </div>
@@ -96,17 +96,7 @@ export default {
       requestedOrganization: null,
     }
   },
-  methods: {
-    showRequestNewOrganization() {
-      switch (this.transfer.status) {
-        case 'cancelled':
-        case 'completed':
-        case 'assigned':
-          return false
-        default:
-          return true
-      }
-    },
+  computed: {
     showUpdateButton() {
       if (!this.transfer) {
         return false
@@ -114,6 +104,18 @@ export default {
       switch (this.transfer.status) {
         case 'cancelled':
         case 'completed':
+          return false
+        default:
+          return true
+      }
+    },
+  },
+  methods: {
+    showRequestNewOrganization() {
+      switch (this.transfer.status) {
+        case 'cancelled':
+        case 'completed':
+        case 'assigned':
           return false
         default:
           return true

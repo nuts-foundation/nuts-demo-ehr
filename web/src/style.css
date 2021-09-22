@@ -91,11 +91,15 @@ input:focus {
 }
 
 .btn {
-    @apply rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-colors;
+    @apply inline-flex items-center rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-colors;
 }
 
 .btn-sm {
     @apply rounded-lg text-sm py-2 px-6 shadow-md;
+}
+
+.btn-link {
+    @apply bg-transparent shadow-none p-0 hover:text-black;
 }
 
 .btn-primary {

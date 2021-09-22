@@ -1,5 +1,13 @@
 <template>
   <div v-if="Object.keys(patient).length > 0" class="px-12 py-8">
+    <button type="button" @click="back" class="btn btn-link mb-10">
+      <span class="w-6 mr-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
+      </span>
+
+      Back to {{backTitle}}
+    </button>
+
     <div class="mb-4">
       <patient-details :patient="patient"/>
     </div>
@@ -18,6 +26,17 @@ export default {
       patient: {},
     }
   },
+  computed: {
+    backTitle() {
+      console.log(this.$route.name)
+      switch (this.$route.name) {
+        case 'ehr.patient.transfer.edit':
+          return 'patient';
+        default:
+          return 'overview';
+      }
+    }
+  },
   methods: {
     truncate(str, n) {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
@@ -26,8 +45,16 @@ export default {
       this.$api.getPatient({patientID: this.$route.params.id})
           .then(patient => this.patient = patient)
           .catch(error => this.$status.error(error))
+    },
+    back() {
+      switch (this.$route.name) {
+        case 'ehr.patient.transfer.edit':
+          this.$router.push({name: 'ehr.patient', params: {id: this.$route.params.id } })
+          break;
+        default:
+          this.$router.push({name: 'ehr.patients'});
+      }
     }
-
   },
   mounted() {
     this.fetchPatient()

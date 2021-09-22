@@ -41,11 +41,11 @@
           </div>
 
           <div>
-            <h3 class="font-bold text-gray-900 text-md">
+            <h3 class="font-semibold text-gray-700 text-md">
               {{ patient.firstName }} {{ patient.surname }}
             </h3>
 
-            <p :title="patient.dob">{{ calculateAge(patient.dob) }} yr <small class="text-gray-500">/ {{ patient.dob }}</small></p>
+            <p class="text-gray-500 text-md" :title="patient.dob">{{ calculateAge(patient.dob) }} yr <small>/ {{ patient.dob }}</small></p>
           </div>
         </div>
       </div>

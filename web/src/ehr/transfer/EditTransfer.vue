@@ -57,17 +57,12 @@
 
     <div class="mt-4 space-x-2">
       <button v-if="showUpdateButton()" @click="updateTransfer" class="btn btn-primary">Update</button>
-      <button v-if="transfer && transfer.status != 'cancelled'" @click="cancelTransfer" class="btn btn-secondary">
+      <button v-if="transfer && transfer.status !== 'cancelled'" @click="cancelTransfer" class="btn btn-secondary">
         Cancel transfer
-      </button>
-      <button @click="$router.push({name: 'ehr.patient', params: {id: $route.params.id } })"
-              class="btn btn-secondary"
-      >
-        Back
       </button>
     </div>
 
-    <table class="min-w-full divide-y divide-gray-200 mt-6" v-if="transfer">
+    <table v-if="transfer && transfer.messages && transfer.messages.length > 0" class="min-w-full divide-y divide-gray-200 mt-6">
       <thead>
       <tr>
         <th>Messages</th>

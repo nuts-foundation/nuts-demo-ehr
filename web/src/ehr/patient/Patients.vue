@@ -29,9 +29,11 @@
 
   <div class="px-12 py-8">
     <div class="grid gap-5 grid-cols-4">
-      <div class="bg-white p-6 shadow-md rounded cursor-pointer transition-shadow hover:shadow-lg"
-           v-for="patient in patients"
-           @click="$router.push({name: 'ehr.patient', params: {id: patient.ObjectID}})">
+      <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg opacity-0 transition-opacity"
+           :class="{'opacity-100': state === 'done'}"
+           v-for="(patient, i) in patients"
+           @click="$router.push({name: 'ehr.patient', params: {id: patient.ObjectID}})"
+           :style="{'transition-duration': `${.05 * (i+1)}s !important`}">
         <div class="inline-flex items-center">
           <div class="flex-shrink-0 w-11 h-11 mr-3 rounded-full bg-gray-300 overflow-hidden">
             <avatar
@@ -45,14 +47,14 @@
               {{ patient.firstName }} {{ patient.surname }}
             </h3>
 
-            <p class="text-gray-500 text-md" :title="patient.dob">{{ calculateAge(patient.dob) }} yr <small>/ {{ patient.dob }}</small></p>
+            <p class="text-gray-500 text-md" :title="patient.dob">{{ calculateAge(patient.dob) }} yr <small>/
+              {{ patient.dob }}</small></p>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="text-gray-500" v-if="loading">Loading...</div>
-    <div v-if="!loading && patients.length == 0 && query">No results</div>
+    <div v-if="state !== 'loading' && patients.length === 0 && query">No results</div>
   </div>
 
 </template>
@@ -66,8 +68,8 @@ export default {
   data() {
     return {
       patients: [],
-      query: "",
-      loading: false,
+      query: '',
+      state: 'initial',
     }
   },
   mounted() {
@@ -76,15 +78,17 @@ export default {
   methods: {
     list() {
       this.patients = []
-      this.loading = true
+      this.state = 'loading';
       let params = {};
-      if (this.query != "") {
+      if (this.query !== "") {
         params.name = this.query
       }
       this.$api.getPatients(params)
           .then((response) => this.patients = response)
           .catch(error => this.$status.error(error))
-          .finally(() => this.loading = false)
+          .finally(() => {
+            this.$nextTick(() => setTimeout(() => this.state = 'done', 10));
+          })
     },
 
     calculateAge(dob) {

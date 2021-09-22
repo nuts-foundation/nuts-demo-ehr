@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-row">
-    <div class="w-24 h-24 flex-shrink-0 rounded-full bg-gray-300 overflow-hidden mr-5">
+    <div class="w-24 h-24 flex-shrink-0 rounded-full bg-gray-300 overflow-hidden mr-5 opacity-0 transition-opacity"
+         :class="{'opacity-100': Object.keys(patient).length > 0}">
       <avatar :gender="patient.gender" :avatar_url="patient.avatar_url"/>
     </div>
 
@@ -13,7 +14,8 @@
         >{{ patient.surname }}, {{ patient.firstName }}
         </router-link>
 
-        <h1 v-else class="text-2xl mb-2 mr-4">Unknown patient</h1>
+        <div v-else-if="Object.keys(patient).length === 0">...</div>
+        <div v-else class="text-2xl  mb-2 mr-4">Unknown patient</div>
 
         <button
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
@@ -34,11 +36,11 @@
         </div>
         <div>
           <div class="text-sm font-semibold">Gender</div>
-          {{ patient.gender }}
+          {{ patient.gender ? patient.gender : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
         <div>
           <div class="text-sm font-semibold">Birth date</div>
-          {{ patient.dob ? patient.dob : "unknown" }}
+          {{ patient.dob ? patient.dob : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
         <div v-if="patient.email">
           <div class="text-sm font-semibold">E-mail</div>

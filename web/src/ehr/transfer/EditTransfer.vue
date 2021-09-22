@@ -1,6 +1,4 @@
 <template>
-  <transfer-status v-if="transfer" :status="{status: transfer.status}"/>
-
   <div>
     <transfer-form v-if="transfer" :transfer="transfer"
                    @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>

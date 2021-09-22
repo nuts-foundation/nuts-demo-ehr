@@ -11,7 +11,8 @@
             :to="{name: 'ehr.patient.overview', params: {id: patient.ObjectID}}"
             class="text-2xl mb-2 mr-4 hover:cursor-pointer hover:underline"
             v-if="patient.surname || patient.firstName"
-        >{{ patient.surname }}, {{ patient.firstName }}
+        >
+          {{ patient.firstName }} {{ patient.surname }}
         </router-link>
 
         <div v-else-if="Object.keys(patient).length === 0">...</div>

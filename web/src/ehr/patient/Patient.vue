@@ -23,12 +23,12 @@ export default {
   components: {PatientDetails, ModalWindow},
   data() {
     return {
+      editVisited: false,
       patient: {},
     }
   },
   computed: {
     backTitle() {
-      console.log(this.$route.name)
       switch (this.$route.name) {
         case 'ehr.patient.transfer.edit':
         case 'ehr.patient.edit':
@@ -56,10 +56,27 @@ export default {
         default:
           this.$router.push({name: 'ehr.patients'});
       }
+    },
+
+    // Fetch new patient data after the patient was updated
+    updateAfterEdit() {
+      if (this.editVisited && this.$route.name === 'ehr.patient.overview') {
+        this.editVisited = false;
+        this.fetchPatient();
+
+        return;
+      }
+
+      if (this.$route.name === 'ehr.patient.edit') {
+        this.editVisited = true;
+      }
     }
   },
-  mounted() {
+  created() {
     this.fetchPatient()
   },
+  watch: {
+    $route: 'updateAfterEdit'
+  }
 }
 </script>

@@ -89,7 +89,21 @@ func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id 
 }
 
 func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
-	panic("implement me")
+	patient, err := r.FindByID(ctx, customerID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	update, err := updateFn(*patient)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.fhirClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, ToFHIRPatient(*update)); err != nil {
+		return nil, err
+	}
+
+	return update, nil
 }
 
 func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties domain.PatientProperties) (*domain.Patient, error) {

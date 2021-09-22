@@ -14,9 +14,11 @@
 
   <div class="mt-4">
     <button @click="checkForm"
+            :class="{'btn-loading': loading}"
             class="btn btn-primary mr-4"
     >Update Patient
     </button>
+
     <button type="button"
             class="btn btn-secondary"
             @click="cancel"
@@ -33,6 +35,7 @@ export default {
   components: {PatientForm},
   data() {
     return {
+      loading: false,
       formErrors: [],
       patient: {
         ObjectID: '',
@@ -64,13 +67,17 @@ export default {
       // e.preventDefault()
     },
     updatePatient() {
+      this.loading = true;
+
       let patientID = this.$route.params.id
+
       this.$api.updatePatient({patientID: patientID, body: this.patient})
-          .then(response => {
+          .then(() => {
             this.$emit("statusUpdate", "Patient updated")
             this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
           })
           .catch(error => this.$status.error(error))
+          .finally(() => this.loading = false)
     },
     fetchPatient() {
       this.$api.getPatient({patientID: this.$route.params.id})

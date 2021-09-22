@@ -4,11 +4,15 @@
 
 body {
     @apply text-gray-600 bg-gray-200;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif;
+}
+
+.main-nav {
+    clip-path: polygon(0% 0%, 120% 0%, 120% 100%, 0% 100%);
 }
 
 h1 {
-    @apply text-gray-900 font-bold text-xl;
+    @apply text-gray-700 font-bold text-2xl;
 }
 
 h2 {
@@ -82,8 +86,12 @@ input:focus {
     @apply text-2xl mb-6
 }
 
+.bg-nuts {
+    background-color: #D15949;
+}
+
 .btn {
-    @apply rounded-lg font-normal text-sm py-3 px-8 shadow-lg;
+    @apply rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-colors;
 }
 
 .btn-sm {
@@ -91,11 +99,16 @@ input:focus {
 }
 
 .btn-primary {
-    @apply text-white bg-blue-700;
+    @apply text-white;
+    background-color: #D15949;
+}
+
+.btn-primary:hover {
+    background-color: #984435;
 }
 
 .btn-secondary {
-    @apply text-white bg-gray-900;
+    @apply text-black bg-white hover:bg-gray-100;
 }
 
 .form-select {

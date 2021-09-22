@@ -1,5 +1,5 @@
 <template>
-  <div class="px-10 py-5">
+  <div class="px-12 py-8">
     <h1 class="mb-4">New Patient</h1>
 
     <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">

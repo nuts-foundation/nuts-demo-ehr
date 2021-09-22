@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center mb-3">
       <h2>Dossiers</h2>
 
-      <button class="inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+      <button class="inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
               @click="$router.push({name: 'ehr.patient.dossier.new'})">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
           <path d="M0 0h24v24H0V0z" fill="none"/>
@@ -50,7 +50,7 @@
       <h2>Reports</h2>
 
       <button
-          class="float-right inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+          class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
       >
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
           <path d="M0 0h24v24H0V0z" fill="none"/>

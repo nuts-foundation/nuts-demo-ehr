@@ -1,5 +1,5 @@
 <template>
-  <div v-if="Object.keys(patient).length > 0" class="px-10 py-5">
+  <div v-if="Object.keys(patient).length > 0" class="px-12 py-8">
     <div class="mb-4">
       <patient-details :patient="patient"/>
     </div>

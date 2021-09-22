@@ -1,5 +1,5 @@
 <template>
-  <div class="px-10 py-5">
+  <div class="px-12 py-8">
     <h1 class="mb-4">Patients</h1>
 
     <form @submit.prevent="list" class="inline-flex">
@@ -18,7 +18,7 @@
 
     <button
         @click="$router.push({name: 'ehr.patients.new'})"
-        class="float-right inline-flex items-center bg-blue-700 w-10 h-10 rounded-lg justify-center shadow-md"
+        class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
     >
       <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
         <path d="M0 0h24v24H0V0z" fill="none"/>
@@ -27,7 +27,7 @@
     </button>
   </div>
 
-  <div class="px-10 py-5">
+  <div class="px-12 py-8">
     <div class="grid gap-5 grid-cols-4">
       <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg"
            v-for="patient in patients"

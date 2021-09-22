@@ -57,14 +57,16 @@
     </nav>
 
     <main class="ml-72 mb-14 w-full">
-      <!-- Main content -->
-      <div>
-        <status-reporter type="error" :message="errorMessage.value"></status-reporter>
-        <status-reporter type="info" :message="statusMessage.value"></status-reporter>
-        <router-view @statusUpdate="updateStatus"></router-view>
-      </div>
+      <div class="w-full m-auto max-w-screen-2xl">
+        <!-- Main content -->
+        <div>
+          <status-reporter type="error" :message="errorMessage.value"></status-reporter>
+          <status-reporter type="info" :message="statusMessage.value"></status-reporter>
+          <router-view @statusUpdate="updateStatus"></router-view>
+        </div>
 
-      <status-bar :statusMessage="eventMessage"></status-bar>
+        <status-bar :statusMessage="eventMessage"></status-bar>
+      </div>
     </main>
   </div>
 </template>

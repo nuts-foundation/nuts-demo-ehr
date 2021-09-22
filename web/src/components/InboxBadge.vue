@@ -14,13 +14,13 @@
   border-radius: 2px;
   color: white;
 
-  padding: 1px 3px;
+  padding: 1px 5px;
   font-size: 10px;
   line-height: normal;
 
   position: absolute; /* Position the badge within the relatively positioned button */
-  top: -5px;
-  right: 0;
+  top: -6px;
+  right: 4px;
 }
 </style>
 <script>

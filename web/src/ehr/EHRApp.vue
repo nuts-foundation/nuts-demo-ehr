@@ -33,7 +33,7 @@
               :to="{name: 'ehr.inbox'}"
               class="menu-link"
               active-class="menu-link-active">
-            <inbox-badge :inbox="inboxInfo"/>
+            <inbox-badge v-if="inboxInfo && inboxInfo.messageCount > 0" :inbox="inboxInfo"/>
             Inbox
           </router-link>
           <router-link

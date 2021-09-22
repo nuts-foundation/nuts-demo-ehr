@@ -1,9 +1,10 @@
 package fhir
 
 import (
+	"strings"
+
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/tidwall/gjson"
-	"strings"
 )
 
 func Filter(resources []gjson.Result, predicate func(resource gjson.Result) bool) []gjson.Result {
@@ -44,6 +45,11 @@ func FromStringPtr(str *datatypes.String) string {
 		return ""
 	}
 	return string(*str)
+}
+
+func ToUriPtr(str string) *datatypes.URI {
+	result := datatypes.URI(str)
+	return &result
 }
 
 func ToCodePtr(str string) *datatypes.Code {

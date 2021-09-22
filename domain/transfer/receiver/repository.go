@@ -130,7 +130,7 @@ func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, c
 	const query = `INSERT INTO incoming_transfers (id, created_at, status, task_id, customer_id, sender_did, updated_at)
 		VALUES(:id, :created_at, :status, :task_id, :customer_id, :sender_did, :updated_at)
 		ON CONFLICT(task_id) DO
-		UPDATE SET updated_at = :updated_at`
+		UPDATE SET updated_at = :updated_at, status = :status`
 
 	transfer := &sqlTransfer{
 		ID:         uuid.New().String(),

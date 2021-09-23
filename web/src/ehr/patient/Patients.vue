@@ -61,7 +61,7 @@
 
 </template>
 <script>
-import Avatar from "../../components/Avator.vue";
+import Avatar from "../../components/Avatar.vue";
 
 export default {
   components: {

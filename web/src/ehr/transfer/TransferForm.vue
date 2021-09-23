@@ -85,8 +85,4 @@ export default {
     }
   }
 }
-
-/**
- * <button @click="patientProblem.interventions.push({ name: ''})" class="btn btn-secondary">Add intervention</button>
- */
 </script>

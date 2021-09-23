@@ -56,20 +56,6 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
-// GetTransferRequest handles requests to receive a transfer request.
-func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	cid, err := w.getCustomerID(ctx)
-	if err != nil {
-		return err
-	}
-	transferRequest, err := w.TransferSenderService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
-	if err != nil {
-		return err
-	}
-	return ctx.JSON(http.StatusOK, transferRequest)
-}
-
-
 func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error {
 	updateRequest := &domain.TransferNegotiationStatus{}
 	err := ctx.Bind(updateRequest)

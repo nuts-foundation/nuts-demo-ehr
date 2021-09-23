@@ -1,12 +1,27 @@
 package api
 
 import (
-	"github.com/sirupsen/logrus"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
+
+// GetTransferRequest handles requests to receive a transfer request.
+func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+	cid, err := w.getCustomerID(ctx)
+	if err != nil {
+		return err
+	}
+	transferRequest, err := w.TransferSenderService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, transferRequest)
+}
+
 
 func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 	customer := w.getCustomer(ctx)

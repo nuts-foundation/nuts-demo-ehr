@@ -486,25 +486,57 @@ func (s service) UpdateTaskState(ctx context.Context, customer domain.Customer, 
 		return fmt.Errorf("invalid task state change: from %s to %s", negotiation.Status, newState)
 	}
 
-	return s.completeTask(ctx, customer, negotiation)
+	if newState == transfer.AcceptedState {
+		return s.acceptTask(ctx, customer, negotiation)
+	}
+	if newState == transfer.CompletedState {
+		return s.completeTask(ctx, customer, negotiation)
+	}
+	return nil
+}
+
+// acceptTask sets the negotiation and corresponding task on accepted.
+func (s service) acceptTask(ctx context.Context, customer domain.Customer, negotiation *domain.TransferNegotiation) error {
+
+	// alter state to completed in DB for Task
+	if _, err:= s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), transfer.AcceptedState); err != nil {
+		return err
+	}
+	// update FHIR task
+	task, err := s.getLocalTransferTask(ctx, customer.Id, negotiation.TaskID)
+	if err != nil {
+		return err
+	}
+	task.Status = fhir.ToCodePtr(transfer.AcceptedState)
+	if err = s.localFHIRClientFactory(fhir.WithTenant(customer.Id)).CreateOrUpdate(ctx, task); err != nil {
+		return err
+	}
+
+	// create notification
+	not := notification{
+		customer:        &customer,
+		organizationDID: negotiation.OrganizationDID,
+	}
+
+	// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
+	tm, _ := sqlUtil.GetTransactionManager(ctx)
+	if commitErr := tm.Commit(); commitErr != nil {
+		return commitErr
+	}
+
+	_ = s.sendNotification(ctx, not.customer, not.organizationDID)
+
+	return nil
 }
 
 // completeTask will also complete the transfer, revoke credential and send a notification
 func (s service) completeTask(ctx context.Context, customer domain.Customer, negotiation *domain.TransferNegotiation) error {
 	transferID := string(negotiation.TransferID)
 
-	// find transfer
-	transferRecord, err := s.transferRepo.FindByID(ctx, customer.Id, transferID)
-	if err != nil {
-		return err
-	}
-	if transferRecord == nil {
-		return fmt.Errorf("transfer with ID: %s, not found", transferID)
-	}
-
 	var not notification
 
-	_, err = s.transferRepo.Update(ctx, customer.Id, transferID, func(transferRecord *domain.Transfer) (*domain.Transfer, error) {
+	_, err := s.transferRepo.Update(ctx, customer.Id, transferID, func(transferRecord *domain.Transfer) (*domain.Transfer, error) {
+		var err error
 		// alter state to completed in DB for Task
 		if negotiation, err = s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), transfer.CompletedState); err != nil {
 			return nil, err

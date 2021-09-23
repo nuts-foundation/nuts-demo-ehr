@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
@@ -169,6 +170,13 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {
 		return err
+	}
+	newState := request.Status
+	if newState == transfer.InProgressState {
+		w.TransferSenderService.ConfirmNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
+	} else if newState == transfer.CancelledState {
+
+		w.TransferSenderService.CancelNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
 	}
 	negotiation, err := w.TransferSenderRepo.UpdateNegotiationState(ctx.Request().Context(), cid, negotiationID, request.Status)
 	if err != nil {

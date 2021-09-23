@@ -2,54 +2,22 @@ package patients
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/tidwall/gjson"
 )
 
-const dobFormat = "2006-01-02"
-const bsnSystem = "http://fhir.nl/fhir/NamingSystem/bsn"
 
 func ToDomainPatient(fhirPatient resources.Patient) domain.Patient {
-	asJSON, _ := json.Marshal(fhirPatient)
-	p := gjson.ParseBytes(asJSON)
-
-	dob, _ := time.Parse(dobFormat, p.Get("birthDate").String())
-	gender := domain.PatientPropertiesGenderUnknown
-	fhirGender := p.Get("gender").String()
-	switch fhirGender {
-	case string(domain.PatientPropertiesGenderMale):
-		gender = domain.PatientPropertiesGenderMale
-	case string(domain.PatientPropertiesGenderFemale):
-		gender = domain.PatientPropertiesGenderFemale
-	}
-	ssn := p.Get(fmt.Sprintf(`identifier.#(system==%s).value`, bsnSystem)).String()
-	avatar := p.Get(`photo.0.url`).String()
-	return domain.Patient{
-		ObjectID: domain.ObjectID(p.Get("id").String()),
-		PatientProperties: domain.PatientProperties{
-			Dob:       &openapi_types.Date{Time: dob},
-			Email:     nil,
-			FirstName: p.Get(`name.#(use=="official").given.0`).String(),
-			Gender:    gender,
-			Ssn:       &ssn,
-			Surname:   p.Get(`name.#(use=="official").family`).String(),
-			Zipcode:   p.Get(`address.0.postalCode`).String(),
-		},
-		AvatarUrl: &avatar,
-	}
+	return domain.FHIRPatientToDomainPatient(fhirPatient)
 }
 
 func ToFHIRPatient(domainPatient domain.Patient) resources.Patient {
-	dob := datatypes.Date(domainPatient.Dob.Format(dobFormat))
+	dob := datatypes.Date(domainPatient.Dob.Format(domain.DobFormat))
 
 	fhirPatient := resources.Patient{
 		Domain: resources.Domain{
@@ -68,7 +36,7 @@ func ToFHIRPatient(domainPatient domain.Patient) resources.Patient {
 	}
 
 	if domainPatient.Ssn != nil {
-		fhirPatient.Identifier = append(fhirPatient.Identifier, datatypes.Identifier{System: fhir.ToUriPtr(bsnSystem), Value: fhir.ToStringPtr(*domainPatient.Ssn)})
+		fhirPatient.Identifier = append(fhirPatient.Identifier, datatypes.Identifier{System: fhir.ToUriPtr(domain.BsnSystem), Value: fhir.ToStringPtr(*domainPatient.Ssn)})
 	}
 	if domainPatient.AvatarUrl != nil {
 		fhirPatient.Photo = append(fhirPatient.Photo, datatypes.Attachment{URL: fhir.ToUriPtr(*domainPatient.AvatarUrl) })
@@ -133,6 +101,9 @@ func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *st
 	var params map[string]string
 	if name != nil {
 		params = map[string]string{"name": *name}
+	} else {
+		// Filter patients by having a name. This filters out the anonymous patients created just for the eOverdracht advance notice.
+		params = map[string]string{"name:above":"_"}
 	}
 	fhirPatients := []resources.Patient{}
 	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Patient", params, &fhirPatients)

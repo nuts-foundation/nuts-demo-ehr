@@ -10,16 +10,19 @@
         <router-link
             :to="{name: 'ehr.patient.overview', params: {id: patient.ObjectID}}"
             class="text-2xl mb-2 mr-4 hover:cursor-pointer hover:underline"
-            v-if="patient.surname || patient.firstName"
+            v-if="editable && (patient.surname || patient.firstName)"
         >
           {{ patient.firstName }} {{ patient.surname }}
         </router-link>
+        <p class="text-2xl mb-2 mr-4" v-if="patient.surname || patient.firstName">
+          {{ patient.firstName }} {{ patient.surname }}
+        </p>
 
         <div v-else-if="Object.keys(patient).length === 0">...</div>
         <div v-else class="text-2xl  mb-2 mr-4">Unknown patient</div>
 
         <button
-            v-if="$route.name !== 'ehr.patient.edit'"
+            v-if="editable && $route.name !== 'ehr.patient.edit'"
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
             class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
         >
@@ -65,6 +68,10 @@ export default {
   },
   props: {
     patient: Object,
+    editable: {
+      type: Boolean,
+      default: false
+    }
   },
 }
 </script>

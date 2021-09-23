@@ -167,6 +167,14 @@ export default {
           })
           .finally(() => this.state = 'done')
     },
+    assignNegotiation(negotiation) {
+      this.$api.updateTransferNegotiationStatus({
+        transferID: negotiation.transferID,
+        negotiationID: negotiation.id,
+        body: {status: 'in-progress'}
+      })
+          .then(() => this.fetchTransferNegotiations(this.transfer.id))
+    },
     cancelNegotiation(negotiation) {
       this.state = 'cancelling';
 

@@ -344,7 +344,7 @@ paths:
           type: string
     put:
       description: >
-        Update this negotiation status.
+        Update this negotiation status. Performed by sending party to either cancel or accept a negotiation.
       operationId: updateTransferNegotiationStatus
       requestBody:
         required: true
@@ -380,7 +380,7 @@ paths:
           type: string
     get:
       operationId: getTransferRequest
-      description: Retrieves a transfer request from another care organization.
+      description: Get the details of a transfer request sent by another care organization.
       responses:
         200:
           description: Transfer request found and returned.
@@ -741,11 +741,14 @@ components:
       description: >
         Properties of a transfer. These values can be updated over time.
       required:
+        - patient
         - transferDate
         - carePlan
       properties:
         carePlan:
           $ref: '#/components/schemas/CarePlan'
+        patient:
+          $ref: '#/components/schemas/Patient'
         transferDate:
           description: Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
           type: string
@@ -860,6 +863,8 @@ components:
         sender:
           $ref: '#/components/schemas/Organization'
         advanceNotice:
+          $ref: '#/components/schemas/TransferProperties'
+        nursingHandoff:
           $ref: '#/components/schemas/TransferProperties'
         transferDate:
           description: Requested transfer date.

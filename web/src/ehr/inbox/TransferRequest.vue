@@ -31,36 +31,62 @@
               <transfer-status :status="{status: transferRequest.status}"/>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="mt-4">
-            <label>Transfer date</label>
+      <div>
+        <div class="bg-gray-50 font-bold">Patient</div>
+        <div v-if="transferRequest.nursingHandoff">
+          <patient-details :patient="transferRequest.nursingHandoff.patient"/>
+        </div>
+        <div v-else>
+          <div>Zipcode: {{ transferRequest.advanceNotice.patient.zipcode }}</div>
+        </div>
+      </div>
 
-            <div>
-              {{ transferRequest.advanceNotice.transferDate }}
-            </div>
+      <div class="mt-4" v-if="transferRequest.advanceNotice">
+        <h1>
+          Advance Notice
+        </h1>
+        <div class="bg-gray-50 font-bold">CarePlan</div>
+        <h2>Problems:</h2>
+        <ul class="list-decimal pl-4">
+          <li
+              v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems"
+              class="pl-4"
+          >
+            <p> {{ patientProblem.problem.name }} </p>
+          </li>
+        </ul>
+
+        <div class="mt-4">
+          <label>Transfer date</label>
+
+          <div>
+            {{ transferRequest.advanceNotice.transferDate }}
           </div>
+        </div>
 
-          <div class="mt-4">
-            <label>Problems</label>
+        <div class="mt-4">
+          <label>Problems</label>
 
-            <ul>
-              <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
-                <h3 class="font-semibold">Problem</h3>
+          <ul>
+            <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
+              <h3 class="font-semibold">Problem</h3>
 
-                <p> {{ patientProblem.problem.name }} </p>
+              <p> {{ patientProblem.problem.name }} </p>
 
-                <div class="mt-2">
-                  <h3 class="font-semibold">Interventions</h3>
+              <div class="mt-2">
+                <h3 class="font-semibold">Interventions</h3>
 
-                  <ul>
-                    <li v-for="intervention in patientProblem.interventions">
-                      - &nbsp;{{ intervention.comment }}
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            </ul>
-          </div>
+                <ul>
+                  <li v-for="intervention in patientProblem.interventions">
+                    - &nbsp;{{ intervention.comment }}
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -80,10 +106,14 @@
   </div>
 </template>
 <script>
+
+
 import TransferStatus from "../../components/TransferStatus.vue";
+import PatientDetails from "../patient/PatientDetails.vue";
 
 export default {
   components: {
+    PatientDetails,
     TransferStatus
   },
   data() {

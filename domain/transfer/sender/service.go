@@ -32,14 +32,14 @@ type TransferService interface {
 	GetTransferByID(ctx context.Context, customerID int, transferID string) (domain.Transfer, error)
 
 	// ConfirmNegotiation confirms the negotiation indicated by the negotiationID.
-	// The updates the status to ACCEPTED_STATE.
+	// The updates the status to in progress
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
 	// by setting their status to CANCELLED_STATE.
 	ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// CancelNegotiation withdraws the negotiation/organization from the transfer. This is done by the sending party
 	// It updates the status to CANCELLED_STATE, updates the FHIR Task and sends out a notification
-	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error)
+	CancelNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error)
 
 	// GetTransferRequest tries to retrieve a transfer request from requesting care organization's FHIR server.
 	GetTransferRequest(ctx context.Context, customerID int, requestorDID string, fhirTaskID string) (*domain.TransferRequest, error)
@@ -83,7 +83,6 @@ func (s service) Create(ctx context.Context, customerID int, request domain.Crea
 
 	// Build the advance notice resources
 	advanceNotice := domain.NewFHIRBuilder().BuildAdvanceNotice(request, patient)
-
 
 	// Save the resources to the fhir storage
 	err = s.saveAdvanceNoticeFHIRResources(ctx, customerID, advanceNotice)
@@ -142,12 +141,12 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	client, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did)
+	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did)
 	if err != nil {
 		return nil, err
 	}
 
-	task, err := s.getRemoteTransferTask(ctx, client, fhirTaskID)
+	task, err := s.getRemoteTransferTask(ctx, fhirClient, fhirTaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -156,21 +155,41 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, fmt.Errorf("invalid task, expected an advanceNotice composition")
 	}
 
-	advanceNotice, err := s.getAdvanceNotice(ctx, client(), fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+	advanceNotice, err := s.getAdvanceNotice(ctx, fhirClient(), fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+	if err != nil {
+		return nil, err
+	}
+	domainAdvanceNotice, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	if err != nil {
+		return nil, err
+	}
 
 	organization, err := s.registry.Get(ctx, requesterDID)
 	if err != nil {
 		return nil, err
 	}
 
-	domainTransfer, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
-
 	// TODO: Do we need nil checks?
-	return &domain.TransferRequest{
-		Sender:        *organization,
-		AdvanceNotice: domainTransfer,
-		Status:        fhir.FromCodePtr(task.Status),
-	}, nil
+	transferRequest := domain.TransferRequest{
+		Sender:         *organization,
+		AdvanceNotice:  domainAdvanceNotice,
+		Status:         fhir.FromCodePtr(task.Status),
+	}
+
+	// If the task input contains the nursing handoff, add that one too.
+	if len(task.Input) == 2 {
+		nursingHandoff, err := s.getNursingHandoff(ctx, fhirClient(), fhir.FromStringPtr(task.Input[1].ValueReference.Reference))
+		if err != nil {
+			return nil, err
+		}
+		domainTransfer, err := domain.FHIRNursingHandoffToDomainTransfer(nursingHandoff)
+		if err != nil {
+			return nil, err
+		}
+		transferRequest.NursingHandoff = &domainTransfer
+	}
+
+	return &transferRequest, nil
 }
 
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
@@ -299,7 +318,6 @@ func resourcePathsFromSection(sections []eoverdracht.CompositionSection, paths [
 func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
 	var (
 		negotiation   *domain.TransferNegotiation
-		dossierRepo   *domain.Dossier
 		patient       *domain.Patient
 		customer      *domain.Customer
 		notifications []*notification
@@ -331,13 +349,11 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, err
 		}
 
-		// retrieve patient by first fetching the dossier
-		if dossierRepo, err = s.dossierRepo.FindByID(ctx, customerID, string(dbTransfer.DossierID)); err != nil {
-			return nil, err
+		patient, err = s.findPatientByDossierID(ctx, customerID, string(dbTransfer.DossierID))
+		if err != nil {
+			return nil, fmt.Errorf("unable to confirm egotiation: could not fetch patient by dossierID: %w", err)
 		}
-		if patient, err = s.patientRepo.FindByID(ctx, customerID, string(dossierRepo.PatientID)); err != nil {
-			return nil, err
-		}
+
 		// retrieve customer
 		if customer, err = s.customerRepo.FindByID(customerID); err != nil {
 			return nil, err
@@ -349,11 +365,11 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		advanceNotice, err := s.getAdvanceNotice(ctx, fhirClient, advanceNoticePath)
 
 		// Create eTransfer composition based on the advanceNotice and patient
-		composition, err := domain.NewFHIRBuilder().BuildNursingHandoffComposition(patient, advanceNotice)
+		nursingHandoffComposition, err := domain.NewFHIRBuilder().BuildNursingHandoffComposition(patient, advanceNotice)
 		if err != nil {
 			return nil, err
 		}
-		compositionID := composition.ID
+		compositionID := nursingHandoffComposition.ID
 		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
 		dbTransfer.FhirNursingHandoffComposition = (*string)(compositionID)
 		dbTransfer.Status = domain.TransferStatusAssigned
@@ -370,7 +386,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		})
 
 		// Create nursing handoff composition in the FHIR store
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, composition); err != nil {
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition); err != nil {
 			return nil, err
 		}
 		// Update the task in the FHIR store
@@ -391,8 +407,10 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			},
 		}
 		// Add paths of resources of both the advance notice and the nursing handoff
-		resourcePaths := resourcePathsFromSection(composition.Section, []string{advanceNoticePath, compositionPath})
+		resourcePaths := resourcePathsFromSection(nursingHandoffComposition.Section, []string{advanceNoticePath, compositionPath})
 		resourcePaths = resourcePathsFromSection(advanceNotice.Composition.Section, resourcePaths)
+		// Add path to the complete, non-anonymous, patient
+		resourcePaths = append(resourcePaths, "/"+fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference))
 
 		// The resourcePaths may contain duplicates, hold a list of processedPaths
 		processedPaths := map[string]struct{}{}
@@ -434,7 +452,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 	return negotiation, err
 }
 
-func (s service) CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*domain.TransferNegotiation, error) {
+func (s service) CancelNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
 	// find transfer
 	negotiation, err := s.transferRepo.FindNegotiationByID(ctx, customerID, negotiationID)
 	if err != nil {
@@ -615,13 +633,18 @@ func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory,
 	return task, nil
 }
 
-// getAdvanceNotice fetches a complete advance notice from the a FHIR server
-func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirCompositionPath string) (eoverdracht.AdvanceNotice, error) {
+// getAdvanceNotice fetches a complete advance notice from a FHIR server
+func (s service) getAdvanceNotice(ctx context.Context, fhirClient fhir.Client, fhirCompositionPath string) (eoverdracht.AdvanceNotice, error) {
 	advanceNotice := eoverdracht.AdvanceNotice{}
 
-	err := client.ReadOne(ctx, "/"+fhirCompositionPath, &advanceNotice.Composition)
+	err := fhirClient.ReadOne(ctx, "/"+fhirCompositionPath, &advanceNotice.Composition)
 	if err != nil {
 		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
+	}
+
+	err = fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(advanceNotice.Composition.Subject.Reference), &advanceNotice.Patient)
+	if err != nil {
+		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
 	}
 
 	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
@@ -639,7 +662,7 @@ func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirC
 		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
 			conditionID := fhir.FromStringPtr(entry.Reference)
 			condition := resources.Condition{}
-			err := client.ReadOne(ctx, "/"+conditionID, &condition)
+			err = fhirClient.ReadOne(ctx, "/"+conditionID, &condition)
 			if err != nil {
 				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
 			}
@@ -648,7 +671,7 @@ func (s service) getAdvanceNotice(ctx context.Context, client fhir.Client, fhirC
 		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
 			procedureID := fhir.FromStringPtr(entry.Reference)
 			procedure := eoverdracht.Procedure{}
-			err := client.ReadOne(ctx, "/"+procedureID, &procedure)
+			err = fhirClient.ReadOne(ctx, "/"+procedureID, &procedure)
 			if err != nil {
 				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
 			}
@@ -705,4 +728,57 @@ func (s service) saveAdvanceNoticeFHIRResources(ctx context.Context, customerID 
 		return err
 	}
 	return nil
+}
+
+// getAdvanceNotice fetches a complete nursing handoff from a FHIR server
+func (s service) getNursingHandoff(ctx context.Context, fhirClient fhir.Client, fhirCompositionPath string) (eoverdracht.NursingHandoff, error) {
+	nursingHandoff := eoverdracht.NursingHandoff{}
+
+	// Fetch the composition
+	err := fhirClient.ReadOne(ctx, "/"+fhirCompositionPath, &nursingHandoff.Composition)
+	if err != nil {
+		return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
+	}
+
+	// Fetch the Patient
+	err = fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(nursingHandoff.Composition.Subject.Reference), &nursingHandoff.Patient)
+	if err != nil {
+		return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
+	}
+
+	// Fetch the careplan
+	careplan, err := eoverdracht.FilterCompositionSectionByType(nursingHandoff.Composition.Section, eoverdracht.CarePlanCode)
+	if err != nil {
+		return eoverdracht.NursingHandoff{}, err
+	}
+
+	// Fetchh the nursing diagnosis
+	nursingDiagnosis, err := eoverdracht.FilterCompositionSectionByType(careplan.Section, eoverdracht.NursingDiagnosisCode)
+	if err != nil {
+		return eoverdracht.NursingHandoff{}, err
+	}
+
+	// the nursing diagnosis contains both conditions and procedures
+	for _, entry := range nursingDiagnosis.Entry {
+		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
+			conditionID := fhir.FromStringPtr(entry.Reference)
+			condition := resources.Condition{}
+			err = fhirClient.ReadOne(ctx, "/"+conditionID, &condition)
+			if err != nil {
+				return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
+			}
+			nursingHandoff.Problems = append(nursingHandoff.Problems, condition)
+		}
+		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
+			procedureID := fhir.FromStringPtr(entry.Reference)
+			procedure := eoverdracht.Procedure{}
+			err = fhirClient.ReadOne(ctx, "/"+procedureID, &procedure)
+			if err != nil {
+				return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
+			}
+			nursingHandoff.Interventions = append(nursingHandoff.Interventions, procedure)
+		}
+	}
+
+	return nursingHandoff, nil
 }

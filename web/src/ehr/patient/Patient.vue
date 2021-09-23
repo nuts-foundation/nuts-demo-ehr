@@ -2,16 +2,17 @@
   <div class="px-12 py-8">
     <button type="button" @click="back" class="btn btn-link mb-12">
       <span class="w-6 mr-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z"
+                                                                                         fill="none"/><path
+            d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
       </span>
 
-      Back to {{backTitle}}
+      Back to {{ backTitle }}
     </button>
 
     <div class="mb-4">
-      <patient-details :patient="patient"/>
+      <patient-details :patient="patient" :editable="true"/>
     </div>
-
     <router-view></router-view>
   </div>
 </template>
@@ -51,7 +52,7 @@ export default {
       switch (this.$route.name) {
         case 'ehr.patient.transfer.edit':
         case 'ehr.patient.edit':
-          this.$router.push({name: 'ehr.patient', params: {id: this.$route.params.id } })
+          this.$router.push({name: 'ehr.patient', params: {id: this.$route.params.id}})
           break;
         default:
           this.$router.push({name: 'ehr.patients'});

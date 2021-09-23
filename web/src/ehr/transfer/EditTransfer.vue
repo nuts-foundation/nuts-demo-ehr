@@ -54,9 +54,21 @@
     </div>
 
     <div class="mt-4 space-x-2">
-      <button v-if="showUpdateButton" @click="updateTransfer" class="btn btn-primary">Update</button>
-      <button v-if="transfer && transfer.status !== 'cancelled'" @click="cancelTransfer" class="btn" :class="{'btn-secondary': showUpdateButton, 'btn-primary': !showUpdateButton}">
+      <button v-if="showUpdateButton"
+              @click="updateTransfer" class="btn btn-primary">
+        Update
+      </button>
+
+      <button v-if="transfer && transfer.status != 'cancelled' && transfer.status != 'completed'"
+              @click="cancelTransfer" class="btn"
+              :class="{'btn-secondary': showUpdateButton, 'btn-primary': !showUpdateButton}"
+      >
         Cancel transfer
+      </button>
+
+      <button @click="$router.push({name: 'ehr.patient', params: {id: $route.params.id } })"
+              class="btn btn-secondary">
+        Back
       </button>
     </div>
 
@@ -166,6 +178,14 @@ export default {
             this.fetchTransfer(this.transfer.id)
           })
           .finally(() => this.state = 'done')
+    },
+    assignNegotiation(negotiation) {
+      this.$api.updateTransferNegotiationStatus({
+        transferID: negotiation.transferID,
+        negotiationID: negotiation.id,
+        body: {status: 'in-progress'}
+      })
+          .then(() => this.fetchTransferNegotiations(this.transfer.id))
     },
     cancelNegotiation(negotiation) {
       this.state = 'cancelling';

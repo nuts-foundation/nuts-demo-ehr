@@ -17,55 +17,71 @@
 
       <div class="bg-white rounded-lg shadow-lg">
         <div class="p-5 bg-gray-50 border-b rounded-t-lg">
-          <h2>Requesting Care Organization</h2>
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="mb-1">Requesting Care Organization</h2>
 
-          <div class="text-gray-700">
-            {{ transferRequest.sender.name }} in {{ transferRequest.sender.city }}
-          </div>
-        </div>
+              <div class="text-gray-700">
+                {{ transferRequest.sender.name }} in {{ transferRequest.sender.city }}
+              </div>
+            </div>
 
-        <div class="p-5">
-          <div>
-            <label>Status</label>
             <div>
               <transfer-status :status="{status: transferRequest.status}"/>
             </div>
           </div>
+        </div>
 
-          <div class="mt-4">
-            <label>Transfer date</label>
-
+        <div class="p-5">
+          <div v-if="transferRequest.advanceNotice">
             <div>
-              {{ transferRequest.advanceNotice.transferDate }}
+              <label>Transfer date</label>
+              <div>
+                {{ transferRequest.advanceNotice.transferDate }}
+              </div>
             </div>
-          </div>
 
-          <div class="mt-4">
-            <label>Problems</label>
+            <div class="mt-4">
+              <label>Problems</label>
 
-            <ul>
-              <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
-                <h3 class="font-semibold">Problem</h3>
+              <ul>
+                <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
+                  <h3 class="font-semibold text-sm">Problem</h3>
 
-                <p> {{ patientProblem.problem.name }} </p>
+                  <p> {{ patientProblem.problem.name }} </p>
 
-                <div class="mt-2">
-                  <h3 class="font-semibold">Interventions</h3>
+                  <div class="mt-2">
+                    <h3 class="font-semibold text-sm">Interventions</h3>
 
-                  <ul>
-                    <li v-for="intervention in patientProblem.interventions">
-                      - &nbsp;{{ intervention.comment }}
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            </ul>
+                    <ul>
+                      <li v-for="intervention in patientProblem.interventions">
+                        - &nbsp;{{ intervention.comment }}
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-4">
-        <button class="btn btn-primary m-1" @click="complete" :class="{'btn-loading': state === 'completing'}"
+      <h2 class="mt-10 mb-3">Patient</h2>
+
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <div v-if="!transferRequest.nursingHandoff">
+          <label>Zipcode</label>
+
+          <div>{{ transferRequest.advanceNotice.patient.zipcode }}</div>
+        </div>
+
+        <div v-if="transferRequest.nursingHandoff">
+          <patient-details :patient="transferRequest.nursingHandoff.patient"/>
+        </div>
+      </div>
+
+      <div class="mt-10">
+        <button class="btn btn-primary" @click="complete" :class="{'btn-loading': state === 'completing'}"
                 v-show="transferRequest.status === 'in-progress'">
           Complete
         </button>
@@ -80,10 +96,14 @@
   </div>
 </template>
 <script>
+
+
 import TransferStatus from "../../components/TransferStatus.vue";
+import PatientDetails from "../patient/PatientDetails.vue";
 
 export default {
   components: {
+    PatientDetails,
     TransferStatus
   },
   data() {

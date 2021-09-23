@@ -303,6 +303,7 @@ type TransferNegotiationStatusStatus string
 type TransferProperties struct {
 	// CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
 	CarePlan CarePlan `json:"carePlan"`
+	Patient  Patient  `json:"patient"`
 
 	// Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
 	TransferDate openapi_types.Date `json:"transferDate"`
@@ -312,6 +313,9 @@ type TransferProperties struct {
 type TransferRequest struct {
 	// Properties of a transfer. These values can be updated over time.
 	AdvanceNotice TransferProperties `json:"advanceNotice"`
+
+	// Properties of a transfer. These values can be updated over time.
+	NursingHandoff *TransferProperties `json:"nursingHandoff,omitempty"`
 
 	// A care organization available through the Nuts Network to exchange information.
 	Sender Organization `json:"sender"`

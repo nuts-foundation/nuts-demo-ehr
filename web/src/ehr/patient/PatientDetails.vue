@@ -10,16 +10,18 @@
         <router-link
             :to="{name: 'ehr.patient.overview', params: {id: patient.ObjectID}}"
             class="text-2xl mb-2 mr-4 hover:cursor-pointer hover:underline"
-            v-if="patient.surname || patient.firstName"
+            v-if="editable && (patient.surname || patient.firstName)"
         >
           {{ patient.firstName }} {{ patient.surname }}
         </router-link>
-
+        <p class="text-2xl mb-2 mr-4" v-else-if="!editable && (patient.surname || patient.firstName)">
+          {{ patient.firstName }} {{ patient.surname }}
+        </p>
         <div v-else-if="Object.keys(patient).length === 0">...</div>
         <div v-else class="text-2xl  mb-2 mr-4">Unknown patient</div>
 
         <button
-            v-if="$route.name !== 'ehr.patient.edit'"
+            v-if="editable && $route.name !== 'ehr.patient.edit'"
             @click="$router.push({name: 'ehr.patient.edit', params: {id: patient.ObjectID}})"
             class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
         >
@@ -31,23 +33,27 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-x-6">
+      <div class="grid grid-cols-5 gap-x-6">
         <div v-if="patient.ssn">
           <div class="text-sm font-semibold">SSN</div>
           {{ patient.ssn }}
         </div>
+
         <div>
           <div class="text-sm font-semibold">Gender</div>
           {{ patient.gender ? patient.gender : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
+
         <div>
           <div class="text-sm font-semibold">Birth date</div>
           {{ patient.dob ? patient.dob : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
+
         <div v-if="patient.email">
           <div class="text-sm font-semibold">E-mail</div>
           {{ patient.email }}
         </div>
+
         <div v-if="patient.zipcode">
           <div class="text-sm font-semibold">Zipcode</div>
           {{ patient.zipcode }}
@@ -65,6 +71,10 @@ export default {
   },
   props: {
     patient: Object,
+    editable: {
+      type: Boolean,
+      default: false
+    }
   },
 }
 </script>

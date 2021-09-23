@@ -3,11 +3,12 @@
 
     <div class="mt-12 bg-white shadow-sm border rounded-md w-96 p-8 flex flex-col">
       <h1>Nuts Demo EHR</h1>
+      <h2>Login</h2>
 
       <form class="w-full mt-4" @submit.stop.prevent="">
         <div class="space-y-4">
           <div>
-            <label for="customer_select">Organization</label>
+            <label for="customer_select">Choose your organization</label>
             <div class="custom-select">
               <select id="customer_select" v-model="selectedCustomer">
                 <option v-for="c in customers" v-bind:value="c">
@@ -25,7 +26,7 @@
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
 
           <div class="pt-6">
-            <h2 class="mb-4">Login with</h2>
+            <h2 class="mb-4">Pick a method:</h2>
 
             <div class="grid grid-cols-2 gap-2">
               <button class="btn btn-primary flex justify-center items-center w-full" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">

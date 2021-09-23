@@ -34,7 +34,7 @@ const transferSchema = `
 `
 
 type TransferRepository interface {
-	GetCount(ctx context.Context, customerID int) (int, error)
+	GetNotCompletedCount(ctx context.Context, customerID int) (int, error)
 	GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error)
 	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error)
 }
@@ -104,8 +104,8 @@ func (f repository) GetAll(ctx context.Context, customerID int) ([]domain.Incomi
 	return results, nil
 }
 
-func (f repository) GetCount(ctx context.Context, customerID int) (int, error) {
-	const query = `SELECT COUNT(*) FROM incoming_transfers WHERE customer_id = ?`
+func (f repository) GetNotCompletedCount(ctx context.Context, customerID int) (int, error) {
+	const query = `SELECT COUNT(*) FROM incoming_transfers WHERE customer_id = ? and status != 'completed'`
 
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
@@ -130,7 +130,7 @@ func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, c
 	const query = `INSERT INTO incoming_transfers (id, created_at, status, task_id, customer_id, sender_did, updated_at)
 		VALUES(:id, :created_at, :status, :task_id, :customer_id, :sender_did, :updated_at)
 		ON CONFLICT(task_id) DO
-		UPDATE SET updated_at = :updated_at`
+		UPDATE SET updated_at = :updated_at, status = :status`
 
 	transfer := &sqlTransfer{
 		ID:         uuid.New().String(),

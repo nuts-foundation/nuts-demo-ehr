@@ -141,11 +141,9 @@ const router = createRouter({
 const app = createApp(App)
 
 router.beforeEach((to, from, next) => {
-  console.log("from: ", from.path, from.name, "to: ", to.path, to.name)
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
     if (!localStorage.getItem("session")) {
-      console.log("no active session found, redirect to login")
       return next({name: 'login', props: true, query: {redirect: to.path }})
     }
   }
@@ -154,7 +152,6 @@ router.beforeEach((to, from, next) => {
     let rawToken = atob(sessionStr.split('.')[1])
     let token = JSON.parse(rawToken)
     if (!token["elv"]) {
-      console.log("route requires elevation, redirect to elevate")
       return next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
     }
   }

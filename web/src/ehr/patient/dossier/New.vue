@@ -1,14 +1,15 @@
 <template>
-  <modal-window title="Start a new dossier" type="add" :cancel-route="{name: 'ehr.patient', params: {id: this.$route.params.id}}">
+  <modal-window
+      title="Start a new dossier"
+      type="add"
+      :confirm-fn="() => $router.push({name: 'ehr.patient.transfer.new', params: {id: this.$route.params.id}})"
+      confirm-text="Create dossier"
+      :cancel-route="{name: 'ehr.patient', params: {id: this.$route.params.id}}">
     <div class="mt-4">
       <span>
         Do you want to transfer this patient to another care organization?
         You can make a set of predetermined ZIBs available to 1 specific care organization.
       </span>
-      <button class="btn btn-primary block mt-1"
-              @click="$router.push({name: 'ehr.patient.transfer.new', params: {id: this.$route.params.id}})">
-        Transfer
-      </button>
     </div>
 
     <!--

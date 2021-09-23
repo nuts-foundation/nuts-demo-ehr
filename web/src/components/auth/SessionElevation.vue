@@ -1,21 +1,30 @@
 <template>
-
   <div class="flex justify-center">
 
     <div v-if="!means" class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">
-      <p>The page you want to access requires a higher lever of authentication.</p>
+      <h1 class="mb-2">Session elevation</h1>
 
-      <p>Choose a means to elevate your session:</p>
-      <button class="w-full btn btn-submit grid justify-items-center" @click="elevateWithIRMA">
-        <div>IRMA</div>
-        <img class="block my-3" v-bind:src="irmaLogo">
-      </button>
-      <button class="w-full btn btn-submit grid justify-items-center" @click="elevateWithBONO">
-        <div>BONO</div>
-      </button>
-      <button class="w-full btn btn-submit grid justify-items-center" @click="elevateWithDummy">
-        Dummy (for easy testing)
-      </button>
+      <p class="mb-6">The page you want to access requires a higher lever of authentication.</p>
+
+      <h2 class="mb-4">Choose a method</h2>
+
+      <div class="grid grid-cols-3 gap-4">
+        <button class="btn btn-secondary" @click="elevateWithIRMA">
+        <span class="w-10 mr-4">
+          <img class="max-w-full" alt="IRMA logo" v-bind:src="irmaLogo">
+        </span>
+
+          <span class="text-lg font-semibold">IRMA</span>
+        </button>
+
+        <button class="btn btn-secondary" @click="elevateWithBONO">
+          <span class="text-lg font-semibold">Bono</span>
+        </button>
+
+        <button class="btn btn-secondary" @click="elevateWithDummy">
+          <span class="text-lg font-semibold">Dummy <small>(for easy testing)</small></span>
+        </button>
+      </div>
     </div>
     <button v-else @click="means = ''">back</button>
 

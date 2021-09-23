@@ -1,10 +1,14 @@
 <template>
   <div class="inline-block relative">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-    </svg>
-    <span class="count" v-if="!!inbox">{{ inbox.messageCount }}</span>
+    <div class="h-5 w-5 mr-3">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M0 0h24v24H0V0z" fill="none"/>
+        <path
+            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5v-3h3.56c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2H19v3zm0-5h-4.99c0 1.1-.9 2-2 2s-2-.9-2-2H5V5h14v9z"/>
+      </svg>
+    </div>
+
+    <span class="count" v-if="!!inbox && inbox.messageCount > 0">{{ inbox.messageCount }}</span>
   </div>
 </template>
 
@@ -14,13 +18,13 @@
   border-radius: 2px;
   color: white;
 
-  padding: 1px 3px;
+  padding: 1px 5px;
   font-size: 10px;
   line-height: normal;
 
   position: absolute; /* Position the badge within the relatively positioned button */
-  top: -5px;
-  right: 0;
+  top: -6px;
+  right: 4px;
 }
 </style>
 <script>

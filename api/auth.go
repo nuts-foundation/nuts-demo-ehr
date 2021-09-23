@@ -79,8 +79,9 @@ func (auth Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(customerId int, session string, elevated bool) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(subject string, customerId int, session string, elevated bool) ([]byte, error) {
 	t := openid.New()
+	t.Set(jwt.SubjectKey, subject)
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)

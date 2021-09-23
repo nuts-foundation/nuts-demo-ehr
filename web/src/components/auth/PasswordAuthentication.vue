@@ -1,7 +1,7 @@
 <template>
   <div class="flex justify-center">
 
-    <div class="mt-12 border rounded-md max-w-7xl p-8 flex flex-col">
+    <div class="mt-12 bg-white border rounded-md max-w-7xl p-8 flex flex-col">
       <h1 class="text-3xl py-2">Password login</h1>
       <form class="my-4 flex justify-center" @submit.stop.prevent="login">
         <div class="space-y-4">
@@ -18,8 +18,9 @@
                 class="flex-1 py-2 px-4 block border border-gray-300 rounded-md"
             />
           </div>
+
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn btn-submit">Login</button>
+          <button class="w-full btn btn-primary text-center">Login</button>
         </div>
       </form>
     </div>

@@ -1,22 +1,43 @@
 <template>
-  <h1 class="text-2xl">New Patient</h1>
-  <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-    <b>Please correct the following error(s):</b>
-    <ul>
-      <li v-for="error in formErrors">* {{ error }}</li>
-    </ul>
+  <div class="px-12 py-8">
+    <button type="button" @click="() => this.$router.push({name: 'ehr.patients'})" class="btn btn-link mb-12">
+      <span class="w-6 mr-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M0 0h24v24H0V0z"
+                                                                                         fill="none"/><path
+            d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
+      </span>
+
+      Back to overview
+    </button>
+
+    <h1 class="mb-4">New Patient</h1>
+
+    <div class="bg-white rounded-lg shadow-lg p-5">
+      <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+        <b>Please correct the following error(s):</b>
+        <ul>
+          <li v-for="error in formErrors">* {{ error }}</li>
+        </ul>
+      </div>
+
+      <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+    </div>
+
+    <div class="mt-5">
+      <button @click="checkForm"
+              class="btn btn-primary mr-4"
+              :class="{'btn-loading': loading}"
+      >Add Patient
+      </button>
+
+      <button type="button"
+              class="btn btn-secondary"
+              @click="cancel"
+      >
+        Cancel
+      </button>
+    </div>
   </div>
-  <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
-  <button @click="checkForm"
-      class="bg-blue-400 hover:bg-blue-500 text-white font-medium rounded-md px-3 py-2"
-  >Add Patient
-  </button>
-  <button type="button"
-          class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-          @click="cancel"
-  >
-    Cancel
-  </button>
 </template>
 <script>
 
@@ -26,6 +47,7 @@ export default {
   components: {PatientForm},
   data() {
     return {
+      loading: false,
       formErrors: [],
       patient: {
         id: '',
@@ -58,12 +80,15 @@ export default {
       // e.preventDefault()
     },
     confirm() {
+      this.loading = true;
+
       this.$api.newPatient({body: this.patient})
           .then(response => {
             this.$emit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
           .catch(error => this.$status.error(error))
+          .finally(() => this.loading = false)
     }
   }
 }

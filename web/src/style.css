@@ -3,21 +3,70 @@
 @tailwind utilities;
 
 body {
-    @apply text-gray-600;
+    @apply text-gray-600 bg-gray-200;
+    font-family: 'Poppins', sans-serif;
+}
+
+.main-nav {
+    clip-path: polygon(0% 0%, 120% 0%, 120% 100%, 0% 100%);
+}
+
+h1 {
+    @apply text-gray-700 font-bold text-2xl;
+}
+
+h2 {
+    @apply text-gray-900 font-semibold text-lg;
 }
 
 th {
     text-align: left;
-    font-size: 110%;
-    font-weight: bolder;
+    @apply text-gray-600 py-2 text-sm font-semibold;
+}
+
+td {
+    @apply py-2 text-sm;
 }
 
 .vertical-form {
     @apply my-4 flex;
 }
 
-input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
-    @apply leading-5 flex-1 py-2 px-4 block border border-gray-300 rounded-md w-full;
+label {
+    @apply text-gray-600 text-sm font-semibold block mb-1;
+}
+
+select {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+}
+
+.custom-select {
+    position: relative;
+}
+
+.custom-select svg {
+    top: 3px;
+    right: 8px;
+    color: #444;
+    content: '';
+    display: block;
+    position: absolute;
+    font-family: initial;
+    width: 35px;
+}
+
+textarea, input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=date], select {
+    @apply w-full bg-white border rounded-lg px-4 py-2 shadow-sm;
+}
+
+textarea {
+    @apply text-sm;
+}
+
+input.alt, select.alt, textarea.alt {
+    @apply bg-gray-300;
 }
 
 input[type=text]:disabled, input[type=email]:disabled, input[type=password]:disabled, input[type=number]:disabled {
@@ -26,7 +75,7 @@ input[type=text]:disabled, input[type=email]:disabled, input[type=password]:disa
 
 input:focus {
     outline: none;
-    @apply border-gray-600;
+    @apply ring-2;
 }
 
 .page-title {
@@ -37,51 +86,57 @@ input:focus {
     @apply text-2xl mb-6
 }
 
+.bg-nuts {
+    background-color: #D15949;
+}
+
 .btn {
-    @apply font-medium rounded-md px-3 py-2 border border-gray-300 shadow-sm;
+    @apply inline-flex items-center rounded-lg font-normal text-sm py-3 px-8 shadow-lg transition-all text-center justify-center;
+}
+
+.btn-sm {
+    @apply rounded-lg text-sm py-2 px-6 shadow-md;
+}
+
+.btn-link {
+    @apply bg-transparent shadow-none p-0 hover:text-black;
 }
 
 .btn-primary {
-    @apply bg-blue-400 hover:bg-blue-500 text-white
+    @apply text-white;
+    background-color: #D15949;
+}
+
+.btn-primary:not(.btn-loading):hover {
+    background-color: #984435;
 }
 
 .btn-secondary {
-    @apply border-gray-300 bg-white text-base text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+    @apply text-black bg-white hover:bg-gray-100;
 }
 
-.btn-submit {
-    @apply bg-blue-400 hover:bg-blue-500 disabled:opacity-50 text-white;
-
+.btn-loading {
+    @apply opacity-70 relative overflow-hidden;
 }
 
-.form-select {
-     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-     -webkit-appearance: none;
-     -moz-appearance: none;
-     appearance: none;
-     -webkit-print-color-adjust: exact;
-     color-adjust: exact;
-     background-repeat: no-repeat;
-     background-color: #fff;
-     border-color: #d1d5db;
-     border-width: 1px;
-     border-radius: 0.375rem;
-     padding-top: 0.5rem;
-     padding-right: 2.5rem;
-     padding-bottom: 0.5rem;
-     padding-left: 0.75rem;
-     font-size: 1rem;
-     line-height: 1.5rem;
-     background-position: right 0.5rem center;
-     background-size: 1.5em 1.5em;
- }
-
-.form-select:focus {
-    outline: none;
-    --ring-offset-shadow: 0 0 0 var(--ring-offset-width, 0) var(--ring-offset-color, #fff);
-    --ring-shadow: 0 0 0 calc(1px + var(--ring-offset-width, 0px)) var(--ring-color, #2563eb);
-    box-shadow: var(--ring-offset-shadow), var(--ring-shadow), 0 0 #0000;
-    box-shadow: var(--ring-offset-shadow), var(--ring-shadow), var(--box-shadow, 0 0 #0000);
-    border-color: #2563eb;
+.btn-loading:after {
+    content: '';
+    @apply absolute top-0 left-0 h-2 w-full opacity-0;
+    animation: progress-bar 4s ease-in-out;
 }
 
+.btn-primary.btn-loading:after {
+    background-color: #984435;
+}
+
+@keyframes progress-bar {
+    0% {
+        width: 20%;
+        opacity: 100;
+    }
+
+    100% {
+        width: 100%;
+        opacity: 100;
+    }
+}

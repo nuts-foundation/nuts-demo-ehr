@@ -1,26 +1,53 @@
 <template>
-  <form class="space-y-3">
-    <label>SSN:
-      <input :disabled="mode === 'edit'" type="text" v-model="value.ssn"></label>
-    <label>First name:
-      <input type="text" v-model="value.firstName"></label>
-    <label>Surname:
-      <input type="text" v-model="value.surname"></label>
-    <label>Gender:
-      <select name="" id="" v-model="value.gender">
-        <option value="unknown" selected>Unknown</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="other">Other</option>
-      </select>
-      </label>
-    <label>Date of birth:
-      <input type="date" v-model="value.dob"></label>
-    <label>Zipcode:
-      <input type="text" v-model="value.zipcode"></label>
-    <label>Email:
-      <input type="email" v-model="value.email"></label>
+  <form class="space-y-5">
+    <div>
+      <label for="ssn">SSN</label>
+      <input id="ssn" :disabled="mode === 'edit'" type="text" v-model="value.ssn">
+    </div>
 
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="firstname">First name</label>
+        <input id="firstname" type="text" v-model="value.firstName">
+      </div>
+
+      <div>
+        <label for="surname">Surname</label>
+        <input id="surname" type="text" v-model="value.surname">
+      </div>
+    </div>
+
+    <div>
+      <label for="gender">Gender</label>
+      <div class="custom-select">
+        <select id="gender" name="" v-model="value.gender">
+          <option value="unknown" selected>Unknown</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#444">
+          <path d="M24 24H0V0h24v24z" fill="none" opacity=".87"/>
+          <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6-1.41-1.41z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div>
+      <label for="dob">Date of birth</label>
+      <input id="dob" type="date" v-model="value.dob">
+    </div>
+
+    <div>
+      <label for="zipcode">Zipcode</label>
+      <input id="zipcode" type="text" v-model="value.zipcode">
+    </div>
+
+    <div>
+      <label for="email">Email</label>
+      <input id="email" type="email" v-model="value.email">
+    </div>
   </form>
 </template>
 <script>

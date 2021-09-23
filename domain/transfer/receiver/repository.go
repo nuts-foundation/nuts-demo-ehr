@@ -20,7 +20,10 @@ const transferSchema = `
 		    'completed',
 		    'in-progress',
 		    'on-hold',
-		    'requested'
+		    'requested',
+			'received',
+		    'ready',
+		    'failed'
 		)) NOT NULL DEFAULT 'requested',
 	    task_id VARCHAR(100) NOT NULL,
 		customer_id VARCHAR(100) NOT NULL,

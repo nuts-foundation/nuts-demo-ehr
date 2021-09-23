@@ -16,99 +16,81 @@
       </div>
 
       <div class="bg-white rounded-lg shadow-lg">
-
         <div class="p-5 bg-gray-50 border-b rounded-t-lg">
-          <h2>Requesting Care Organization</h2>
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="mb-1">Requesting Care Organization</h2>
 
-          <div class="text-gray-700">
-            {{ transferRequest.sender.name }} in {{ transferRequest.sender.city }}
-          </div>
-        </div>
+              <div class="text-gray-700">
+                {{ transferRequest.sender.name }} in {{ transferRequest.sender.city }}
+              </div>
+            </div>
 
-        <div class="p-5">
-          <div>
-            <label>Status</label>
             <div>
               <transfer-status :status="{status: transferRequest.status}"/>
             </div>
           </div>
         </div>
 
-        <div class="mt-4">
-          <label>Transfer date</label>
-          <div>
-            {{ transferRequest.advanceNotice.transferDate }}
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <div class="bg-gray-50 font-bold">Patient</div>
-          <div v-if="transferRequest.nursingHandoff">
-            <patient-details :patient="transferRequest.nursingHandoff.patient"/>
-          </div>
-          <div v-else>
-            <div>Zipcode: {{ transferRequest.advanceNotice.patient.zipcode }}</div>
-          </div>
-        </div>
-
-        <div class="mt-4" v-if="transferRequest.advanceNotice">
-          <h1>
-            Advance Notice
-          </h1>
-          <div class="bg-gray-50 font-bold">CarePlan</div>
-          <h2>Problems:</h2>
-          <ul class="list-decimal pl-4">
-            <li
-                v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems"
-                class="pl-4"
-            >
-              <p> {{ patientProblem.problem.name }} </p>
-            </li>
-          </ul>
-
-          <div class="mt-4">
-            <label>Transfer date</label>
-
+        <div class="p-5">
+          <div v-if="transferRequest.advanceNotice">
             <div>
-              {{ transferRequest.advanceNotice.transferDate }}
+              <label>Transfer date</label>
+              <div>
+                {{ transferRequest.advanceNotice.transferDate }}
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label>Problems</label>
+
+              <ul>
+                <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
+                  <h3 class="font-semibold text-sm">Problem</h3>
+
+                  <p> {{ patientProblem.problem.name }} </p>
+
+                  <div class="mt-2">
+                    <h3 class="font-semibold text-sm">Interventions</h3>
+
+                    <ul>
+                      <li v-for="intervention in patientProblem.interventions">
+                        - &nbsp;{{ intervention.comment }}
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="mt-4">
-            <label>Problems</label>
+      <h2 class="mt-10 mb-3">Patient</h2>
 
-            <ul>
-              <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
-                <h3 class="font-semibold">Problem</h3>
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <div v-if="!transferRequest.nursingHandoff">
+          <label>Zipcode</label>
 
-                <p> {{ patientProblem.problem.name }} </p>
-
-                <div class="mt-2">
-                  <h3 class="font-semibold">Interventions</h3>
-
-                  <ul>
-                    <li v-for="intervention in patientProblem.interventions">
-                      - &nbsp;{{ intervention.comment }}
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            </ul>
-          </div>
+          <div>{{ transferRequest.advanceNotice.patient.zipcode }}</div>
         </div>
 
-        <div class="mt-4">
-          <button class="btn btn-primary m-1" @click="complete" :class="{'btn-loading': state === 'completing'}"
-                  v-show="transferRequest.status === 'in-progress'">
-            Complete
-          </button>
-
-          <button class="btn btn-primary m-1" @click="accept" :class="{'btn-loading': state === 'accepting'}"
-                  v-show="transferRequest.status === 'requested'">Accept
-          </button>
-          <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status === 'requested'">Reject
-          </button>
+        <div v-if="transferRequest.nursingHandoff">
+          <patient-details :patient="transferRequest.nursingHandoff.patient"/>
         </div>
+      </div>
+
+      <div class="mt-10">
+        <button class="btn btn-primary" @click="complete" :class="{'btn-loading': state === 'completing'}"
+                v-show="transferRequest.status === 'in-progress'">
+          Complete
+        </button>
+
+        <button class="btn btn-primary m-1" @click="accept" :class="{'btn-loading': state === 'accepting'}"
+                v-show="transferRequest.status === 'requested'">Accept
+        </button>
+        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status === 'requested'">Reject
+        </button>
       </div>
     </div>
   </div>

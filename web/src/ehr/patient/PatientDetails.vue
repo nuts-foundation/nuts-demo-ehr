@@ -33,23 +33,27 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-x-6">
+      <div class="grid grid-cols-5 gap-x-6">
         <div v-if="patient.ssn">
           <div class="text-sm font-semibold">SSN</div>
           {{ patient.ssn }}
         </div>
+
         <div>
           <div class="text-sm font-semibold">Gender</div>
           {{ patient.gender ? patient.gender : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
+
         <div>
           <div class="text-sm font-semibold">Birth date</div>
           {{ patient.dob ? patient.dob : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
         </div>
+
         <div v-if="patient.email">
           <div class="text-sm font-semibold">E-mail</div>
           {{ patient.email }}
         </div>
+
         <div v-if="patient.zipcode">
           <div class="text-sm font-semibold">Zipcode</div>
           {{ patient.zipcode }}

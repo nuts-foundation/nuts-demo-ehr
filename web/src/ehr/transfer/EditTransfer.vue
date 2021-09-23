@@ -54,7 +54,7 @@
     </div>
 
     <div class="mt-4 space-x-2">
-      <button v-if="showUpdateButton()"
+      <button v-if="showUpdateButton"
               @click="updateTransfer" class="btn btn-primary">
         Update
       </button>

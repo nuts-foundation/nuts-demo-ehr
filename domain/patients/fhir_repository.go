@@ -81,6 +81,7 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id st
 	if err != nil {
 		return nil, err
 	}
+	fhirClient := r.fhirClientFactory(fhir.WithTenant(customerID))
 	updatedFHIRPatient := ToFHIRPatient(*updatedDomainPatient)
 	return updatedDomainPatient, fhirClient.CreateOrUpdate(ctx, updatedFHIRPatient)
 }

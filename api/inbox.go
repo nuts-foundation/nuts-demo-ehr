@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -17,7 +18,7 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	}
 	transferRequest, err := w.TransferSenderService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get transferRequest: %w", err)
 	}
 	return ctx.JSON(http.StatusOK, transferRequest)
 }

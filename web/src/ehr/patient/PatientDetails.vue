@@ -14,10 +14,9 @@
         >
           {{ patient.firstName }} {{ patient.surname }}
         </router-link>
-        <p class="text-2xl mb-2 mr-4" v-if="patient.surname || patient.firstName">
+        <p class="text-2xl mb-2 mr-4" v-else-if="!editable && (patient.surname || patient.firstName)">
           {{ patient.firstName }} {{ patient.surname }}
         </p>
-
         <div v-else-if="Object.keys(patient).length === 0">...</div>
         <div v-else class="text-2xl  mb-2 mr-4">Unknown patient</div>
 

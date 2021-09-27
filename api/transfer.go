@@ -50,10 +50,12 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
+
 	transfer, err := w.TransferSenderService.GetTransferByID(ctx.Request().Context(), cid, transferID)
 	if err != nil {
 		return err
 	}
+
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
@@ -85,11 +87,18 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 	if err != nil {
 		return err
 	}
-	transfer, err := w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
+
+	_, err = w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
 		//t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
 		return t, nil
 	})
+
+	transfer, err := w.TransferSenderService.GetTransferByID(ctx.Request().Context(), cid, transferID)
+	if err != nil {
+		return err
+	}
+
 	return ctx.JSON(http.StatusOK, transfer)
 }
 

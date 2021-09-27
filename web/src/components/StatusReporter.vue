@@ -1,7 +1,7 @@
 <template>
-  <p class="p-3 bg-red-100 rounded-md mb-4"
+  <div class="px-6 py-4 bg-red-100 rounded-md mb-4 fixed top-10 right-10 shadow-md"
      :class="{ 'bg-red-100': type === 'error', 'bg-blue-100': type === 'info' }"
-     v-if="show">{{ message }}</p>
+     v-if="show">{{ message }}</div>
 </template>
 
 <script>

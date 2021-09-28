@@ -12,6 +12,7 @@
       <h2>Problems</h2>
 
       <button
+          v-if="mode === 'new'"
           @click="transfer.carePlan.patientProblems.push({problem: {name: ''}, interventions: [{comment: ''}]})"
           class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
       >
@@ -26,7 +27,14 @@
       <label>Problem</label>
 
       <div>
-        <textarea placeholder="The problem.." v-model="patientProblem.problem.name" class="min-w-full border" required></textarea>
+        <textarea
+            v-if="mode === 'new'"
+            placeholder="The problem.."
+            v-model="patientProblem.problem.name"
+            class="min-w-full border"
+            required
+        ></textarea>
+        <p v-else>{{patientProblem.problem.name}}</p>
 
         <div v-for="(intervention, i) in patientProblem.interventions" class="mt-3">
           <label>
@@ -34,8 +42,13 @@
             <span v-if="patientProblem.interventions.length > 1">{{ i + 1 }}</span>
           </label>
 
-          <textarea placeholder="The intervention.." @input="e => addOrRemoveIntervention(e, patientProblem)" v-model="intervention.comment"
-                    class="min-w-full border"></textarea>
+          <textarea
+              v-if="mode === 'new'"
+              placeholder="The intervention.."
+              @input="e => addOrRemoveIntervention(e, patientProblem)"
+              v-model="intervention.comment"
+              class="min-w-full border"></textarea>
+          <p v-else>{{intervention.comment}}</p>
         </div>
       </div>
     </div>

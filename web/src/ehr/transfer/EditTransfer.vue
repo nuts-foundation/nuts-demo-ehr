@@ -1,7 +1,10 @@
 <template>
   <div>
-    <transfer-form v-if="transfer" :transfer="transfer"
-                   @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
+    <transfer-form
+        v-if="transfer"
+        :transfer="transfer"
+        mode="edit"
+        @input="(updatedTransfer) => {this.transfer = updatedTransfer}"/>
 
     <div class="bg-white p-5 shadow-sm rounded-lg mt-6">
       <table class="min-w-full divide-y divide-gray-200" v-if="transfer">

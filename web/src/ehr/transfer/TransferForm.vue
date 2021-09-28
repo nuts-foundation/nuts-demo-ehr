@@ -4,7 +4,7 @@
       <label>Transfer date</label>
 
       <div>
-        <input type="date" v-model="transfer.transferDate" required>
+        <input type="date" v-model="transfer.transferDate" :min="new Date().toISOString().split('T')[0]" required>
       </div>
     </div>
 
@@ -59,6 +59,7 @@
 export default {
   props: {
     transfer: {
+      transferDate: String,
       carePlan: {
         patientProblems: [{
           problem: {name: String},

@@ -36,7 +36,7 @@
 
     <div>
       <label for="dob">Date of birth</label>
-      <input id="dob" type="date" v-model="value.dob">
+      <input id="dob" type="date" :max="new Date().toISOString().split('T')[0]" v-model="value.dob">
     </div>
 
     <div>

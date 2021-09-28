@@ -13,7 +13,7 @@
     <h1 class="mb-4">New Patient</h1>
 
     <div class="bg-white rounded-lg shadow-lg p-5">
-      <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+      <div class="sticky top-0 z-10 p-3 bg-red-100 rounded-md" v-if="formErrors.length">
         <b>Please correct the following error(s):</b>
         <ul>
           <li v-for="error in formErrors">* {{ error }}</li>
@@ -72,12 +72,21 @@ export default {
 
       if (this.patient.ssn === "") {
         this.formErrors.push("SSN is a required field.")
+      }
+
+      if (this.patient.firstName === "" || this.patient.surname === "") {
+        this.formErrors.push("The firstname and surname are required fields.")
+      }
+
+      if (this.patient.dob === null) {
+        this.formErrors.push("The date of birth is a required field.")
+      }
+
+      if (this.formErrors.length > 0) {
         return
       }
 
       return this.confirm()
-
-      // e.preventDefault()
     },
     confirm() {
       this.loading = true;

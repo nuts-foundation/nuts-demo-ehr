@@ -4,7 +4,11 @@
       <label>Transfer date</label>
 
       <div>
-        <input type="date" v-model="transfer.transferDate" required>
+        <input
+            required
+            type="date"
+            v-model="transfer.transferDate"
+        />
       </div>
     </div>
 
@@ -28,11 +32,11 @@
 
       <div>
         <textarea
+            required
             v-if="mode === 'new'"
             placeholder="The problem.."
             v-model="patientProblem.problem.name"
             class="min-w-full border"
-            required
         ></textarea>
         <p v-else>{{patientProblem.problem.name}}</p>
 

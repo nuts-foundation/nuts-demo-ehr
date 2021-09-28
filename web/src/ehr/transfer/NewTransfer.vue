@@ -1,15 +1,22 @@
 <template>
   <div>
-    <transfer-form :transfer="transfer"></transfer-form>
+    <form @submit.prevent="createDossierAndTransfer">
+      <transfer-form :transfer="transfer"></transfer-form>
 
-    <div class="mt-6">
-      <button @click="createDossierAndTransfer" class="btn btn-primary mr-4" :class="{'btn-loading': loading}">Create Transfer</button>
+      <div class="mt-6">
+        <button
+            type="submit"
+            class="btn btn-primary mr-4"
+            :class="{'btn-loading': loading}">
+          Create Transfer
+        </button>
 
-      <button
-          class="btn btn-secondary"
-          @click="cancel">Cancel
-      </button>
-    </div>
+        <button
+            class="btn btn-secondary"
+            @click="cancel">Cancel
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 <script>

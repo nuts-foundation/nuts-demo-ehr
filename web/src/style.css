@@ -69,7 +69,7 @@ input.alt, select.alt, textarea.alt {
     @apply bg-gray-300;
 }
 
-input[type=text]:disabled, input[type=email]:disabled, input[type=password]:disabled, input[type=number]:disabled {
+input[type=text]:disabled, input[type=email]:disabled, input[type=password]:disabled, input[type=number]:disabled, input[type=date]:disabled, textarea:disabled {
     @apply bg-gray-200;
 }
 

@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <form @submit.stop.prevent="createDossierAndTransfer" novalidate>
+
     <div class="sticky top-0 z-10 p-3 bg-red-100 rounded-md" v-if="formErrors.length">
       <b>Please correct the following error(s):</b>
       <ul>
@@ -9,19 +10,21 @@
     <transfer-form :transfer="transfer"></transfer-form>
 
     <div class="mt-6">
-      <button @click="createDossierAndTransfer" class="btn btn-primary mr-4" :class="{'btn-loading': loading}">Create
-        Transfer
+      <button type="submit"
+              class="btn btn-primary mr-4"
+              :class="{'btn-loading': loading}">
+        Create Transfer
       </button>
 
-      <button
-          class="btn btn-secondary"
-          @click="cancel">Cancel
+      <button class="btn btn-secondary"
+              @click="cancel">
+        Cancel
       </button>
     </div>
-  </div>
+  </form>
 </template>
 <script>
-import TransferForm from "./TransferForm.vue"
+import TransferForm from "./TransferFields.vue"
 
 export default {
   components: {TransferForm},

@@ -3,8 +3,8 @@
     <div class="mt-6">
       <label>Transfer date</label>
 
-      <div>
-        <input type="date" v-model="transfer.transferDate" :min="new Date().toISOString().split('T')[0]" required>
+      <div class="bg-white p-5 shadow-sm rounded-lg mb-3">
+        <input :disabled="mode!=='new'" type="date" v-model="transfer.transferDate" :min="new Date().toISOString().split('T')[0]" required>
       </div>
     </div>
 
@@ -28,13 +28,11 @@
 
       <div>
         <textarea
-            v-if="mode === 'new'"
+            :disabled="mode !=='new'"
             placeholder="The problem.."
             v-model="patientProblem.problem.name"
-            class="min-w-full border"
-            required
+            class="min-w-full border" required
         ></textarea>
-        <p v-else>{{patientProblem.problem.name}}</p>
 
         <div v-for="(intervention, i) in patientProblem.interventions" class="mt-3">
           <label>
@@ -43,12 +41,10 @@
           </label>
 
           <textarea
-              v-if="mode === 'new'"
+              :disabled="mode !== 'new'"
               placeholder="The intervention.."
-              @input="e => addOrRemoveIntervention(e, patientProblem)"
-              v-model="intervention.comment"
+              @input="e => addOrRemoveIntervention(e, patientProblem)" v-model="intervention.comment"
               class="min-w-full border"></textarea>
-          <p v-else>{{intervention.comment}}</p>
         </div>
       </div>
     </div>

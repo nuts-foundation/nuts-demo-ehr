@@ -67,7 +67,7 @@ func (filter SecurityFilter) AuthWithConfig(config Config) echo.MiddlewareFunc {
 			c.Set(AccessToken, *token)
 
 			if err := config.AccessF(c, c.Request(), token); err != nil {
-				return config.ErrorF(c, errors.New("not authorized"))
+				return config.ErrorF(c, fmt.Errorf("not authorized: %w", err))
 			}
 
 			return next(c)

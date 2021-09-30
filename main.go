@@ -71,7 +71,11 @@ func main() {
 	// config stuff
 	config := loadConfig()
 	config.Print(log.Writer())
-	logrus.SetLevel(logrus.DebugLevel)
+	logrusLevel, err := logrus.ParseLevel(config.Verbosity)
+	if err != nil {
+		panic(err)
+	}
+	logrus.SetLevel(logrusLevel)
 
 	if config.FHIR.Server.Type == "" {
 		logrus.Fatal("Invalid FHIR server type, valid options are: 'hapi-multi-tenant', 'hapi' or 'other'")

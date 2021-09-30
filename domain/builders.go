@@ -1,8 +1,8 @@
 package domain
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +10,7 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
+	"github.com/sirupsen/logrus"
 )
 
 type TransferFHIRBuilder interface {
@@ -224,12 +225,16 @@ func (b FHIRBuilder) BuildNursingHandoffComposition(patient *Patient, advanceNot
 
 	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
 	if err != nil {
-		return eoverdracht.Composition{}, err
+		logrus.Warn("unable to get CarePlan from composition")
+		// Don't fail when the transfer is incomplete to allow increment development.
+		//return eoverdracht.Composition{}, err
 	}
 
 	administrativeData, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.AdministrativeDocCode)
 	if err != nil {
-		return eoverdracht.Composition{}, err
+		logrus.Warn("unable to get AdministrativeDocument from composition")
+		// Don't fail when the transfer is incomplete to allow increment development.
+		//return eoverdracht.Composition{}, err
 	}
 
 	fhirPatient := resources.Patient{Domain: resources.Domain{Base: resources.Base{ID: fhir.ToIDPtr(string(patient.ObjectID))}}}

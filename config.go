@@ -30,6 +30,7 @@ const defaultConfigFile = "server.config.yaml"
 const defaultHTTPPort = 1304
 const defaultNutsNodeAddress = "http://localhost:1323"
 const defaultCustomerFile = "customers.json"
+const defaultLogLevel = "info"
 
 // defaultHAPIFHIRServer configures usage of the HAPI FHIR Server (https://hapifhir.io/)
 var defaultHAPIFHIRServer = FHIRServer{
@@ -40,6 +41,7 @@ func defaultConfig() Config {
 	return Config{
 		HTTPPort:        defaultHTTPPort,
 		NutsNodeAddress: defaultNutsNodeAddress,
+		Verbosity:       defaultLogLevel,
 		FHIR: FHIR{
 			Server: defaultHAPIFHIRServer,
 			Proxy: FHIRProxy{
@@ -56,6 +58,7 @@ func defaultConfig() Config {
 
 type Config struct {
 	Credentials     Credentials `koanf:"credentials"`
+	Verbosity       string      `koanf:"verbosity"`
 	HTTPPort        int         `koanf:"port"`
 	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
 	FHIR            FHIR        `koanf:"fhir"`

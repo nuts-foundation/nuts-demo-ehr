@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -119,7 +120,9 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 }
 
 func (h httpClient) getResource(ctx context.Context, path string, params map[string]string) (gjson.Result, error) {
-	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(h.buildRequestURI(path))
+	url := h.buildRequestURI(path)
+	logrus.Debugf("Performing FHIR request with url: %s", url)
+	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(url)
 	if err != nil {
 		return gjson.Result{}, err
 	}
@@ -129,7 +132,9 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 		return gjson.Result{}, fmt.Errorf("unable to read FHIR resource (path=%s,http-status=%d)", path, resp.StatusCode())
 	}
 
-	return gjson.ParseBytes(resp.Body()), nil
+	body := resp.Body()
+	logrus.Debugf("FHIR response: %s", body)
+	return gjson.ParseBytes(body), nil
 }
 
 func (h httpClient) buildRequestURI(fhirResourcePath string) string {

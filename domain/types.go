@@ -60,10 +60,10 @@ func FHIRPatientToDomainPatient(fhirPatient resources.Patient) Patient {
 		PatientProperties: PatientProperties{
 			Dob:       &openapi_types.Date{Time: dob},
 			Email:     nil,
-			FirstName: p.Get(`name.#(use=="official").given.0`).String(),
+			FirstName: p.Get(`name.0.given.0`).String(),
 			Gender:    gender,
 			Ssn:       &ssn,
-			Surname:   p.Get(`name.#(use=="official").family`).String(),
+			Surname:   p.Get(`name.0.family`).String(),
 			Zipcode:   p.Get(`address.0.postalCode`).String(),
 		},
 		AvatarUrl: &avatar,

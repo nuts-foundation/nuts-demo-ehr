@@ -8,9 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"io/fs"
 	"log"
 	"net/http"
@@ -19,6 +16,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
@@ -70,6 +71,7 @@ func main() {
 	// config stuff
 	config := loadConfig()
 	config.Print(log.Writer())
+	logrus.SetLevel(logrus.DebugLevel)
 
 	if config.FHIR.Server.Type == "" {
 		logrus.Fatal("Invalid FHIR server type, valid options are: 'hapi-multi-tenant', 'hapi' or 'other'")

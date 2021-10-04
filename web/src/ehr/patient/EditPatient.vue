@@ -1,35 +1,38 @@
 <template>
   <h1 class="mt-10 mb-6">Edit Patient</h1>
 
-  <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-    <b>Please correct the following error(s):</b>
-    <ul>
-      <li v-for="error in formErrors">* {{ error }}</li>
-    </ul>
-  </div>
+  <form @submit.stop.prevent="submit">
+    <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+      <b>Please correct the following error(s):</b>
+      <ul>
+        <li v-for="error in formErrors">* {{ error }}</li>
+      </ul>
+    </div>
 
-  <div class="bg-white p-5 rounded-lg shadow-lg">
-    <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
-  </div>
 
-  <div class="mt-4">
-    <button @click="checkForm"
-            :class="{'btn-loading': loading}"
-            class="btn btn-primary mr-4"
-    >Update Patient
-    </button>
+    <div class="bg-white p-5 rounded-lg shadow-lg">
+      <patient-form :value="patient" mode="edit" @input="(newPatient)=> {patient = newPatient}"/>
+    </div>
 
-    <button type="button"
-            class="btn btn-secondary"
-            @click="cancel"
-    >
-      Cancel
-    </button>
-  </div>
+    <div class="mt-4">
+      <button type="submit"
+              :class="{'btn-loading': loading}"
+              class="btn btn-primary mr-4"
+      >Update Patient
+      </button>
+
+      <button type="button"
+              class="btn btn-secondary"
+              @click="cancel"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
 </template>
 <script>
 
-import PatientForm from "./PatientForm.vue";
+import PatientForm from "./PatientFields.vue";
 
 export default {
   components: {PatientForm},
@@ -60,13 +63,14 @@ export default {
     },
     checkForm(e) {
       // reset the errors
+      // no checks yet
       this.formErrors.length = 0
-
-      return this.updatePatient()
-
-      // e.preventDefault()
+      return true
     },
-    updatePatient() {
+    submit() {
+      if (!this.checkForm()) {
+        return false
+      }
       this.loading = true;
 
       let patientID = this.$route.params.id

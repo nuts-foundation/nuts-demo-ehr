@@ -12,36 +12,39 @@
 
     <h1 class="mb-4">New Patient</h1>
 
-    <div class="bg-white rounded-lg shadow-lg p-5">
-      <div class="p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-        <b>Please correct the following error(s):</b>
-        <ul>
-          <li v-for="error in formErrors">* {{ error }}</li>
-        </ul>
+    <form @submit.stop.prevent="confirm">
+
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <div class="sticky top-0 z-10 p-3 bg-red-100 rounded-md" v-if="formErrors.length">
+          <b>Please correct the following error(s):</b>
+          <ul>
+            <li v-for="error in formErrors">* {{ error }}</li>
+          </ul>
+        </div>
+
+        <patient-form class="space-y-5" :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
       </div>
 
-      <patient-form :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
-    </div>
+      <div class="mt-5">
+        <button type="submit"
+                class="btn btn-primary mr-4"
+                :class="{'btn-loading': loading}"
+        >Add Patient
+        </button>
 
-    <div class="mt-5">
-      <button @click="checkForm"
-              class="btn btn-primary mr-4"
-              :class="{'btn-loading': loading}"
-      >Add Patient
-      </button>
-
-      <button type="button"
-              class="btn btn-secondary"
-              @click="cancel"
-      >
-        Cancel
-      </button>
-    </div>
+        <button type="button"
+                class="btn btn-secondary"
+                @click="cancel"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 <script>
 
-import PatientForm from "./PatientForm.vue";
+import PatientForm from "./PatientFields.vue";
 
 export default {
   components: {PatientForm},
@@ -72,14 +75,22 @@ export default {
 
       if (this.patient.ssn === "") {
         this.formErrors.push("SSN is a required field.")
-        return
       }
 
-      return this.confirm()
+      if (this.patient.firstName === "" || this.patient.surname === "") {
+        this.formErrors.push("The firstname and surname are required fields.")
+      }
 
-      // e.preventDefault()
+      if (this.patient.dob === null) {
+        this.formErrors.push("The date of birth is a required field.")
+      }
+
+      return this.formErrors.length === 0
     },
     confirm() {
+      if (!this.checkForm()) {
+        return false
+      }
       this.loading = true;
 
       this.$api.newPatient({body: this.patient})

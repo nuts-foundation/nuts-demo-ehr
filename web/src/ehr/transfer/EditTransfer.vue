@@ -62,7 +62,7 @@
         Update
       </button>
 
-      <button v-if="transfer && transfer.status != 'cancelled' && transfer.status != 'completed'"
+      <button v-if="transfer && transfer.status !== 'cancelled' && transfer.status !== 'completed'"
               @click="cancelTransfer" class="btn"
               :class="{'btn-secondary': showUpdateButton, 'btn-primary': !showUpdateButton}"
       >
@@ -90,7 +90,7 @@
   </div>
 </template>
 <script>
-import TransferForm from "./TransferForm.vue"
+import TransferForm from "./TransferFields.vue"
 import AutoComplete from "../../components/Autocomplete.vue"
 import TransferStatus from "../../components/TransferStatus.vue"
 

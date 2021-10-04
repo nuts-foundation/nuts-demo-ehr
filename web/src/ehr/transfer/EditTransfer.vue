@@ -20,10 +20,16 @@
           <td v-if="negotiation.organization">{{ negotiation.organization.name }}</td>
           <td v-else>{{ negotiation.organizationDID }}</td>
           <td>{{ negotiation.transferDate }}</td>
-          <td><transfer-status :status="{status: negotiation.status}" /></td>
+          <td>
+            <transfer-status :status="{status: negotiation.status}"/>
+          </td>
           <td class="space-x-2">
-          <span v-if="negotiation.status !== 'cancelled' && negotiation.status !== 'completed'"
-                @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer" :class="{'btn-loading': state === 'cancelling'}">cancel</span>
+          <span v-if="negotiation.status === 'accepted' && negotiation.status !== 'completed'"
+                @click="assignNegotiation(negotiation)" class="hover:underline cursor-pointer"
+                :class="{'btn-loading': state === 'assigning'}">assign</span>
+            <span v-if="negotiation.status !== 'cancelled' && negotiation.status !== 'completed'"
+                  @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer"
+                  :class="{'btn-loading': state === 'cancelling'}">cancel</span>
             <!--          <span @click="updateNegotiation(negotiation)" class="hover:underline cursor-pointer">update</span>-->
           </td>
         </tr>
@@ -42,8 +48,12 @@
             {{ requestedOrganization.name }}
           </td>
           <td v-if="!!requestedOrganization" class="space-x-2">
-            <button class="btn btn-sm btn-primary" @click="assignOrganization" :class="{'btn-loading': state === 'assigning'}">Assign</button>
-            <button class="btn btn-sm btn-primary" @click="startNegotiation" :class="{'btn-loading': state === 'requesting'}">Request</button>
+            <button class="btn btn-sm btn-primary" @click="assignOrganization"
+                    :class="{'btn-loading': state === 'assigning'}">Assign
+            </button>
+            <button class="btn btn-sm btn-primary" @click="startNegotiation"
+                    :class="{'btn-loading': state === 'requesting'}">Request
+            </button>
             <button class="btn btn-sm btn-secondary" @click="cancelOrganization">Cancel</button>
           </td>
         </tr>
@@ -75,7 +85,8 @@
       </button>
     </div>
 
-    <table v-if="transfer && transfer.messages && transfer.messages.length > 0" class="min-w-full divide-y divide-gray-200 mt-6">
+    <table v-if="transfer && transfer.messages && transfer.messages.length > 0"
+           class="min-w-full divide-y divide-gray-200 mt-6">
       <thead>
       <tr>
         <th>Messages</th>
@@ -183,12 +194,14 @@ export default {
           .finally(() => this.state = 'done')
     },
     assignNegotiation(negotiation) {
+      this.state = 'assigning'
       this.$api.updateTransferNegotiationStatus({
         transferID: negotiation.transferID,
         negotiationID: negotiation.id,
         body: {status: 'in-progress'}
       })
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
+          .finally(() => this.state = 'done')
     },
     cancelNegotiation(negotiation) {
       this.state = 'cancelling';

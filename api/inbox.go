@@ -16,7 +16,7 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	if err != nil {
 		return err
 	}
-	transferRequest, err := w.TransferSenderService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
+	transferRequest, err := w.TransferReceiverService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
 	if err != nil {
 		return fmt.Errorf("unable to get transferRequest: %w", err)
 	}

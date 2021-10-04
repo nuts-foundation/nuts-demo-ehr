@@ -106,7 +106,7 @@ func (c HTTPClient) RevokeCredential(ctx context.Context, credentialID string) e
 }
 
 func (c HTTPClient) ResolveVerifiableCredential(ctx context.Context, credentialID string, untrusted bool) (*vcr.VerifiableCredential, error) {
-	response, err := c.vcr().Resolve(ctx, credentialID, nil)
+	response, err := c.vcr().Resolve(ctx, credentialID, &vcr.ResolveParams{})
 	if err != nil {
 		return nil, err
 	}

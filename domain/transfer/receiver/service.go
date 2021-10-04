@@ -68,14 +68,27 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	}
 
 	// state machine
-	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) || (*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
+	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) ||
+		(*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
 		task.Status = fhir.ToCodePtr(newState)
 
-		return client().CreateOrUpdate(ctx, task)
+		err = client().CreateOrUpdate(ctx, task)
+		if err != nil {
+			return err
+		}
+		// update was a success. Get the remote task again and update the local transfer_request
+		task, err = s.getRemoteTransferTask(ctx, client, fhirTaskID)
+		if err != nil {
+			return err
+		}
+		_, err = s.transferRepo.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), fhirTaskID, customerID, requesterDID)
+		if err != nil {
+			return fmt.Errorf("could update incomming transfers with new state")
+		}
+		return nil
 	}
 
 	return fmt.Errorf("invalid state change from %s to %s", *task.Status, newState)
-
 }
 
 func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string, resource string) (fhir.Factory, error) {

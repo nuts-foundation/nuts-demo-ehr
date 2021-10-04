@@ -203,13 +203,13 @@ func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Contex
 				continue
 			}
 
-			subject := &credential.NutsAuthorizationCredentialSubject{}
-			if err := didVC.UnmarshalCredentialSubject(subject); err != nil {
+			subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+			if err := didVC.UnmarshalCredentialSubject(&subject); err != nil {
 				return fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
 			}
-			for _, resource := range subject.Resources {
+			for _, resource := range subject[0].Resources {
 				// path should match
-				if route.path() != resource.Path {
+				if !strings.Contains(route.path(), resource.Path) {
 					continue
 				}
 

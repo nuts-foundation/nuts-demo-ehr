@@ -164,12 +164,12 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	return &transferRequest, nil
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, localActorDID string, resource string) (fhir.Factory, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, custodianDID, transfer.SenderServiceName, "fhir")
+func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string) (fhir.Factory, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
-		return nil, fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", custodianDID, err)
+		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
 	}
-	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, transfer.SenderServiceName, localActorDID, resource)
+	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, transfer.SenderServiceName, localRequesterDID, resource)
 
 	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {
@@ -184,7 +184,7 @@ func (s service) getRemoteFHIRClient(ctx context.Context, custodianDID string, l
 		transformed[i] = tCred
 	}
 
-	accessToken, err := s.auth.RequestAccessToken(ctx, localActorDID, custodianDID, transfer.SenderServiceName, transformed)
+	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed)
 	if err != nil {
 		return nil, err
 	}

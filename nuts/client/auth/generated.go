@@ -114,12 +114,12 @@ type CreateAccessTokenRequest struct {
 
 // Request for a JWT Grant. The grant can be used during a Access Token Request in the assertion field
 type CreateJwtGrantRequest struct {
-	Actor       string                 `json:"actor"`
+	Authorizer  string                 `json:"authorizer"`
 	Credentials []VerifiableCredential `json:"credentials"`
-	Custodian   string                 `json:"custodian"`
 
 	// Base64 encoded IRMA contract conaining the identity of the performer
-	Identity string `json:"identity"`
+	Identity  string `json:"identity"`
+	Requester string `json:"requester"`
 
 	// The service for which this access-token can be used. The right oauth endpoint is selected based on the service.
 	Service string  `json:"service"`
@@ -137,7 +137,7 @@ type DrawUpContractRequest struct {
 	// Language of the contract in all caps.
 	Language ContractLanguage `json:"language"`
 
-	// Identifier of the legalEntity as registered in the Nuts registry.
+	// DID of the organization as registered in the Nuts registry.
 	LegalEntity LegalEntity `json:"legalEntity"`
 
 	// Type of which contract to sign.
@@ -160,17 +160,17 @@ type JwtGrantResponse struct {
 	BearerToken                 string `json:"bearer_token"`
 }
 
-// Identifier of the legalEntity as registered in the Nuts registry.
+// DID of the organization as registered in the Nuts registry.
 type LegalEntity string
 
-// Request for a JWT Grant and use it as authorization grant to get the access token from the custodian
+// Request for a JWT Grant and use it as authorization grant to get the access token from the authorizer
 type RequestAccessTokenRequest struct {
-	Actor       string                 `json:"actor"`
+	Authorizer  string                 `json:"authorizer"`
 	Credentials []VerifiableCredential `json:"credentials"`
-	Custodian   string                 `json:"custodian"`
 
 	// Base64 encoded IRMA contract conaining the identity of the performer
-	Identity string `json:"identity"`
+	Identity  string `json:"identity"`
+	Requester string `json:"requester"`
 
 	// The service for which this access-token can be used. The right oauth endpoint is selected based on the service.
 	Service string  `json:"service"`
@@ -239,11 +239,6 @@ type SignatureVerificationResponse struct {
 	VpType *string `json:"vpType,omitempty"`
 }
 
-// Token introspection request as described in RFC7662 section 2.1
-type TokenIntrospectionRequest struct {
-	Token string `json:"token"`
-}
-
 // Token introspection response as described in RFC7662 section 2.2
 type TokenIntrospectionResponse struct {
 	// True if the token is active, false if the token is expired, malformed etc.
@@ -264,7 +259,7 @@ type TokenIntrospectionResponse struct {
 	GivenName *string `json:"given_name,omitempty"`
 	Iat       *int    `json:"iat,omitempty"`
 
-	// The subject (not a Nuts subject) contains the URN of the custodian.
+	// The subject (not a Nuts subject) contains the DID of the authorizer.
 	Iss *string `json:"iss,omitempty"`
 
 	// End-User's full name in displayable form including all name parts, possibly including titles and suffixes, ordered according to the End-User's locale and preferences.
@@ -281,10 +276,7 @@ type TokenIntrospectionResponse struct {
 	Sid *string `json:"sid,omitempty"`
 
 	// The subject is always the acting party, thus the care organization requesting access to data.
-	Sub *string `json:"sub,omitempty"`
-
-	// Jwt encoded user identity.
-	Usi *string   `json:"usi,omitempty"`
+	Sub *string   `json:"sub,omitempty"`
 	Vcs *[]string `json:"vcs,omitempty"`
 }
 

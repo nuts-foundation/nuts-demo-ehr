@@ -162,7 +162,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	// §6.2.2 other resources that require a credential and a user contract
 	// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
 	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err != nil {
-		fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
+		return fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
 	}
 
 	// Task updates must be routed internally

@@ -2,7 +2,9 @@ package receiver
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -19,7 +21,7 @@ import (
 )
 
 type TransferService interface {
-	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
+	CreateOrUpdate(ctx context.Context, status string, customerID int, customerDID, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
 	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*domain.TransferRequest, error)
 }
@@ -46,10 +48,104 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error {
-	_, err := s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
+func verifyStateUpdate(from, to string) error {
+	// Contains all possible status-updates from: https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow
+	allowed := []struct {
+		from string
+		to   string
+	}{
+		{transfer.RequestedState, transfer.AcceptedState},
+		{transfer.RequestedState, transfer.RejectedState},
+		{transfer.RequestedState, transfer.OnHoldState},
+		{transfer.OnHoldState, transfer.RequestedState},
+		{transfer.OnHoldState, transfer.CancelledState},
+		{transfer.AcceptedState, transfer.InProgressState},
+		{transfer.InProgressState, transfer.CompletedState},
+	}
+
+	for _, update := range allowed {
+		if from == update.from && to == update.to {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid state change from %s to %s", from, to)
+}
+
+func (s service) completeTransfer(ctx context.Context, incomingTransfer *domain.IncomingTransfer, customerDID, senderDID string) error {
+	taskPath := fmt.Sprintf("Task/%s", incomingTransfer.FhirTaskID)
+	client, err := s.getRemoteFHIRClient(ctx, senderDID, customerDID, taskPath)
 	if err != nil {
 		return err
+	}
+
+	// First, get the task
+	task, err := s.getRemoteTransferTask(ctx, client, incomingTransfer.FhirTaskID)
+	if err != nil {
+		return err
+	}
+
+	// Then, get the composition reference
+	var compositionRef string
+
+	for _, input := range task.Input {
+		if *input.Type.Coding[0].Code == fhir.SnomedNursingHandoffCode {
+			compositionRef = fhir.FromStringPtr(input.ValueReference.Reference)
+			break
+		}
+	}
+
+	if compositionRef == "" {
+		return errors.New("unable to find nursing handoff input")
+	}
+
+	// Read the subject from the composition
+	composition := &eoverdracht.Composition{}
+
+	if err := client().ReadOne(ctx, fmt.Sprintf("/%s", compositionRef), composition); err != nil {
+		return fmt.Errorf("failed to read composition: %w", err)
+	}
+
+	// And at last, retrieve the patient and create it on the local FHIR server
+	patient := &resources.Patient{}
+
+	if err := client().ReadOne(ctx, fmt.Sprintf("/%s", fhir.FromStringPtr(composition.Subject.Reference)), patient); err != nil {
+		return fmt.Errorf("failed to read the patient: %w", err)
+	}
+
+	if err := s.localFHIRClientFactory().CreateOrUpdate(ctx, patient); err != nil {
+		return fmt.Errorf("failed to create/update the patient: %w", err)
+	}
+
+	return nil
+}
+
+func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, customerDID, senderDID, fhirTaskID string) error {
+	incomingTransfer, err := s.transferRepo.FindByFHIRTaskID(ctx, customerID, fhirTaskID)
+	switch err {
+	case sql.ErrNoRows:
+	case nil:
+		negotiationStatus := domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(status)}
+
+		// Return early if there is nothing to be updated
+		if incomingTransfer.Status == negotiationStatus {
+			return nil
+		}
+
+		if err := verifyStateUpdate(string(incomingTransfer.Status.Status), status); err != nil {
+			return err
+		}
+	default:
+		return err
+	}
+
+	incomingTransfer, err = s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
+	if err != nil {
+		return err
+	}
+
+	if status == transfer.CompletedState {
+		return s.completeTransfer(ctx, incomingTransfer, customerDID, senderDID)
 	}
 
 	return nil
@@ -72,28 +168,29 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 		return err
 	}
 
-	// state machine
-	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) ||
-		(*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
-		task.Status = fhir.ToCodePtr(newState)
-
-		err = client().CreateOrUpdate(ctx, task)
-		if err != nil {
-			return err
-		}
-		// update was a success. Get the remote task again and update the local transfer_request
-		task, err = s.getRemoteTransferTask(ctx, client, fhirTaskID)
-		if err != nil {
-			return err
-		}
-		_, err = s.transferRepo.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), fhirTaskID, customerID, requesterDID)
-		if err != nil {
-			return fmt.Errorf("could update incomming transfers with new state")
-		}
-		return nil
+	if err := verifyStateUpdate(fhir.FromCodePtr(task.Status), newState); err != nil {
+		return err
 	}
 
-	return fmt.Errorf("invalid state change from %s to %s", *task.Status, newState)
+	task.Status = fhir.ToCodePtr(newState)
+
+	err = client().CreateOrUpdate(ctx, task)
+	if err != nil {
+		return err
+	}
+
+	// update was a success. Get the remote task again and update the local transfer_request
+	task, err = s.getRemoteTransferTask(ctx, client, fhirTaskID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.transferRepo.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), fhirTaskID, customerID, requesterDID)
+	if err != nil {
+		return fmt.Errorf("could update incomming transfers with new state")
+	}
+
+	return nil
 }
 
 func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {

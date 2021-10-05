@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/monarko/fhirgo/STU3/resources"
@@ -90,9 +91,16 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 			continue
 		}
 
-		err = service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
+		err = service.transferService.CreateOrUpdate(
+			ctx,
+			fhir.FromCodePtr(task.Status),
+			notification.CustomerID,
+			notification.CustomerDID,
+			requesterDID,
+			fhir.FromIDPtr(task.ID),
+		)
 		if err != nil {
-			return err
+			logrus.Errorf("failed to handle notification %#v: %s", notification, err)
 		}
 	}
 

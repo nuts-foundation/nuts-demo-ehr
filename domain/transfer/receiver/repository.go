@@ -39,6 +39,7 @@ const transferSchema = `
 type TransferRepository interface {
 	GetNotCompletedCount(ctx context.Context, customerID int) (int, error)
 	GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error)
+	FindByFHIRTaskID(ctx context.Context, customerID int, fhirTaskID string) (*domain.IncomingTransfer, error)
 	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error)
 }
 
@@ -147,6 +148,28 @@ func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, c
 
 	_, err = tx.NamedExecContext(ctx, query, transfer)
 	if err != nil {
+		return nil, err
+	}
+
+	incomingTransfer := transfer.marshalToDomain()
+
+	return &incomingTransfer, nil
+}
+
+func (f repository) FindByFHIRTaskID(ctx context.Context, customerID int, fhirTaskID string) (*domain.IncomingTransfer, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	const query = `SELECT * FROM incoming_transfers WHERE customer_id = :customer_id AND task_id = :task_id`
+
+	transfer := &sqlTransfer{
+		CustomerID: customerID,
+		TaskID:     fhirTaskID,
+	}
+
+	if err := tx.GetContext(ctx, transfer, query); err != nil {
 		return nil, err
 	}
 

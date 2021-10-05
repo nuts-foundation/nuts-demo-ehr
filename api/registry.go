@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
-type SearchOrganizationsParams = domain.SearchOrganizationsParams
+type SearchOrganizationsParams = types.SearchOrganizationsParams
 
 func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error {
 	customer := w.getCustomer(ctx)
@@ -21,7 +21,7 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganization
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	var results []domain.Organization
+	var results []types.Organization
 
 	for _, organization := range organizations {
 		// Hide our own organization

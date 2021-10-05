@@ -7,18 +7,18 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
-type GetPatientTransfersParams = domain.GetPatientTransfersParams
+type GetPatientTransfersParams = types.GetPatientTransfersParams
 
 func (w Wrapper) CreateTransfer(ctx echo.Context) error {
-	request := domain.CreateTransferRequest{}
+	request := types.CreateTransferRequest{}
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	updateRequest := &domain.TransferNegotiationStatus{}
+	updateRequest := &types.TransferNegotiationStatus{}
 	err := ctx.Bind(updateRequest)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID strin
 }
 
 func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
-	updateRequest := &domain.TransferProperties{}
+	updateRequest := &types.TransferProperties{}
 	err := ctx.Bind(updateRequest)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 		return err
 	}
 
-	_, err = w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *domain.Transfer) (*domain.Transfer, error) {
+	_, err = w.TransferSenderRepo.Update(ctx.Request().Context(), cid, transferID, func(t *types.Transfer) (*types.Transfer, error) {
 		//t.Description = updateRequest.Description
 		t.TransferDate = updateRequest.TransferDate
 		return t, nil
@@ -115,7 +115,7 @@ func (w Wrapper) CancelTransfer(ctx echo.Context, transferID string) error {
 }
 
 func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) error {
-	request := domain.CreateTransferNegotiationRequest{}
+	request := types.CreateTransferNegotiationRequest{}
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 }
 
 func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error {
-	request := domain.CreateTransferNegotiationRequest{}
+	request := types.CreateTransferNegotiationRequest{}
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 }
 
 func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID string, negotiationID string) error {
-	request := domain.TransferNegotiationStatus{}
+	request := types.TransferNegotiationStatus{}
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*domain.TransferNegotiation, error) {
+func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {
 	negotiations, err := w.TransferSenderRepo.ListNegotiations(ctx, customerID, transferID)
 	if err != nil {
 		return nil, err

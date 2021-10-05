@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 type sqlDossier struct {
@@ -17,7 +18,7 @@ type sqlDossier struct {
 	PatientID  string `db:"patient_id"`
 }
 
-func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID int, dossier *domain.Dossier) error {
+func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID int, dossier *types.Dossier) error {
 	*dbDossier = sqlDossier{
 		ID:         string(dossier.Id),
 		Name:       dossier.Name,
@@ -27,11 +28,11 @@ func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID int, dossier 
 	return nil
 }
 
-func (dbDossier sqlDossier) MarshalToDomainDossier() (*domain.Dossier, error) {
-	return &domain.Dossier{
-		Id:        domain.ObjectID(dbDossier.ID),
+func (dbDossier sqlDossier) MarshalToDomainDossier() (*types.Dossier, error) {
+	return &types.Dossier{
+		Id:        types.ObjectID(dbDossier.ID),
 		Name:      dbDossier.Name,
-		PatientID: domain.ObjectID(dbDossier.PatientID),
+		PatientID: types.ObjectID(dbDossier.PatientID),
 	}, nil
 }
 
@@ -65,7 +66,7 @@ func NewSQLiteDossierRepository(factory Factory, db *sqlx.DB) *SQLiteDossierRepo
 	}
 }
 
-func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, id string) (*domain.Dossier, error) {
+func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, id string) (*types.Dossier, error) {
 	const query = `SELECT * FROM dossier WHERE customer_id = ? AND id = ? ORDER BY id ASC`
 
 	dbDossier := sqlDossier{}
@@ -82,7 +83,7 @@ func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, i
 	return dbDossier.MarshalToDomainDossier()
 }
 
-func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, name, patientID string) (*domain.Dossier, error) {
+func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, name, patientID string) (*types.Dossier, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, nam
 	return dossier, nil
 }
 
-func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]domain.Dossier, error) {
+func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Dossier, error) {
 	const query = `SELECT * FROM dossier WHERE patient_id = ? and customer_id = ? ORDER BY id ASC`
 	dbDossiers := []sqlDossier{}
 	tx, err := sqlUtil.GetTransaction(ctx)
@@ -112,12 +113,12 @@ func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID in
 	}
 	err = tx.SelectContext(ctx, &dbDossiers, query, patientID, customerID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return []domain.Dossier{}, nil
+		return []types.Dossier{}, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	result := make([]domain.Dossier, len(dbDossiers))
+	result := make([]types.Dossier, len(dbDossiers))
 	for idx, dbDossier := range dbDossiers {
 		dossier, _ := dbDossier.MarshalToDomainDossier()
 		result[idx] = *dossier

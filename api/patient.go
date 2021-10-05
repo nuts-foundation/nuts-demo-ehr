@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 // GetPatientsParams defines parameters for GetPatients.
@@ -42,7 +42,7 @@ func (w Wrapper) GetPatients(ctx echo.Context, params GetPatientsParams) error {
 }
 
 func (w Wrapper) NewPatient(ctx echo.Context) error {
-	patientProperties := domain.PatientProperties{}
+	patientProperties := types.PatientProperties{}
 	if err := ctx.Bind(&patientProperties); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (w Wrapper) NewPatient(ctx echo.Context) error {
 }
 
 func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
-	patientProps := domain.PatientProperties{}
+	patientProps := types.PatientProperties{}
 	if err := ctx.Bind(&patientProps); err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 	if err != nil {
 		return err
 	}
-	patient, err := w.PatientRepository.Update(ctx.Request().Context(), cid, patientID, func(c domain.Patient) (*domain.Patient, error) {
+	patient, err := w.PatientRepository.Update(ctx.Request().Context(), cid, patientID, func(c types.Patient) (*types.Patient, error) {
 		c.PatientProperties = patientProps
 		return &c, nil
 	})
@@ -101,7 +101,7 @@ func (w Wrapper) getCustomerID(ctx echo.Context) (int, error) {
 	return customer.Id, nil
 }
 
-func (w Wrapper) getCustomer(ctx echo.Context) *domain.Customer {
+func (w Wrapper) getCustomer(ctx echo.Context) *types.Customer {
 	cid, ok := ctx.Get(CustomerID).(int)
 	if !ok {
 		return nil

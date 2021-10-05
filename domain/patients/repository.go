@@ -12,32 +12,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 const maxMinimumAgeForAvatar = 76
 
 type Repository interface {
-	FindByID(ctx context.Context, customerID int, id string) (*domain.Patient, error)
-	Update(ctx context.Context, customerID int, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error)
-	NewPatient(ctx context.Context, customerID int, patient domain.PatientProperties) (*domain.Patient, error)
-	All(ctx context.Context, customerID int, name *string) ([]domain.Patient, error)
+	FindByID(ctx context.Context, customerID int, id string) (*types.Patient, error)
+	Update(ctx context.Context, customerID int, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error)
+	NewPatient(ctx context.Context, customerID int, patient types.PatientProperties) (*types.Patient, error)
+	All(ctx context.Context, customerID int, name *string) ([]types.Patient, error)
 }
 
 type Factory struct{}
 
 // NewUUIDPatient creates a new patient from a list of properties. It generates a new UUID for the patientID.
-func (f Factory) NewUUIDPatient(patientProperties domain.PatientProperties) (*domain.Patient, error) {
+func (f Factory) NewUUIDPatient(patientProperties types.PatientProperties) (*types.Patient, error) {
 	if patientProperties.Gender == "" {
-		patientProperties.Gender = domain.PatientPropertiesGenderUnknown
+		patientProperties.Gender = types.PatientPropertiesGenderUnknown
 	}
-	return &domain.Patient{
-		ObjectID:          domain.ObjectID(uuid.NewString()),
+	return &types.Patient{
+		ObjectID:          types.ObjectID(uuid.NewString()),
 		PatientProperties: patientProperties,
 	}, nil
 }
 
-func (f Factory) NewPatientWithAvatar(properties domain.PatientProperties) (*domain.Patient, error) {
+func (f Factory) NewPatientWithAvatar(properties types.PatientProperties) (*types.Patient, error) {
 	patient, err := f.NewUUIDPatient(properties)
 	if err != nil {
 		return nil, err
@@ -54,9 +54,9 @@ func (f Factory) NewPatientWithAvatar(properties domain.PatientProperties) (*dom
 
 	var gender string
 	switch patient.Gender {
-	case domain.PatientPropertiesGenderMale:
+	case types.PatientPropertiesGenderMale:
 		gender = "male"
-	case domain.PatientPropertiesGenderFemale:
+	case types.PatientPropertiesGenderFemale:
 		gender = "female"
 	default:
 		// For "other" and "unknown" we take a random gender

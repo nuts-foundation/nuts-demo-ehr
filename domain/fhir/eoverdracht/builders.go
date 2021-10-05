@@ -1,4 +1,4 @@
-package domain
+package eoverdracht
 
 import (
 	"fmt"
@@ -9,14 +9,14 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
 )
 
 type TransferFHIRBuilder interface {
 	BuildNewTask(props fhir.TaskProperties) resources.Task
-	BuildAdvanceNotice(createRequest CreateTransferRequest, patient *Patient) eoverdracht.AdvanceNotice
-	BuildNursingHandoffComposition(patient *Patient, advanceNotice eoverdracht.AdvanceNotice) (eoverdracht.Composition, error)
+	BuildAdvanceNotice(createRequest types.CreateTransferRequest, patient *types.Patient) AdvanceNotice
+	BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (Composition, error)
 }
 
 type FHIRBuilder struct{}
@@ -62,12 +62,12 @@ func (b FHIRBuilder) BuildNewTask(props fhir.TaskProperties) resources.Task {
 	}
 }
 
-func (b FHIRBuilder) BuildAdvanceNotice(createRequest CreateTransferRequest, patient *Patient) eoverdracht.AdvanceNotice {
+func (b FHIRBuilder) BuildAdvanceNotice(createRequest types.CreateTransferRequest, patient *types.Patient) AdvanceNotice {
 	problems, interventions, careplan := b.buildCarePlan(createRequest.CarePlan)
 	administrativeData := b.buildAdministrativeData(createRequest)
 	anonymousPatient := b.buildAnonymousPatient(patient)
 
-	an := eoverdracht.AdvanceNotice{
+	an := AdvanceNotice{
 		Patient:       anonymousPatient,
 		Problems:      problems,
 		Interventions: interventions,
@@ -81,7 +81,7 @@ func (b FHIRBuilder) BuildAdvanceNotice(createRequest CreateTransferRequest, pat
 
 // buildAnonymousPatient only contains address information so the receiving organisation can
 // decide if they can deliver the requested care
-func (b FHIRBuilder) buildAnonymousPatient(patient *Patient) resources.Patient {
+func (b FHIRBuilder) buildAnonymousPatient(patient *types.Patient) resources.Patient {
 	return resources.Patient{
 		Domain: resources.Domain{
 			Base: resources.Base{
@@ -95,9 +95,9 @@ func (b FHIRBuilder) buildAnonymousPatient(patient *Patient) resources.Patient {
 
 // buildAdministrativeData constructs the Administrative Data segment of the transfer as defined by the Nictiz:
 // https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.1_20210126000000
-func (FHIRBuilder) buildAdministrativeData(request CreateTransferRequest) eoverdracht.CompositionSection {
+func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) CompositionSection {
 	transferDate := request.TransferDate.Format(time.RFC3339)
-	return eoverdracht.CompositionSection{
+	return CompositionSection{
 		BackboneElement: datatypes.BackboneElement{
 			Element: datatypes.Element{
 				Extension: []datatypes.Extension{{
@@ -110,15 +110,15 @@ func (FHIRBuilder) buildAdministrativeData(request CreateTransferRequest) eoverd
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
 				System:  &fhir.SnomedCodingSystem,
-				Code:    fhir.ToCodePtr(eoverdracht.AdministrativeDocCode),
+				Code:    fhir.ToCodePtr(AdministrativeDocCode),
 				Display: fhir.ToStringPtr("Administrative documentation (record artifact)"),
 			}}},
 	}
 
 }
 
-func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan eoverdracht.CompositionSection, patient resources.Patient) eoverdracht.Composition {
-	return eoverdracht.Composition{
+func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan CompositionSection, patient resources.Patient) Composition {
+	return Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
 			ID:           fhir.ToIDPtr(b.generateResourceID()),
@@ -128,13 +128,13 @@ func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan
 		},
 		Subject: datatypes.Reference{Reference: fhir.ToStringPtr("Patient/" + fhir.FromIDPtr(patient.ID))},
 		Title:   "Nursing handoff",
-		Section: []eoverdracht.CompositionSection{administrativeData, careplan},
+		Section: []CompositionSection{administrativeData, careplan},
 	}
 }
 
-func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, administrativeData, careplan eoverdracht.CompositionSection) eoverdracht.Composition {
+func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, administrativeData, careplan CompositionSection) Composition {
 
-	return eoverdracht.Composition{
+	return Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
 			ID:           fhir.ToIDPtr(b.generateResourceID()),
@@ -144,11 +144,11 @@ func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, ad
 		},
 		Title:   "Advance notice",
 		Subject: datatypes.Reference{Reference: fhir.ToStringPtr(fmt.Sprintf("Patient/%s", fhir.FromIDPtr(patient.ID)))},
-		Section: []eoverdracht.CompositionSection{administrativeData, careplan},
+		Section: []CompositionSection{administrativeData, careplan},
 	}
 }
 
-func (b FHIRBuilder) buildCarePlan(carePlan CarePlan) (problems []resources.Condition, interventions []eoverdracht.Procedure, section eoverdracht.CompositionSection) {
+func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resources.Condition, interventions []Procedure, section CompositionSection) {
 	for _, cpPatientProblems := range carePlan.PatientProblems {
 		newProblem := b.buildConditionFromProblem(cpPatientProblems.Problem)
 		problems = append(problems, newProblem)
@@ -162,7 +162,7 @@ func (b FHIRBuilder) buildCarePlan(carePlan CarePlan) (problems []resources.Cond
 	}
 
 	// new patientProblems
-	patientProblems := eoverdracht.CompositionSection{
+	patientProblems := CompositionSection{
 		Title: fhir.ToStringPtr("Current patient problems"),
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
@@ -182,22 +182,22 @@ func (b FHIRBuilder) buildCarePlan(carePlan CarePlan) (problems []resources.Cond
 	}
 
 	// Start with empty care plan
-	careplan := eoverdracht.CompositionSection{
+	careplan := CompositionSection{
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
 				System:  &fhir.SnomedCodingSystem,
-				Code:    fhir.ToCodePtr(eoverdracht.CarePlanCode),
+				Code:    fhir.ToCodePtr(CarePlanCode),
 				Display: fhir.ToStringPtr("Nursing care plan (record artifact)"),
 			}}},
-		Section: []eoverdracht.CompositionSection{
+		Section: []CompositionSection{
 			patientProblems,
 		},
 	}
 	return problems, interventions, careplan
 }
 
-func (b FHIRBuilder) buildProcedureFromIntervention(intervention Intervention, problemID string) eoverdracht.Procedure {
-	return eoverdracht.Procedure{
+func (b FHIRBuilder) buildProcedureFromIntervention(intervention types.Intervention, problemID string) Procedure {
+	return Procedure{
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Procedure",
@@ -209,7 +209,7 @@ func (b FHIRBuilder) buildProcedureFromIntervention(intervention Intervention, p
 	}
 }
 
-func (b FHIRBuilder) buildConditionFromProblem(problem Problem) resources.Condition {
+func (b FHIRBuilder) buildConditionFromProblem(problem types.Problem) resources.Condition {
 	return resources.Condition{
 		Domain: resources.Domain{
 			Base: resources.Base{
@@ -221,16 +221,16 @@ func (b FHIRBuilder) buildConditionFromProblem(problem Problem) resources.Condit
 	}
 }
 
-func (b FHIRBuilder) BuildNursingHandoffComposition(patient *Patient, advanceNotice eoverdracht.AdvanceNotice) (eoverdracht.Composition, error) {
+func (b FHIRBuilder) BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (Composition, error) {
 
-	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
+	careplan, err := FilterCompositionSectionByType(advanceNotice.Composition.Section, CarePlanCode)
 	if err != nil {
 		logrus.Warn("unable to get CarePlan from composition")
 		// Don't fail when the transfer is incomplete to allow increment development.
 		//return eoverdracht.Composition{}, err
 	}
 
-	administrativeData, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.AdministrativeDocCode)
+	administrativeData, err := FilterCompositionSectionByType(advanceNotice.Composition.Section, AdministrativeDocCode)
 	if err != nil {
 		logrus.Warn("unable to get AdministrativeDocument from composition")
 		// Don't fail when the transfer is incomplete to allow increment development.

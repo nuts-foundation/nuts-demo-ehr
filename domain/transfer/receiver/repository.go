@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"time"
 )
 
 const transferSchema = `
@@ -38,8 +39,8 @@ const transferSchema = `
 
 type TransferRepository interface {
 	GetNotCompletedCount(ctx context.Context, customerID int) (int, error)
-	GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error)
-	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error)
+	GetAll(ctx context.Context, customerID int) ([]types.IncomingTransfer, error)
+	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*types.IncomingTransfer, error)
 }
 
 func NewTransferRepository(db *sqlx.DB) TransferRepository {
@@ -63,16 +64,16 @@ type sqlTransfer struct {
 	UpdatedAt  time.Time `db:"updated_at"`
 }
 
-func (transfer sqlTransfer) marshalToDomain() domain.IncomingTransfer {
-	return domain.IncomingTransfer{
-		Id:         domain.ObjectID(transfer.ID),
+func (transfer sqlTransfer) marshalToDomain() types.IncomingTransfer {
+	return types.IncomingTransfer{
+		Id:         types.ObjectID(transfer.ID),
 		FhirTaskID: transfer.TaskID,
 		// @TODO: should we resolve organization details here?
-		Sender: domain.Organization{
+		Sender: types.Organization{
 			Did: transfer.SenderDID,
 		},
 		CreatedAt: transfer.CreatedAt,
-		Status:    domain.TransferNegotiationStatus{Status: domain.TransferNegotiationStatusStatus(transfer.Status)},
+		Status:    types.TransferNegotiationStatus{Status: types.TransferNegotiationStatusStatus(transfer.Status)},
 	}
 }
 
@@ -80,7 +81,7 @@ type repository struct {
 	db *sqlx.DB
 }
 
-func (f repository) GetAll(ctx context.Context, customerID int) ([]domain.IncomingTransfer, error) {
+func (f repository) GetAll(ctx context.Context, customerID int) ([]types.IncomingTransfer, error) {
 	const query = `SELECT * FROM incoming_transfers WHERE customer_id = ? ORDER BY updated_at DESC`
 
 	tx, err := sqlUtil.GetTransaction(ctx)
@@ -92,13 +93,13 @@ func (f repository) GetAll(ctx context.Context, customerID int) ([]domain.Incomi
 
 	if err := tx.SelectContext(ctx, &transfers, query, customerID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []domain.IncomingTransfer{}, nil
+			return []types.IncomingTransfer{}, nil
 		}
 
 		return nil, err
 	}
 
-	var results []domain.IncomingTransfer
+	var results []types.IncomingTransfer
 
 	for _, transfer := range transfers {
 		results = append(results, transfer.marshalToDomain())
@@ -124,7 +125,7 @@ func (f repository) GetNotCompletedCount(ctx context.Context, customerID int) (i
 	return count, nil
 }
 
-func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*domain.IncomingTransfer, error) {
+func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*types.IncomingTransfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err

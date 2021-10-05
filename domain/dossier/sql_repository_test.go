@@ -2,9 +2,10 @@ package dossier
 
 import (
 	"context"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
-	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 	"testing"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -23,7 +24,7 @@ func TestSQLiteDossierRepository_Create(t *testing.T) {
 	db := sqlx.MustConnect("sqlite3", ":memory:")
 	repo := NewSQLiteDossierRepository(Factory{}, db)
 
-	var newDossier *domain.Dossier
+	var newDossier *types.Dossier
 	var err error
 	err = sql.ExecuteTransactional(db, func(ctx context.Context) error {
 		newDossier, err = repo.Create(ctx, 1, "Broken leg", "p1")

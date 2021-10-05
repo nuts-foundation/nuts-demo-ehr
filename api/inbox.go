@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 )
 
 // GetTransferRequest handles requests to receive a transfer request.
@@ -32,7 +32,7 @@ func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, domain.InboxInfo{MessageCount: count})
+	return ctx.JSON(http.StatusOK, types.InboxInfo{MessageCount: count})
 }
 
 func (w Wrapper) GetInbox(ctx echo.Context) error {
@@ -43,7 +43,7 @@ func (w Wrapper) GetInbox(ctx echo.Context) error {
 		return err
 	}
 
-	var entries []domain.InboxEntry
+	var entries []types.InboxEntry
 
 	for _, transfer := range transfers {
 		sender := transfer.Sender
@@ -58,7 +58,7 @@ func (w Wrapper) GetInbox(ctx echo.Context) error {
 			sender = *organization
 		}
 
-		entries = append(entries, domain.InboxEntry{
+		entries = append(entries, types.InboxEntry{
 			Date:              transfer.CreatedAt.Format("02-01-2006 15:04:05"),
 			RequiresAttention: true,
 			ResourceID:        transfer.FhirTaskID,

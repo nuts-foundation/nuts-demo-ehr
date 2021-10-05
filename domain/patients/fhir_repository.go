@@ -7,17 +7,17 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 
-func ToDomainPatient(fhirPatient resources.Patient) domain.Patient {
-	return domain.FHIRPatientToDomainPatient(fhirPatient)
+func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
+	return eoverdracht.FHIRPatientToDomainPatient(fhirPatient)
 }
 
-func ToFHIRPatient(domainPatient domain.Patient) resources.Patient {
-	dob := datatypes.Date(domainPatient.Dob.Format(domain.DobFormat))
+func ToFHIRPatient(domainPatient types.Patient) resources.Patient {
+	dob := datatypes.Date(domainPatient.Dob.Format(types.DobFormat))
 
 	fhirPatient := resources.Patient{
 		Domain: resources.Domain{
@@ -36,7 +36,7 @@ func ToFHIRPatient(domainPatient domain.Patient) resources.Patient {
 	}
 
 	if domainPatient.Ssn != nil {
-		fhirPatient.Identifier = append(fhirPatient.Identifier, datatypes.Identifier{System: fhir.ToUriPtr(domain.BsnSystem), Value: fhir.ToStringPtr(*domainPatient.Ssn)})
+		fhirPatient.Identifier = append(fhirPatient.Identifier, datatypes.Identifier{System: fhir.ToUriPtr(types.BsnSystem), Value: fhir.ToStringPtr(*domainPatient.Ssn)})
 	}
 	if domainPatient.AvatarUrl != nil {
 		fhirPatient.Photo = append(fhirPatient.Photo, datatypes.Attachment{URL: fhir.ToUriPtr(*domainPatient.AvatarUrl) })
@@ -62,7 +62,7 @@ func NewFHIRPatientRepository(factory Factory, fhirClientFactory fhir.Factory) *
 	}
 }
 
-func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id string) (*domain.Patient, error) {
+func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id string) (*types.Patient, error) {
 	patient := resources.Patient{}
 	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "Patient/"+id, &patient)
 	if err != nil {
@@ -72,7 +72,7 @@ func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id 
 	return &result, nil
 }
 
-func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id string, updateFn func(c domain.Patient) (*domain.Patient, error)) (*domain.Patient, error) {
+func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error) {
 	domainPatient, err := r.FindByID(ctx, customerID, id)
 	if err != nil {
 		return nil, fmt.Errorf("could not update patient: could not read current patient from FHIR store: %w", err)
@@ -86,7 +86,7 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id st
 	return updatedDomainPatient, fhirClient.CreateOrUpdate(ctx, updatedFHIRPatient)
 }
 
-func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties domain.PatientProperties) (*domain.Patient, error) {
+func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties types.PatientProperties) (*types.Patient, error) {
 	patient, err := r.factory.NewPatientWithAvatar(patientProperties)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, p
 	return patient, nil
 }
 
-func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *string) ([]domain.Patient, error) {
+func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *string) ([]types.Patient, error) {
 	var params map[string]string
 	if name != nil {
 		params = map[string]string{"name": *name}
@@ -112,7 +112,7 @@ func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *st
 		return nil, err
 	}
 
-	patients := make([]domain.Patient, 0)
+	patients := make([]types.Patient, 0)
 	for _, patient := range fhirPatients {
 		patients = append(patients, ToDomainPatient(patient))
 	}

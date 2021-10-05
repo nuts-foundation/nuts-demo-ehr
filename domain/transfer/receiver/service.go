@@ -9,11 +9,11 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
@@ -21,7 +21,7 @@ import (
 type TransferService interface {
 	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
-	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*domain.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*types.TransferRequest, error)
 }
 
 type service struct {
@@ -106,7 +106,7 @@ func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool
 	return false
 }
 
-func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*domain.TransferRequest, error) {
+func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*types.TransferRequest, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return nil, fmt.Errorf("unable to find customer: %w", err)
@@ -131,7 +131,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	if err != nil {
 		return nil, fmt.Errorf("unable to get advance notice: %w", err)
 	}
-	domainAdvanceNotice, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	domainAdvanceNotice, err := eoverdracht.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	}
 
 	// TODO: Do we need nil checks?
-	transferRequest := domain.TransferRequest{
+	transferRequest := types.TransferRequest{
 		Sender:        *organization,
 		AdvanceNotice: domainAdvanceNotice,
 		Status:        fhir.FromCodePtr(task.Status),
@@ -154,7 +154,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		if err != nil {
 			return nil, fmt.Errorf("unable to get nursing handoff: %w", err)
 		}
-		domainTransfer, err := domain.FHIRNursingHandoffToDomainTransfer(nursingHandoff)
+		domainTransfer, err := eoverdracht.FHIRNursingHandoffToDomainTransfer(nursingHandoff)
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert fhir nursing handoff to domain transfer: %w", err)
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
@@ -18,12 +19,11 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 )
 
-const BearerAuthScopes = domain.BearerAuthScopes
+const BearerAuthScopes = types.BearerAuthScopes
 
 type errorResponse struct {
 	Error error
@@ -56,7 +56,7 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 }
 
 func (w Wrapper) SetCustomer(ctx echo.Context) error {
-	customer := domain.Customer{}
+	customer := types.Customer{}
 	if err := ctx.Bind(&customer); err != nil {
 		return err
 	}
@@ -70,11 +70,11 @@ func (w Wrapper) SetCustomer(ctx echo.Context) error {
 		return fmt.Errorf("unable to initialize tenant: %w", err)
 	}
 
-	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
+	return ctx.JSON(200, types.SessionToken{Token: string(token)})
 }
 
 func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
-	req := domain.PasswordAuthenticateRequest{}
+	req := types.PasswordAuthenticateRequest{}
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
@@ -94,7 +94,7 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(200, domain.SessionToken{Token: string(token)})
+	return ctx.JSON(200, types.SessionToken{Token: string(token)})
 }
 
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
@@ -149,7 +149,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(200, domain.SessionToken{Token: string(newToken)})
+	return ctx.JSON(200, types.SessionToken{Token: string(newToken)})
 }
 
 func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
@@ -210,7 +210,7 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(200, domain.SessionToken{Token: string(newToken)})
+	return ctx.JSON(200, types.SessionToken{Token: string(newToken)})
 }
 
 func (w Wrapper) GetCustomer(ctx echo.Context) error {

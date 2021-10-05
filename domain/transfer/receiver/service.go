@@ -67,7 +67,8 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 		return err
 	}
 
-	task, err := s.getRemoteTransferTask(ctx, client, fhirTaskID)
+	fhirRepo := fhir.NewFHIRRepository(client)
+	task, err := fhirRepo.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 			return err
 		}
 		// update was a success. Get the remote task again and update the local transfer_request
-		task, err = s.getRemoteTransferTask(ctx, client, fhirTaskID)
+		task, err = fhirRepo.GetTask(ctx, fhirTaskID)
 		if err != nil {
 			return err
 		}
@@ -118,7 +119,8 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	task, err := s.getRemoteTransferTask(ctx, fhirClient, fhirTaskID)
+	fhirRepo := fhir.NewFHIRRepository(fhirClient)
+	task, err := fhirRepo.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get remote transfer: %w", err)
 	}
@@ -190,16 +192,6 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	}
 
 	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken)), nil
-}
-
-func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory, fhirTaskID string) (resources.Task, error) {
-	// TODO: Read AdvanceNotification here instead of the transfer task
-	task := resources.Task{}
-	err := client().ReadOne(ctx, "/Task/"+fhirTaskID, &task)
-	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task remotely(task-id=%s): %w", fhirTaskID, err)
-	}
-	return task, nil
 }
 
 // getAdvanceNotice fetches a complete nursing handoff from a FHIR server

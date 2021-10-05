@@ -9,6 +9,13 @@ const AdministrativeDocCode = "405624007"
 const CarePlanCode = "773130005"
 const NursingDiagnosisCode = "86644006"
 
+type TransferTask struct {
+	ID               string
+	Status           string
+	AdvanceNoticeID  *string
+	NursingHandoffID *string
+}
+
 // Practitioner models https://simplifier.net/packages/nictiz.fhir.nl.stu3.zib2017/2.1.1/files/361872
 type Practitioner struct {
 	datatypes.Element

@@ -574,8 +574,9 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 }
 
 func (s service) getLocalTransferTask(ctx context.Context, customerID int, fhirTaskID string) (resources.Task, error) {
-	task := resources.Task{}
-	err := s.localFHIRClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "/Task/"+fhirTaskID, &task)
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+	fhirRepo := fhir.NewFHIRRepository(fhirClient)
+	task, err := fhirRepo.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return resources.Task{}, fmt.Errorf("error while looking up transfer task locally (task-id=%s): %w", fhirTaskID, err)
 	}

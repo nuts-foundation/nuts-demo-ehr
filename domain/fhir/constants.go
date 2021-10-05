@@ -15,14 +15,13 @@ var (
 type Code string
 
 var (
-	SnomedTransferCode        datatypes.Code = "308292007"
-	LoincAdvanceNoticeCode    datatypes.Code = "57830-2"
-	SnomedAlternaticeDateCode datatypes.Code = "146851000146105"
-	SnomedNursingHandoffCode  datatypes.Code = "371535009"
+	SnomedTransferCode        datatypes.Code   = "308292007"
+	LoincAdvanceNoticeCode    datatypes.Code   = "57830-2"
+	SnomedAlternaticeDateCode datatypes.Code   = "146851000146105"
+	SnomedNursingHandoffCode  datatypes.Code   = "371535009"
+	NursingHandoffDisplay     datatypes.String = "verslag van zorg"
+	TransferDisplay           datatypes.String = "Overdracht van zorg"
 )
-
-var NursingHandoffDisplay datatypes.String = "verslag van zorg"
-var TransferDisplay datatypes.String = "Overdracht van zorg"
 
 /* Short-hand types */
 var LoincAdvanceNoticeType = datatypes.CodeableConcept{

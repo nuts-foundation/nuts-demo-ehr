@@ -13,16 +13,18 @@
     <h1 class="mb-4">New Patient</h1>
 
     <form @submit.stop.prevent="confirm">
+      <div class="bg-white rounded-lg shadow-lg">
+        <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-t-md" v-if="formErrors.length">
+          <label class="text-red-500">Please correct the following error{{formErrors.length === 0 ? '' : 's'}}:</label>
 
-      <div class="bg-white rounded-lg shadow-lg p-5">
-        <div class="sticky top-0 z-10 p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-          <b>Please correct the following error(s):</b>
-          <ul>
-            <li v-for="error in formErrors">* {{ error }}</li>
+          <ul class="text-sm">
+            <li v-for="error in formErrors">— {{ error }}</li>
           </ul>
         </div>
 
-        <patient-form class="space-y-5" :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+        <div class="p-5">
+          <patient-form class="space-y-5" :value="patient" @input="(newPatient)=> {patient = newPatient}"/>
+        </div>
       </div>
 
       <div class="mt-5">

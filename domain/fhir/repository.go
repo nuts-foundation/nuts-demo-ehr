@@ -65,20 +65,24 @@ func (s fhirRepository) ResolveComposition(ctx context.Context, compositionPath 
 			var entryResources []interface{}
 			for _, l2entry := range l2.Entry {
 				entryPath := FromStringPtr(l2entry.Reference)
-				resourceType := strings.Split(entryPath, "/")[0]
-				var resource interface{}
-				switch resourceType {
+				resourceTypeStr := strings.Split(entryPath, "/")[0]
+				switch resourceTypeStr {
 				case "Condition":
-					resource = resources.Condition{}
+					resource := resources.Condition{}
+					err := s.client.ReadOne(ctx, entryPath, &resource)
+					if err != nil {
+						return nil, nil, nil, err
+					}
+					entryResources = append(entryResources, resource)
 				case "Procedure":
-					resource = Procedure{}
+					resource := Procedure{}
+					err := s.client.ReadOne(ctx, entryPath, &resource)
+					if err != nil {
+						return nil, nil, nil, err
+					}
+					entryResources = append(entryResources, resource)
 				}
 
-				err := s.client.ReadOne(ctx, entryPath, &resource)
-				if err != nil {
-					return nil, nil, nil, err
-				}
-				entryResources = append(entryResources, resource)
 			}
 			sections[l1code+"/"+l2code] = entryResources
 		}

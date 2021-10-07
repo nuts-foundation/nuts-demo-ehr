@@ -8,13 +8,13 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 type TransferService interface {
 	GetTask(ctx context.Context, taskID string) (*TransferTask, error)
 	UpdateTaskStatus(ctx context.Context, fhirTaskID string, newState string) error
-	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (types.TransferProperties, error)
+	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
+	GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error)
 }
 
 func NewReceiverFHIRTransferService(repo fhir.Repository) TransferService {
@@ -64,12 +64,42 @@ func (s receiverTransferService) UpdateTaskStatus(ctx context.Context, fhirTaskI
 	return nil
 }
 
-// GetNursingHandoff converts a resolved composition into a types.TransferProperties
-func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (types.TransferProperties, error) {
+// GetAdvanceNotice converts a resolved composition into a AdvanceNotice
+func (s receiverTransferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error) {
 
 	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
 	if err != nil {
-		return types.TransferProperties{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
+		return AdvanceNotice{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
+	}
+	advanceNotice := AdvanceNotice{
+		Composition: *composition,
+		Patient:     *patient,
+	}
+
+	nursingDiagnosisEntries, ok := sections[CarePlanCode+"/"+NursingDiagnosisCode]
+	if !ok {
+		return AdvanceNotice{}, errors.New("NursingDiagnosis not set in composition")
+	}
+
+	// the nursing diagnosis contains both conditions and procedures
+	for _, entry := range nursingDiagnosisEntries {
+		if condition, ok := entry.(resources.Condition); ok {
+			advanceNotice.Problems = append(advanceNotice.Problems, condition)
+		}
+		if procedure, ok := entry.(fhir.Procedure); ok {
+			advanceNotice.Interventions = append(advanceNotice.Interventions, procedure)
+		}
+	}
+
+	return advanceNotice, nil
+}
+
+// GetNursingHandoff converts a resolved composition into a NursingHandoff
+func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error) {
+
+	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
+	if err != nil {
+		return NursingHandoff{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
 	}
 	nursingHandoff := NursingHandoff{
 		Composition: *composition,
@@ -78,7 +108,7 @@ func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirComp
 
 	nursingDiagnosisEntries, ok := sections[CarePlanCode+"/"+NursingDiagnosisCode]
 	if !ok {
-		return types.TransferProperties{}, errors.New("NursingDiagnosis not set in composition")
+		return NursingHandoff{}, errors.New("NursingDiagnosis not set in composition")
 	}
 
 	// the nursing diagnosis contains both conditions and procedures
@@ -91,7 +121,7 @@ func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirComp
 		}
 	}
 
-	return FHIRNursingHandoffToDomainTransfer(nursingHandoff)
+	return nursingHandoff, nil
 }
 
 func (s receiverTransferService) findTaskInputOutputByCode(ios []resources.TaskInputOutput, code datatypes.Code) *resources.TaskInputOutput {

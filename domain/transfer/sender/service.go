@@ -132,7 +132,6 @@ func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool
 	return false
 }
 
-
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
 func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*domain.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)

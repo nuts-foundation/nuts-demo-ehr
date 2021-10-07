@@ -186,7 +186,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 }
 
 func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse, route fhirRoute) error {
-	hasUser := token.Usi != nil
+	hasUser := token.Email != nil
 	if token.Vcs != nil {
 		for _, credentialID := range *token.Vcs {
 			// resolve credential. NutsAuthCredential must be resolved with the untrusted flag

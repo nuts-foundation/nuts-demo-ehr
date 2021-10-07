@@ -25,7 +25,7 @@ func FHIRConditionToDomainProblem(condition resources.Condition) types.Problem {
 	}
 }
 
-func FHIRProcedureToDomainIntervention(procedure Procedure) types.Intervention {
+func FHIRProcedureToDomainIntervention(procedure fhir.Procedure) types.Intervention {
 	return types.Intervention{Comment: fhir.FromStringPtr(procedure.Note[0].Text)}
 }
 
@@ -90,9 +90,9 @@ func FHIRAdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProp
 	return domainTransfer, nil
 }
 
-func FHIRNursingHandoffToDomainTransfer(notice NursingHandoff) (types.TransferProperties, error) {
-	patient := FHIRPatientToDomainPatient(notice.Patient)
-	adminData, err := FilterCompositionSectionByType(notice.Composition.Section, AdministrativeDocCode)
+func FHIRNursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.TransferProperties, error) {
+	patient := FHIRPatientToDomainPatient(nursingHandoff.Patient)
+	adminData, err := FilterCompositionSectionByType(nursingHandoff.Composition.Section, AdministrativeDocCode)
 	if err != nil {
 		return types.TransferProperties{}, fmt.Errorf("administrativeData section missing in advance notice: %w", err)
 	}
@@ -104,9 +104,9 @@ func FHIRNursingHandoffToDomainTransfer(notice NursingHandoff) (types.TransferPr
 		TransferDate: types2.Date{Time: transferDate},
 	}
 
-	for _, condition := range notice.Problems {
+	for _, condition := range nursingHandoff.Problems {
 		var interventions []types.Intervention
-		for _, procedure := range notice.Interventions {
+		for _, procedure := range nursingHandoff.Interventions {
 			if fhir.FromStringPtr(procedure.ReasonReference[0].Reference) == "Condition/"+fhir.FromIDPtr(condition.ID) {
 				interventions = append(interventions, FHIRProcedureToDomainIntervention(procedure))
 			}

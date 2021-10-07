@@ -16,7 +16,7 @@ import (
 type TransferFHIRBuilder interface {
 	BuildNewTask(props fhir.TaskProperties) resources.Task
 	BuildAdvanceNotice(createRequest types.CreateTransferRequest, patient *types.Patient) AdvanceNotice
-	BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (Composition, error)
+	BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (fhir.Composition, error)
 }
 
 type FHIRBuilder struct{}
@@ -95,9 +95,9 @@ func (b FHIRBuilder) buildAnonymousPatient(patient *types.Patient) resources.Pat
 
 // buildAdministrativeData constructs the Administrative Data segment of the transfer as defined by the Nictiz:
 // https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.1_20210126000000
-func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) CompositionSection {
+func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) fhir.CompositionSection {
 	transferDate := request.TransferDate.Format(time.RFC3339)
-	return CompositionSection{
+	return fhir.CompositionSection{
 		BackboneElement: datatypes.BackboneElement{
 			Element: datatypes.Element{
 				Extension: []datatypes.Extension{{
@@ -117,8 +117,8 @@ func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) 
 
 }
 
-func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan CompositionSection, patient resources.Patient) Composition {
-	return Composition{
+func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan fhir.CompositionSection, patient resources.Patient) fhir.Composition {
+	return fhir.Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
 			ID:           fhir.ToIDPtr(b.generateResourceID()),
@@ -128,13 +128,13 @@ func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan
 		},
 		Subject: datatypes.Reference{Reference: fhir.ToStringPtr("Patient/" + fhir.FromIDPtr(patient.ID))},
 		Title:   "Nursing handoff",
-		Section: []CompositionSection{administrativeData, careplan},
+		Section: []fhir.CompositionSection{administrativeData, careplan},
 	}
 }
 
-func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, administrativeData, careplan CompositionSection) Composition {
+func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, administrativeData, careplan fhir.CompositionSection) fhir.Composition {
 
-	return Composition{
+	return fhir.Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
 			ID:           fhir.ToIDPtr(b.generateResourceID()),
@@ -144,11 +144,11 @@ func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, ad
 		},
 		Title:   "Advance notice",
 		Subject: datatypes.Reference{Reference: fhir.ToStringPtr(fmt.Sprintf("Patient/%s", fhir.FromIDPtr(patient.ID)))},
-		Section: []CompositionSection{administrativeData, careplan},
+		Section: []fhir.CompositionSection{administrativeData, careplan},
 	}
 }
 
-func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resources.Condition, interventions []Procedure, section CompositionSection) {
+func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resources.Condition, interventions []fhir.Procedure, section fhir.CompositionSection) {
 	for _, cpPatientProblems := range carePlan.PatientProblems {
 		newProblem := b.buildConditionFromProblem(cpPatientProblems.Problem)
 		problems = append(problems, newProblem)
@@ -162,7 +162,7 @@ func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resource
 	}
 
 	// new patientProblems
-	patientProblems := CompositionSection{
+	patientProblems := fhir.CompositionSection{
 		Title: fhir.ToStringPtr("Current patient problems"),
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
@@ -182,22 +182,22 @@ func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resource
 	}
 
 	// Start with empty care plan
-	careplan := CompositionSection{
+	careplan := fhir.CompositionSection{
 		Code: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{
 				System:  &fhir.SnomedCodingSystem,
 				Code:    fhir.ToCodePtr(CarePlanCode),
 				Display: fhir.ToStringPtr("Nursing care plan (record artifact)"),
 			}}},
-		Section: []CompositionSection{
+		Section: []fhir.CompositionSection{
 			patientProblems,
 		},
 	}
 	return problems, interventions, careplan
 }
 
-func (b FHIRBuilder) buildProcedureFromIntervention(intervention types.Intervention, problemID string) Procedure {
-	return Procedure{
+func (b FHIRBuilder) buildProcedureFromIntervention(intervention types.Intervention, problemID string) fhir.Procedure {
+	return fhir.Procedure{
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Procedure",
@@ -221,7 +221,7 @@ func (b FHIRBuilder) buildConditionFromProblem(problem types.Problem) resources.
 	}
 }
 
-func (b FHIRBuilder) BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (Composition, error) {
+func (b FHIRBuilder) BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (fhir.Composition, error) {
 
 	careplan, err := FilterCompositionSectionByType(advanceNotice.Composition.Section, CarePlanCode)
 	if err != nil {

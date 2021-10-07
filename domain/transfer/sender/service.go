@@ -163,7 +163,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 
 		compositionPath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
-		composition := eoverdracht.Composition{}
+		composition := fhir.Composition{}
 		err = fhirClient.ReadOne(ctx, compositionPath, &composition)
 		if err != nil {
 			return nil, fmt.Errorf("could not create transfer negotiation: could not read fhir compositition: %w", err)
@@ -240,7 +240,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	return negotiation, err
 }
 
-func resourcePathsFromSection(sections []eoverdracht.CompositionSection, paths []string) []string {
+func resourcePathsFromSection(sections []fhir.CompositionSection, paths []string) []string {
 	for _, s := range sections {
 		paths = append(paths, resourcePathsFromSection(s.Section, paths)...)
 		for _, e := range s.Entry {
@@ -622,7 +622,7 @@ func (s service) getAdvanceNotice(ctx context.Context, fhirClient fhir.Client, f
 		}
 		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
 			procedureID := fhir.FromStringPtr(entry.Reference)
-			procedure := eoverdracht.Procedure{}
+			procedure := fhir.Procedure{}
 			err = fhirClient.ReadOne(ctx, "/"+procedureID, &procedure)
 			if err != nil {
 				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)

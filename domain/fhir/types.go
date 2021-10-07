@@ -6,6 +6,7 @@ import (
 )
 
 type TaskProperties struct {
+	ID        *string
 	Status    string
 	PatientID string
 	// nuts DID of the placer
@@ -46,4 +47,3 @@ type Composition struct {
 	Title      datatypes.String          `json:"title,omitempty"`
 	Section    []CompositionSection      `json:"section,omitempty"`
 }
-

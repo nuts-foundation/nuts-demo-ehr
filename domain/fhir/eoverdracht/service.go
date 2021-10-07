@@ -8,33 +8,106 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 )
 
 type TransferService interface {
 	GetTask(ctx context.Context, taskID string) (*TransferTask, error)
+	CreateTask(ctx context.Context, domainTask TransferTask) (TransferTask, error)
 	UpdateTaskStatus(ctx context.Context, fhirTaskID string, newState string) error
-	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
+	UpdateTask(ctx context.Context, fhirTaskID string, callbackFn func(domainTask TransferTask) TransferTask) error
+
+	CreateAdvanceNotice(ctx context.Context, nursingHandoff NursingHandoff) (AdvanceNotice, error)
+	CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) (NursingHandoff, error)
+
 	GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error)
+	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
 }
 
-func NewReceiverFHIRTransferService(repo fhir.Repository) TransferService {
-	return &receiverTransferService{fhirRepo: repo}
+func NewFHIRTransferService(repo fhir.Repository) TransferService {
+	return &transferService{fhirRepo: repo}
 }
 
-type receiverTransferService struct {
+type transferService struct {
 	fhirRepo   fhir.Repository
 	fhirClient fhir.Client
 }
 
-func (s receiverTransferService) GetTask(ctx context.Context, taskID string) (*TransferTask, error) {
+func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask) (TransferTask, error) {
+	transferTask := NewFHIRBuilder().BuildTask(fhir.TaskProperties{
+		RequesterID: domainTask.SenderDID,
+		OwnerID:     domainTask.ReceiverDID,
+		Status:      transfer.RequestedState,
+		Input: []resources.TaskInputOutput{
+			{
+				Type:           &fhir.LoincAdvanceNoticeType,
+				ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
+			},
+		},
+	})
+
+	err := s.fhirRepo.CreateOrUpdateResource(ctx, transferTask)
+	if err != nil {
+		return domainTask, fmt.Errorf("could not create FHIR Task: %w", err)
+	}
+	domainTask.ID = fhir.FromIDPtr(transferTask.ID)
+	return domainTask, nil
+}
+
+func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, callbackFn func(domainTask TransferTask) TransferTask) error {
+	task, err := s.GetTask(ctx, fhirTaskID)
+	if err != nil {
+		return err
+	}
+
+	domainTask := callbackFn(*task)
+
+	transferTask := NewFHIRBuilder().BuildTask(fhir.TaskProperties{
+		ID:          &domainTask.ID,
+		RequesterID: domainTask.SenderDID,
+		OwnerID:     domainTask.ReceiverDID,
+		Status:      transfer.RequestedState,
+	})
+
+	if domainTask.AdvanceNoticeID != nil {
+		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
+			Type:           &fhir.LoincAdvanceNoticeType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
+		})
+	}
+	if domainTask.NursingHandoffID != nil {
+		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
+			Type:           &fhir.SnomedNursingHandoffType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.NursingHandoffID)},
+		})
+	}
+
+	err = s.fhirRepo.CreateOrUpdateResource(ctx, transferTask)
+	if err != nil {
+		return fmt.Errorf("could not update FHIR Task: %w", err)
+	}
+	return nil
+}
+
+func (s transferService) CreateAdvanceNotice(ctx context.Context, nursingHandoff NursingHandoff) (AdvanceNotice, error) {
+	panic("implement me")
+}
+
+func (s transferService) CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) (NursingHandoff, error) {
+	panic("implement me")
+}
+
+func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferTask, error) {
 	fhirTask, err := s.fhirRepo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}
 
 	task := &TransferTask{
-		ID:     fhir.FromIDPtr(fhirTask.ID),
-		Status: fhir.FromCodePtr(fhirTask.Status),
+		ID:          fhir.FromIDPtr(fhirTask.ID),
+		Status:      fhir.FromCodePtr(fhirTask.Status),
+		SenderDID:   fhir.FromStringPtr(fhirTask.Requester.Agent.Identifier.Value),
+		ReceiverDID: fhir.FromStringPtr(fhirTask.Owner.Identifier.Value),
 	}
 
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, fhir.LoincAdvanceNoticeCode); input != nil {
@@ -49,7 +122,7 @@ func (s receiverTransferService) GetTask(ctx context.Context, taskID string) (*T
 	return task, nil
 }
 
-func (s receiverTransferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string, newStatus string) error {
+func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string, newStatus string) error {
 	// TODO: check for valid state changes
 	const updateErr = "could not update task state: %w"
 	task, err := s.fhirRepo.GetTask(ctx, fhirTaskID)
@@ -65,7 +138,7 @@ func (s receiverTransferService) UpdateTaskStatus(ctx context.Context, fhirTaskI
 }
 
 // GetAdvanceNotice converts a resolved composition into a AdvanceNotice
-func (s receiverTransferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error) {
+func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error) {
 
 	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
 	if err != nil {
@@ -95,7 +168,7 @@ func (s receiverTransferService) GetAdvanceNotice(ctx context.Context, fhirCompo
 }
 
 // GetNursingHandoff converts a resolved composition into a NursingHandoff
-func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error) {
+func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error) {
 
 	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
 	if err != nil {
@@ -124,7 +197,7 @@ func (s receiverTransferService) GetNursingHandoff(ctx context.Context, fhirComp
 	return nursingHandoff, nil
 }
 
-func (s receiverTransferService) findTaskInputOutputByCode(ios []resources.TaskInputOutput, code datatypes.Code) *resources.TaskInputOutput {
+func (s transferService) findTaskInputOutputByCode(ios []resources.TaskInputOutput, code datatypes.Code) *resources.TaskInputOutput {
 	for _, io := range ios {
 		if fhir.FromCodePtr(io.Type.Coding[0].Code) == string(code) {
 			return &io

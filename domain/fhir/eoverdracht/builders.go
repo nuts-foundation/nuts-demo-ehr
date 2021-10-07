@@ -14,7 +14,7 @@ import (
 )
 
 type TransferFHIRBuilder interface {
-	BuildNewTask(props fhir.TaskProperties) resources.Task
+	BuildTask(props fhir.TaskProperties) resources.Task
 	BuildAdvanceNotice(createRequest types.CreateTransferRequest, patient *types.Patient) AdvanceNotice
 	BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (fhir.Composition, error)
 }
@@ -25,12 +25,19 @@ func NewFHIRBuilder() TransferFHIRBuilder {
 	return FHIRBuilder{}
 }
 
-func (b FHIRBuilder) BuildNewTask(props fhir.TaskProperties) resources.Task {
+// BuildTask builds a task from the TaskProperties struct. If no ID is set, a new uuid is generated.
+func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
+	var id string
+	if props.ID != nil {
+		id = *props.ID
+	} else {
+		id = b.generateResourceID()
+	}
 	return resources.Task{
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Task",
-				ID:           fhir.ToIDPtr(b.generateResourceID()),
+				ID:           fhir.ToIDPtr(id),
 			},
 		},
 		Status: fhir.ToCodePtr(props.Status),

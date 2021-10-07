@@ -47,11 +47,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 
 func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error {
 	_, err := s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s service) UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error {
@@ -66,7 +62,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 		return err
 	}
 
-	fhirService := eoverdracht.NewReceiverFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
 	task, err := fhirService.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return err
@@ -108,14 +104,14 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	fhirReceiverService := eoverdracht.NewReceiverFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	fhirReceiverService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
 
 	task, err := fhirReceiverService.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf(getTransferRequestErr, err)
 	}
 
-	if task.NursingHandoffID == nil {
+	if task.AdvanceNoticeID == nil {
 		return nil, fmt.Errorf(getTransferRequestErr, errors.New("invalid task, expected an advanceNotice composition"))
 	}
 

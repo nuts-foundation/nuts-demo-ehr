@@ -24,8 +24,8 @@ import (
 )
 
 type TransferService interface {
-	// Create creates a new transfer
-	Create(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error)
+	// CreateTransfer creates a new transfer
+	CreateTransfer(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error)
 
 	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*types.TransferNegotiation, error)
 
@@ -41,7 +41,7 @@ type TransferService interface {
 	// It updates the status to CANCELLED_STATE, updates the FHIR Task and sends out a notification
 	CancelNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error)
 
-	// UpdateTaskState updates the Task resource at the sender side. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
+	// UpdateTaskState updates the Task resource. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
 	UpdateTaskState(ctx context.Context, customer types.Customer, taskID string, newState string) error
 }
 
@@ -71,11 +71,12 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 	}
 }
 
-func (s service) Create(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error) {
+func (s service) CreateTransfer(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error) {
+	const createTransferErr = "could not create new transfer: %w"
 	// Fetch the patient
 	patient, err := s.findPatientByDossierID(ctx, customerID, string(request.DossierID))
 	if err != nil {
-		return nil, fmt.Errorf("could not create transfer: %w", err)
+		return nil, fmt.Errorf(createTransferErr, err)
 	}
 
 	// Build the advance notice resources
@@ -84,7 +85,7 @@ func (s service) Create(ctx context.Context, customerID int, request types.Creat
 	// Save the resources to the fhir storage
 	err = s.saveAdvanceNoticeFHIRResources(ctx, customerID, advanceNotice)
 	if err != nil {
-		return nil, fmt.Errorf("could not create transfer: unable to store advance notification fhir resources: %w", err)
+		return nil, fmt.Errorf(createTransferErr, fmt.Errorf("unable to store advance notification fhir resources: %w", err))
 	}
 
 	// Create the database transfer
@@ -120,16 +121,6 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 		Id:                            dbTransfer.Id,
 		Status:                        dbTransfer.Status,
 	}, nil
-}
-
-func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {
-	for _, input := range task.Input {
-		if fhir.FromCodePtr(input.Type.Coding[0].Code) == string(code) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
@@ -169,27 +160,24 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, fmt.Errorf("could not create transfer negotiation: could not read fhir compositition: %w", err)
 		}
 
-		transferTask := eoverdracht.NewFHIRBuilder().BuildNewTask(fhir.TaskProperties{
-			RequesterID: *customer.Did,
-			OwnerID:     organizationDID,
-			Status:      transfer.RequestedState,
-			Input: []resources.TaskInputOutput{
-				{
-					Type:           &fhir.LoincAdvanceNoticeType,
-					ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
-				},
-			},
-		})
+		transferTask := eoverdracht.TransferTask{
+			Status:          transfer.RequestedState,
+			ReceiverDID:     organizationDID,
+			SenderDID:       *customer.Did,
+			AdvanceNoticeID: &dbTransfer.FhirAdvanceNoticeComposition,
+		}
 
-		err = fhirClient.CreateOrUpdate(ctx, transferTask)
+		fhirRepo := fhir.NewFHIRRepository(fhirClient)
+		fhirTransferService := eoverdracht.NewFHIRTransferService(fhirRepo)
+		transferTask, err = fhirTransferService.CreateTask(ctx, transferTask)
 		if err != nil {
-			return nil, fmt.Errorf("could not create FHIR Task: %w", err)
+			return nil, fmt.Errorf("could not create FHIR task: %w", err)
 		}
 
 		// Build the list of resources for the authorization credential:
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(transferTask.ID)),
+				Path:        fmt.Sprintf("/Task/%s", transferTask.ID),
 				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
@@ -215,7 +203,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, err
 		}
 
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, fhir.FromIDPtr(transferTask.ID))
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -329,6 +317,10 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition); err != nil {
 			return nil, err
 		}
+
+		fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+		fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.InProgressState)
+
 		// Update the task in the FHIR store
 		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
 			return nil, err

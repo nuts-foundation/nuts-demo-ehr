@@ -12,6 +12,8 @@ type Repository interface {
 	GetTask(ctx context.Context, fhirTaskID string) (resources.Task, error)
 	UpdateTask(ctx context.Context, task resources.Task) error
 	ResolveComposition(ctx context.Context, compositionID string) (*Composition, map[string][]interface{}, *resources.Patient, error)
+
+	CreateOrUpdateResource(ctx context.Context, resource interface{}) error
 }
 
 type fhirRepository struct {
@@ -89,4 +91,8 @@ func (s fhirRepository) ResolveComposition(ctx context.Context, compositionPath 
 	}
 
 	return &composition, sections, &patient, nil
+}
+
+func (s fhirRepository) CreateOrUpdateResource(ctx context.Context, resource interface{}) error {
+	return s.client.CreateOrUpdate(ctx, resource)
 }

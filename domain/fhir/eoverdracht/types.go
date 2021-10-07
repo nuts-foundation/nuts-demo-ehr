@@ -13,6 +13,8 @@ const NursingDiagnosisCode = "86644006"
 type TransferTask struct {
 	ID               string
 	Status           string
+	ReceiverDID      string
+	SenderDID        string
 	AdvanceNoticeID  *string
 	NursingHandoffID *string
 }

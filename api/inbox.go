@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -16,13 +17,39 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	if err != nil {
 		return err
 	}
-	transferRequest, err := w.TransferReceiverService.GetTransferRequest(ctx.Request().Context(), cid, requestorDID, fhirTaskID)
+
+	var sessionWithUserContext *Session
+
+	for _, session := range w.APIAuth.GetSessions() {
+		if session.CustomerID != cid || !session.UserContext {
+			continue
+		}
+
+		if _, ok := session.Credential.(string); !ok {
+			continue
+		}
+
+		sessionWithUserContext = &session
+		break
+	}
+
+	if sessionWithUserContext == nil {
+		return errors.New("unable to get transfer request without elevation")
+	}
+
+	transferRequest, err := w.TransferReceiverService.GetTransferRequest(
+		ctx.Request().Context(),
+		cid,
+		requestorDID,
+		sessionWithUserContext.Credential.(string),
+		fhirTaskID,
+	)
 	if err != nil {
 		return fmt.Errorf("unable to get transferRequest: %w", err)
 	}
+
 	return ctx.JSON(http.StatusOK, transferRequest)
 }
-
 
 func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 	customer := w.getCustomer(ctx)

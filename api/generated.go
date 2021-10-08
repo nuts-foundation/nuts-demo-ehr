@@ -126,13 +126,10 @@ func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 
 // AuthenticateWithDummy converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthenticateWithDummy(ctx echo.Context) error {
-	var err error
-
 	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AuthenticateWithDummy(ctx)
-	return err
+	return w.Handler.AuthenticateWithDummy(ctx)
 }
 
 // GetDummyAuthenticationResult converts echo context to params.
@@ -688,4 +685,3 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/private/transfer/:transferID/negotiation/:negotiationID", wrapper.UpdateTransferNegotiationStatus)
 
 }
-

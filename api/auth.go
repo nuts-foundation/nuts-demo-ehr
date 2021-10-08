@@ -28,16 +28,17 @@ type Auth struct {
 	// sessions maps session identifiers to base64 encoded VPs
 	sessions map[string]Session
 	// mux is used to secure access to internal state of this struct to prevent racy behaviour
-	mux        sync.Mutex
+	mux        sync.RWMutex
 	customers  customers.Repository
 	password   string
 	sessionKey *ecdsa.PrivateKey
 }
 
 type Session struct {
-	credential interface{}
-	customerID int
-	startTime  time.Time
+	Credential  interface{}
+	CustomerID  int
+	StartTime   time.Time
+	UserContext bool
 }
 
 type JWTCustomClaims struct {
@@ -65,7 +66,20 @@ func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
-func (auth Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
+func (auth *Auth) GetSessions() map[string]Session {
+	auth.mux.RLock()
+	defer auth.mux.RUnlock()
+
+	sessions := map[string]Session{}
+
+	for token, session := range auth.sessions {
+		sessions[token] = session
+	}
+
+	return sessions
+}
+
+func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 	token, err := auth.extractJWTFromHeader(ctx)
 	if err != nil {
 		ctx.Echo().Logger.Error(err)
@@ -93,7 +107,7 @@ func (auth *Auth) CreateSessionJWT(subject string, customerId int, session strin
 
 // StoreVP stores the given VP under a new identifier or existing identifier
 func (auth *Auth) StoreVP(customerID int, VP string) string {
-	return auth.createSession(customerID, VP)
+	return auth.createSession(customerID, VP, true)
 }
 
 // JWTHandler is like the echo JWT middleware. It checks the JWT and required claims
@@ -132,28 +146,31 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	if auth.password != password {
 		return "", errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, fmt.Sprintf("%d%s", customerID, password))
+	token := auth.createSession(customerID, fmt.Sprintf("%d%s", customerID, password), false)
 	return token, nil
 }
 
-func (auth *Auth) createSession(customerID int, credential interface{}) string {
+func (auth *Auth) createSession(customerID int, credential interface{}, userContext bool) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 
 	for k, v := range auth.sessions {
-		if v.credential == credential {
+		if v.Credential == credential {
 			return k
 		}
 	}
+
 	tokenBytes := make([]byte, 64)
 	_, _ = rand.Read(tokenBytes)
 
 	token := hex.EncodeToString(tokenBytes)
 	auth.sessions[token] = Session{
-		credential: credential,
-		startTime:  time.Now(),
-		customerID: customerID,
+		Credential:  credential,
+		StartTime:   time.Now(),
+		CustomerID:  customerID,
+		UserContext: userContext,
 	}
+
 	return token
 }
 

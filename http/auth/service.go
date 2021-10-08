@@ -21,13 +21,21 @@ var (
 )
 
 type Service interface {
-	RequestAccessToken(ctx context.Context, requester, authorizer, service string, vcs []vc.VerifiableCredential) (*nutsAuthClient.AccessTokenResponse, error)
+	RequestAccessToken(ctx context.Context, requester, authorizer, service string, vcs []vc.VerifiableCredential, identity *string) (*nutsAuthClient.AccessTokenResponse, error)
 	IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsAuthClient.TokenIntrospectionResponse, error)
 	ParseBearerToken(request *http.Request) (string, error)
 }
 
 type authService struct {
 	client *nutsAuthClient.ClientWithResponses
+}
+
+func fromStringPtr(ptr *string) (output string) {
+	if ptr != nil {
+		output = *ptr
+	}
+
+	return
 }
 
 func NewService(server string) (Service, error) {
@@ -41,12 +49,13 @@ func NewService(server string) (Service, error) {
 	}, nil
 }
 
-func (s *authService) RequestAccessToken(ctx context.Context, requester, authorizer, service string, vcs []vc.VerifiableCredential) (*nutsAuthClient.AccessTokenResponse, error) {
+func (s *authService) RequestAccessToken(ctx context.Context, requester, authorizer, service string, vcs []vc.VerifiableCredential, identity *string) (*nutsAuthClient.AccessTokenResponse, error) {
 	httpResponse, err := s.client.RequestAccessToken(ctx, nutsAuthClient.RequestAccessTokenJSONRequestBody{
 		Requester:   requester,
 		Authorizer:  authorizer,
 		Service:     service,
 		Credentials: vcs,
+		Identity:    fromStringPtr(identity),
 	})
 	if err != nil {
 		return nil, err

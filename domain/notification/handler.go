@@ -45,7 +45,7 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 		return fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", notification.SenderDID, err)
 	}
 
-	accessToken, err := service.auth.RequestAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender", nil)
+	accessToken, err := service.auth.RequestAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender", nil, nil)
 	if err != nil {
 		return err
 	}

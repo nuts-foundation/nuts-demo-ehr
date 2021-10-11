@@ -351,6 +351,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		resourcePaths = resourcePathsFromSection(advanceNotice.Composition.Section, resourcePaths)
 		// Add path to the complete, non-anonymous, patient
 		resourcePaths = append(resourcePaths, "/"+fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference))
+		resourcePaths = append(resourcePaths, "/"+fhir.FromStringPtr(advanceNotice.Composition.Subject.Reference))
 
 		// The resourcePaths may contain duplicates, hold a list of processedPaths
 		processedPaths := map[string]struct{}{}
@@ -565,7 +566,7 @@ func (s service) sendNotification(ctx context.Context, customer *domain.Customer
 		return err
 	}
 
-	tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, transfer.ReceiverServiceName, nil)
+	tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, transfer.ReceiverServiceName, nil, nil)
 	if err != nil {
 		return err
 	}

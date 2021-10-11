@@ -21,16 +21,23 @@ type Auth interface {
 func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	resp, err := c.auth().GetSignSessionStatus(ctx, sessionToken)
+
 	if err != nil {
 		return nil, err
 	}
 	respData, err := testAndReadResponse(http.StatusOK, resp)
+
 	if err != nil {
 		return nil, err
 	}
 	sessionResponse := &nutsAuthClient.SignSessionStatusResponse{}
-	json.Unmarshal(respData, sessionResponse)
+
+	if err := json.Unmarshal(respData, sessionResponse); err != nil {
+		return nil, err
+	}
+
 	return sessionResponse, nil
 }
 

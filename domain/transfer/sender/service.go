@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/monarko/fhirgo/STU3/datatypes"
-	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
@@ -80,9 +78,11 @@ func (s service) CreateTransfer(ctx context.Context, customerID int, request typ
 
 	// Build the advance notice resources
 	advanceNotice := eoverdracht.NewFHIRBuilder().BuildAdvanceNotice(request, patient)
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+	fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
 
 	// Save the resources to the fhir storage
-	err = s.saveAdvanceNoticeFHIRResources(ctx, customerID, advanceNotice)
+	err = fhirService.CreateAdvanceNotice(ctx, advanceNotice)
 	if err != nil {
 		return nil, fmt.Errorf(createTransferErr, fmt.Errorf("unable to store advance notification fhir resources: %w", err))
 	}
@@ -288,47 +288,38 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, err
 		}
 
-		// The advance notice contains a lot of the same resources which should also be used in the Nursing Handoff
-		// Fetch the advanceNotice FHIR resources
 		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 		fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
 
+		// The advance notice contains a lot of the same resources which should also be used in the Nursing Handoff
+		// Fetch the advanceNotice FHIR resources
 		advanceNotice, err := fhirService.GetAdvanceNotice(ctx, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
 		if err != nil {
 			return nil, err
 		}
 
-		// Create eTransfer composition based on the advanceNotice and patient
+		// Create nursing handoff composition based on the advanceNotice and patient
 		nursingHandoffComposition, err := eoverdracht.NewFHIRBuilder().BuildNursingHandoffComposition(patient, advanceNotice)
 		if err != nil {
 			return nil, err
 		}
-		compositionID := nursingHandoffComposition.ID
-		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
-		dbTransfer.FhirNursingHandoffComposition = (*string)(compositionID)
-		dbTransfer.Status = types.TransferStatusAssigned
 
-		// update Task with new status and composition reference
-		task, err := s.getLocalTransferTask(ctx, customerID, negotiation.TaskID)
-		if err != nil {
-			return nil, err
-		}
-		task.Status = fhir.ToCodePtr(transfer.InProgressState)
-		task.Input = append(task.Input, resources.TaskInputOutput{
-			Type:           &fhir.SnomedNursingHandoffType,
-			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr(compositionPath)},
-		})
-
-		// Create nursing handoff composition in the FHIR store
+		// Save nursing handoff composition in the FHIR store
 		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition); err != nil {
 			return nil, err
 		}
 
-		fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.InProgressState)
+		compositionID := nursingHandoffComposition.ID
+		dbTransfer.FhirNursingHandoffComposition = (*string)(compositionID)
+		dbTransfer.Status = types.TransferStatusAssigned
 
-		// Update the task in the FHIR store
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
-			return nil, err
+		// Update the task with the new state and nursing handoff composition ID
+		if err := fhirService.UpdateTask(ctx, negotiation.TaskID, func(domainTask eoverdracht.TransferTask) eoverdracht.TransferTask {
+			domainTask.Status = transfer.InProgressState
+			domainTask.NursingHandoffID = dbTransfer.FhirNursingHandoffComposition
+			return domainTask
+		}); err != nil {
+			return nil, fmt.Errorf("could not confirm negotiation: %w", fmt.Errorf("could not update task with in-progress state: %w", err))
 		}
 
 		// Revoke the old AuthorizationCredential for the Task and AdvanceNotice
@@ -338,11 +329,12 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", fhir.FromIDPtr(task.ID)),
+				Path:        fmt.Sprintf("/Task/%s", negotiation.TaskID),
 				Operations:  []string{"read", "update"},
 				UserContext: true,
 			},
 		}
+		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
 		// Add paths of resources of both the advance notice and the nursing handoff
 		resourcePaths := resourcePathsFromSection(nursingHandoffComposition.Section, []string{advanceNoticePath, compositionPath})
 		resourcePaths = resourcePathsFromSection(advanceNotice.Composition.Section, resourcePaths)
@@ -439,13 +431,9 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 	if _, err := s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), transfer.AcceptedState); err != nil {
 		return err
 	}
-	// update FHIR task
-	task, err := s.getLocalTransferTask(ctx, customer.Id, negotiation.TaskID)
-	if err != nil {
-		return err
-	}
-	task.Status = fhir.ToCodePtr(transfer.AcceptedState)
-	if err = s.localFHIRClientFactory(fhir.WithTenant(customer.Id)).CreateOrUpdate(ctx, task); err != nil {
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
+	fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	if err := fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.AcceptedState); err != nil {
 		return err
 	}
 
@@ -482,12 +470,9 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 		transferRecord.Status = types.TransferStatusCompleted
 
 		// update FHIR task
-		task, err := s.getLocalTransferTask(ctx, customer.Id, negotiation.TaskID)
-		if err != nil {
-			return nil, err
-		}
-		task.Status = fhir.ToCodePtr(transfer.CompletedState)
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customer.Id)).CreateOrUpdate(ctx, task); err != nil {
+		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
+		fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+		if err := fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.CompletedState); err != nil {
 			return nil, err
 		}
 
@@ -534,12 +519,9 @@ func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiat
 	}
 
 	// update local Task
-	task, err := s.getLocalTransferTask(ctx, customerID, negotiation.TaskID)
-	if err != nil {
-		return nil, nil, err
-	}
-	task.Status = fhir.ToCodePtr(transfer.CancelledState)
-	if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, task); err != nil {
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+	fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	if err := fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.CancelledState); err != nil {
 		return nil, nil, err
 	}
 
@@ -570,16 +552,6 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 	return s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint)
 }
 
-func (s service) getLocalTransferTask(ctx context.Context, customerID int, fhirTaskID string) (resources.Task, error) {
-	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
-	fhirRepo := fhir.NewFHIRRepository(fhirClient)
-	task, err := fhirRepo.GetTask(ctx, fhirTaskID)
-	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task locally (task-id=%s): %w", fhirTaskID, err)
-	}
-	return task, nil
-}
-
 func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*types.Patient, error) {
 	transferDossier, err := s.dossierRepo.FindByID(ctx, customerID, dossierID)
 	if err != nil {
@@ -596,34 +568,4 @@ func (s service) findPatientByDossierID(ctx context.Context, customerID int, dos
 		return nil, fmt.Errorf("patient with id %s not found", string(transferDossier.PatientID))
 	}
 	return patient, nil
-}
-
-func (s service) saveAdvanceNoticeFHIRResources(ctx context.Context, customerID int, advanceNotice eoverdracht.AdvanceNotice) error {
-	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
-
-	// Save the Patient
-	err := fhirClient.CreateOrUpdate(ctx, advanceNotice.Patient)
-	if err != nil {
-		return err
-	}
-	// Save the all the problems
-	for _, problem := range advanceNotice.Problems {
-		err = fhirClient.CreateOrUpdate(ctx, problem)
-		if err != nil {
-			return err
-		}
-	}
-	// Save all the interventions
-	for _, intervention := range advanceNotice.Interventions {
-		err = fhirClient.CreateOrUpdate(ctx, intervention)
-		if err != nil {
-			return err
-		}
-	}
-	// At least save the composition
-	err = fhirClient.CreateOrUpdate(ctx, advanceNotice.Composition)
-	if err != nil {
-		return err
-	}
-	return nil
 }

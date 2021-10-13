@@ -17,8 +17,8 @@ type TransferService interface {
 	UpdateTaskStatus(ctx context.Context, fhirTaskID string, newState string) error
 	UpdateTask(ctx context.Context, fhirTaskID string, callbackFn func(domainTask TransferTask) TransferTask) error
 
-	CreateAdvanceNotice(ctx context.Context, nursingHandoff NursingHandoff) (AdvanceNotice, error)
-	CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) (NursingHandoff, error)
+	CreateAdvanceNotice(ctx context.Context, advanceNotice AdvanceNotice) error
+	CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) error
 
 	GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error)
 	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
@@ -89,11 +89,35 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 	return nil
 }
 
-func (s transferService) CreateAdvanceNotice(ctx context.Context, nursingHandoff NursingHandoff) (AdvanceNotice, error) {
-	panic("implement me")
+func (s transferService) CreateAdvanceNotice(ctx context.Context, advanceNotice AdvanceNotice) error {
+	// Save the Patient
+	err := s.fhirRepo.CreateOrUpdateResource(ctx, advanceNotice.Patient)
+	if err != nil {
+		return err
+	}
+	// Save the all the problems
+	for _, problem := range advanceNotice.Problems {
+		err = s.fhirRepo.CreateOrUpdateResource(ctx, problem)
+		if err != nil {
+			return err
+		}
+	}
+	// Save all the interventions
+	for _, intervention := range advanceNotice.Interventions {
+		err = s.fhirRepo.CreateOrUpdateResource(ctx, intervention)
+		if err != nil {
+			return err
+		}
+	}
+	// At least save the composition
+	err = s.fhirRepo.CreateOrUpdateResource(ctx, advanceNotice.Composition)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s transferService) CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) (NursingHandoff, error) {
+func (s transferService) CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) error {
 	panic("implement me")
 }
 

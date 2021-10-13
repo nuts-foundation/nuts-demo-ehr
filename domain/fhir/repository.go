@@ -44,7 +44,7 @@ func (s fhirRepository) ResolveComposition(ctx context.Context, compositionPath 
 
 	err := s.client.ReadOne(ctx, "/"+compositionPath, &composition)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", compositionPath, err)
+		return nil, nil, nil, fmt.Errorf("error while fetching the composition(id=%s): %w", compositionPath, err)
 	}
 
 	// Fetch the Patient

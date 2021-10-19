@@ -48,7 +48,7 @@ func (c HTTPClient) GetCompoundServiceEndpoint(ctx context.Context, organization
 	if err != nil {
 		return "", err
 	}
-	return *parsedResponse.JSON200, nil
+	return parsedResponse.JSON200.Endpoint, nil
 }
 
 func (c HTTPClient) didman() nutsDIDManClient.ClientInterface {

@@ -26,25 +26,33 @@ type TransferService interface {
 }
 
 func NewFHIRTransferService(client fhir.Client) TransferService {
-	return &transferService{fhirClient: client}
+	return &transferService{fhirClient: client, resourceBuilder: NewFHIRBuilder()}
 }
 
 type transferService struct {
 	fhirClient fhir.Client
+	resourceBuilder TransferFHIRBuilder
 }
 
 func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask) (TransferTask, error) {
-	transferTask := NewFHIRBuilder().BuildTask(fhir.TaskProperties{
+	transferTask := s.resourceBuilder.BuildTask(fhir.TaskProperties{
 		RequesterID: domainTask.SenderDID,
 		OwnerID:     domainTask.ReceiverDID,
 		Status:      transfer.RequestedState,
-		Input: []resources.TaskInputOutput{
-			{
-				Type:           &fhir.LoincAdvanceNoticeType,
-				ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
-			},
-		},
 	})
+
+	if domainTask.AdvanceNoticeID != nil {
+		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
+			Type:           &fhir.LoincAdvanceNoticeType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
+		})
+	}
+	if domainTask.NursingHandoffID != nil {
+		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
+			Type:           &fhir.SnomedNursingHandoffType,
+			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.NursingHandoffID)},
+		})
+	}
 
 	err := s.fhirClient.CreateOrUpdate(ctx, transferTask)
 	if err != nil {
@@ -62,7 +70,7 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 
 	domainTask := callbackFn(*task)
 
-	transferTask := NewFHIRBuilder().BuildTask(fhir.TaskProperties{
+	transferTask := s.resourceBuilder.BuildTask(fhir.TaskProperties{
 		ID:          &domainTask.ID,
 		RequesterID: domainTask.SenderDID,
 		OwnerID:     domainTask.ReceiverDID,

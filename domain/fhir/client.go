@@ -55,7 +55,6 @@ func NewFactory(defaultOpts ...ClientOpt) Factory {
 }
 
 type Client interface {
-	String() string
 	CreateOrUpdate(ctx context.Context, resource interface{}) error
 	ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error
 	ReadOne(ctx context.Context, path string, result interface{}) error
@@ -66,10 +65,6 @@ type httpClient struct {
 	url                 string
 	tenant              int
 	multiTenancyEnabled bool
-}
-
-func (h httpClient) String() string {
-	return h.url
 }
 
 func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {

@@ -62,7 +62,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 		return err
 	}
 
-	fhirService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
 	task, err := fhirService.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	fhirReceiverService := eoverdracht.NewFHIRTransferService(fhir.NewFHIRRepository(fhirClient))
+	fhirReceiverService := eoverdracht.NewFHIRTransferService(fhirClient)
 
 	task, err := fhirReceiverService.GetTask(ctx, fhirTaskID)
 	if err != nil {

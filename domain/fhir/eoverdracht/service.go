@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
@@ -24,12 +25,11 @@ type TransferService interface {
 	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
 }
 
-func NewFHIRTransferService(repo fhir.Repository) TransferService {
-	return &transferService{fhirRepo: repo}
+func NewFHIRTransferService(client fhir.Client) TransferService {
+	return &transferService{fhirClient: client}
 }
 
 type transferService struct {
-	fhirRepo   fhir.Repository
 	fhirClient fhir.Client
 }
 
@@ -46,7 +46,7 @@ func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask
 		},
 	})
 
-	err := s.fhirRepo.CreateOrUpdateResource(ctx, transferTask)
+	err := s.fhirClient.CreateOrUpdate(ctx, transferTask)
 	if err != nil {
 		return domainTask, fmt.Errorf("could not create FHIR Task: %w", err)
 	}
@@ -82,7 +82,7 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 		})
 	}
 
-	err = s.fhirRepo.CreateOrUpdateResource(ctx, transferTask)
+	err = s.fhirClient.CreateOrUpdate(ctx, transferTask)
 	if err != nil {
 		return fmt.Errorf("could not update FHIR Task: %w", err)
 	}
@@ -91,26 +91,26 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 
 func (s transferService) CreateAdvanceNotice(ctx context.Context, advanceNotice AdvanceNotice) error {
 	// Save the Patient
-	err := s.fhirRepo.CreateOrUpdateResource(ctx, advanceNotice.Patient)
+	err := s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Patient)
 	if err != nil {
 		return err
 	}
 	// Save the all the problems
 	for _, problem := range advanceNotice.Problems {
-		err = s.fhirRepo.CreateOrUpdateResource(ctx, problem)
+		err = s.fhirClient.CreateOrUpdate(ctx, problem)
 		if err != nil {
 			return err
 		}
 	}
 	// Save all the interventions
 	for _, intervention := range advanceNotice.Interventions {
-		err = s.fhirRepo.CreateOrUpdateResource(ctx, intervention)
+		err = s.fhirClient.CreateOrUpdate(ctx, intervention)
 		if err != nil {
 			return err
 		}
 	}
 	// At least save the composition
-	err = s.fhirRepo.CreateOrUpdateResource(ctx, advanceNotice.Composition)
+	err = s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Composition)
 	if err != nil {
 		return err
 	}
@@ -122,9 +122,10 @@ func (s transferService) CreateNursingHandoff(ctx context.Context, nursingHandof
 }
 
 func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferTask, error) {
-	fhirTask, err := s.fhirRepo.GetTask(ctx, taskID)
+	fhirTask := resources.Task{}
+	err := s.fhirClient.ReadOne(ctx, "/Task/"+taskID, &fhirTask)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while fetching task (task-id=%s): %w", taskID, err)
 	}
 
 	task := &TransferTask{
@@ -149,12 +150,12 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string, newStatus string) error {
 	// TODO: check for valid state changes
 	const updateErr = "could not update task state: %w"
-	task, err := s.fhirRepo.GetTask(ctx, fhirTaskID)
+	task, err := s.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return fmt.Errorf(updateErr, err)
 	}
-	task.Status = fhir.ToCodePtr(newStatus)
-	err = s.fhirRepo.UpdateTask(ctx, task)
+	task.Status = newStatus
+	err = s.fhirClient.CreateOrUpdate(ctx, task)
 	if err != nil {
 		return fmt.Errorf(updateErr, err)
 	}
@@ -164,7 +165,7 @@ func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string
 // GetAdvanceNotice converts a resolved composition into a AdvanceNotice
 func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error) {
 
-	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
+	composition, sections, patient, err := s.ResolveComposition(ctx, fhirCompositionPath)
 	if err != nil {
 		return AdvanceNotice{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
 	}
@@ -194,7 +195,7 @@ func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPa
 // GetNursingHandoff converts a resolved composition into a NursingHandoff
 func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error) {
 
-	composition, sections, patient, err := s.fhirRepo.ResolveComposition(ctx, fhirCompositionPath)
+	composition, sections, patient, err := s.ResolveComposition(ctx, fhirCompositionPath)
 	if err != nil {
 		return NursingHandoff{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
 	}
@@ -228,4 +229,60 @@ func (s transferService) findTaskInputOutputByCode(ios []resources.TaskInputOutp
 		}
 	}
 	return nil
+}
+
+func (s transferService) ResolveComposition(ctx context.Context, compositionPath string) (*fhir.Composition, map[string][]interface{}, *resources.Patient, error) {
+	composition := fhir.Composition{}
+	patient := resources.Patient{}
+	sections := map[string][]interface{}{}
+
+	err := s.fhirClient.ReadOne(ctx, "/"+compositionPath, &composition)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error while fetching the composition(id=%s): %w", compositionPath, err)
+	}
+
+	// Fetch the Patient
+	err = s.fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(composition.Subject.Reference), &patient)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
+	}
+
+	// Fill a map with sections by code
+	for _, l1 := range composition.Section {
+		l1code := fhir.FromCodePtr(l1.Code.Coding[0].Code)
+		if l1code == "" {
+			continue
+		}
+		for _, l2 := range l1.Section {
+			l2code := fhir.FromCodePtr(l2.Code.Coding[0].Code)
+			if l2code == "" {
+				continue
+			}
+			var entryResources []interface{}
+			for _, l2entry := range l2.Entry {
+				entryPath := fhir.FromStringPtr(l2entry.Reference)
+				resourceTypeStr := strings.Split(entryPath, "/")[0]
+				switch resourceTypeStr {
+				case "Condition":
+					resource := resources.Condition{}
+					err := s.fhirClient.ReadOne(ctx, entryPath, &resource)
+					if err != nil {
+						return nil, nil, nil, err
+					}
+					entryResources = append(entryResources, resource)
+				case "Procedure":
+					resource := fhir.Procedure{}
+					err := s.fhirClient.ReadOne(ctx, entryPath, &resource)
+					if err != nil {
+						return nil, nil, nil, err
+					}
+					entryResources = append(entryResources, resource)
+				}
+
+			}
+			sections[l1code+"/"+l2code] = entryResources
+		}
+	}
+
+	return &composition, sections, &patient, nil
 }

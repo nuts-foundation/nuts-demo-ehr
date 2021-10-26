@@ -145,10 +145,12 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, fhir.LoincAdvanceNoticeCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
+		ref = strings.Split(ref, "/Composition/")[1]
 		task.AdvanceNoticeID = &ref
 	}
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, fhir.SnomedNursingHandoffCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
+		ref = strings.Split(ref, "/Composition/")[1]
 		task.NursingHandoffID = &ref
 	}
 

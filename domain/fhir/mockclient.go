@@ -10,18 +10,20 @@ import (
 type mockClient struct{
 	t assert.TestingT
 	ExpectedCreateOrUpdate map[string]interface{}
+	readMock []map[string]interface{}
 }
 
 func NewMockClientWithExpectedCreateOrUpdate(t assert.TestingT, expected map[string]interface{}) mockClient {
 	return mockClient{t: t, ExpectedCreateOrUpdate: expected}
 }
 
+func NewMockClientWithReadMock(t assert.TestingT, expected []map[string]interface{}) mockClient {
+	return mockClient{t: t, readMock: expected}
+}
+
 func (m mockClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {
 	resourceJSON, _ := json.Marshal(resource)
-	resourceMap := map[string]interface{}{}
-	_ = json.Unmarshal(resourceJSON, &resourceMap)
-
-	assert.Equal(m.t, m.ExpectedCreateOrUpdate, resourceMap)
+	_ = json.Unmarshal(resourceJSON, &resource)
 	return nil
 }
 
@@ -29,8 +31,9 @@ func (mockClient) ReadMultiple(ctx context.Context, path string, params map[stri
 	panic("implement me")
 }
 
-func (mockClient) ReadOne(ctx context.Context, path string, result interface{}) error {
-	panic("implement me")
+func (m mockClient) ReadOne(ctx context.Context, path string, result interface{}) error {
+	resourceJSON, _ := json.Marshal(m.readMock[0])
+	return json.Unmarshal(resourceJSON, &result)
 }
 
 

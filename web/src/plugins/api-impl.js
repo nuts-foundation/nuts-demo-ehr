@@ -215,23 +215,6 @@ function createApi(options) {
           mode,
         });
     },
-    getDossier(parameters) {
-      const params = typeof parameters === 'undefined' ? {} : parameters;
-      let headers = {
-
-      };
-      handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'getDossier');
-      return fetch(endpoint + basePath + '/private/dossier' + '?' + buildQuery({
-          'patientID': params['patientID'],
-        })
-
-        , {
-          method: 'GET',
-          headers,
-          mode,
-        });
-    },
     createDossier(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
@@ -247,6 +230,20 @@ function createApi(options) {
           mode,
           body: JSON.stringify(params['body']),
 
+        });
+    },
+    getDossier(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getDossier');
+      return fetch(endpoint + basePath + '/private/dossier/' + params['patientID'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
         });
     },
     getInbox(parameters) {

@@ -494,13 +494,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/InboxInfo"
 
-  /private/dossier:
+  /private/dossier/{patientID}:
     get:
       description: Get list of dossiers for a patient
       operationId: getDossier
       parameters:
         - name: patientID
-          in: query
+          in: path
           description: The patient ID
           required: true
           schema:
@@ -514,6 +514,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Dossier"
+
+  /private/dossier:
     post:
       description: Create a new dossier for a patient
       operationId: createDossier

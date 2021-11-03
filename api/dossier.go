@@ -4,26 +4,25 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
-type GetDossierParams = types.GetDossierParams
 type CreateDossierRequest = types.CreateDossierRequest
 
-func (w Wrapper) GetDossier(ctx echo.Context, params GetDossierParams) error {
+func (w Wrapper) GetDossier(ctx echo.Context, patientID string) error {
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {
 		return err
 	}
-	if params.PatientID != "" {
-		dossiers, err := w.DossierRepository.AllByPatient(ctx.Request().Context(), cid, params.PatientID)
-		if err != nil {
-			return err
-		}
-		return ctx.JSON(http.StatusOK, dossiers)
+
+	dossiers, err := w.DossierRepository.AllByPatient(ctx.Request().Context(), cid, patientID)
+	if err != nil {
+		return err
 	}
-	return echo.NewHTTPError(http.StatusBadRequest, "missing patient_id query param")
+
+	return ctx.JSON(http.StatusOK, dossiers)
 }
 
 func (w Wrapper) CreateDossier(ctx echo.Context) error {

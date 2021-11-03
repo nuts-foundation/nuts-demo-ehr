@@ -47,11 +47,11 @@ type ServerInterface interface {
 	// (GET /private/customer)
 	GetCustomer(ctx echo.Context) error
 
-	// (GET /private/dossier)
-	GetDossier(ctx echo.Context, params GetDossierParams) error
-
 	// (POST /private/dossier)
 	CreateDossier(ctx echo.Context) error
+
+	// (GET /private/dossier/{patientID})
+	GetDossier(ctx echo.Context, patientID string) error
 
 	// (GET /private/network/inbox)
 	GetInbox(ctx echo.Context) error
@@ -260,26 +260,6 @@ func (w *ServerInterfaceWrapper) GetCustomer(ctx echo.Context) error {
 	return err
 }
 
-// GetDossier converts echo context to params.
-func (w *ServerInterfaceWrapper) GetDossier(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(BearerAuthScopes, []string{""})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetDossierParams
-	// ------------- Required query parameter "patientID" -------------
-
-	err = runtime.BindQueryParameter("form", true, true, "patientID", ctx.QueryParams(), &params.PatientID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetDossier(ctx, params)
-	return err
-}
-
 // CreateDossier converts echo context to params.
 func (w *ServerInterfaceWrapper) CreateDossier(ctx echo.Context) error {
 	var err error
@@ -288,6 +268,24 @@ func (w *ServerInterfaceWrapper) CreateDossier(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CreateDossier(ctx)
+	return err
+}
+
+// GetDossier converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDossier(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetDossier(ctx, patientID)
 	return err
 }
 
@@ -663,8 +661,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
-	router.GET(baseURL+"/private/dossier", wrapper.GetDossier)
 	router.POST(baseURL+"/private/dossier", wrapper.CreateDossier)
+	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)
 	router.GET(baseURL+"/private/network/inbox", wrapper.GetInbox)
 	router.GET(baseURL+"/private/network/inbox/info", wrapper.GetInboxInfo)
 	router.GET(baseURL+"/private/network/organizations", wrapper.SearchOrganizations)

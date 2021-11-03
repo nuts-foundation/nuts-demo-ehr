@@ -333,12 +333,6 @@ type SetCustomerJSONBody Customer
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
-// GetDossierParams defines parameters for GetDossier.
-type GetDossierParams struct {
-	// The patient ID
-	PatientID string `json:"patientID"`
-}
-
 // CreateDossierJSONBody defines parameters for CreateDossier.
 type CreateDossierJSONBody CreateDossierRequest
 

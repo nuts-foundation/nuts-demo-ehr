@@ -74,6 +74,9 @@ type ServerInterface interface {
 	// (POST /private/patients)
 	NewPatient(ctx echo.Context) error
 
+	// (GET /private/reports/{patientID})
+	GetReports(ctx echo.Context, patientID string) error
+
 	// (GET /private/transfer)
 	GetPatientTransfers(ctx echo.Context, params GetPatientTransfersParams) error
 
@@ -126,10 +129,13 @@ func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 
 // AuthenticateWithDummy converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthenticateWithDummy(ctx echo.Context) error {
+	var err error
+
 	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
-	return w.Handler.AuthenticateWithDummy(ctx)
+	err = w.Handler.AuthenticateWithDummy(ctx)
+	return err
 }
 
 // GetDummyAuthenticationResult converts echo context to params.
@@ -405,6 +411,24 @@ func (w *ServerInterfaceWrapper) NewPatient(ctx echo.Context) error {
 	return err
 }
 
+// GetReports converts echo context to params.
+func (w *ServerInterfaceWrapper) GetReports(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "patientID" -------------
+	var patientID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "patientID", runtime.ParamLocationPath, ctx.Param("patientID"), &patientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetReports(ctx, patientID)
+	return err
+}
+
 // GetPatientTransfers converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPatientTransfers(ctx echo.Context) error {
 	var err error
@@ -670,6 +694,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/private/patient/:patientID", wrapper.UpdatePatient)
 	router.GET(baseURL+"/private/patients", wrapper.GetPatients)
 	router.POST(baseURL+"/private/patients", wrapper.NewPatient)
+	router.GET(baseURL+"/private/reports/:patientID", wrapper.GetReports)
 	router.GET(baseURL+"/private/transfer", wrapper.GetPatientTransfers)
 	router.POST(baseURL+"/private/transfer", wrapper.CreateTransfer)
 	router.GET(baseURL+"/private/transfer-request/:requestorDID/:fhirTaskID", wrapper.GetTransferRequest)
@@ -683,3 +708,4 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/private/transfer/:transferID/negotiation/:negotiationID", wrapper.UpdateTransferNegotiationStatus)
 
 }
+

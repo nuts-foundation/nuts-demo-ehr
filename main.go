@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"io/fs"
 	"log"
 	"net/http"
@@ -171,6 +172,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 
 	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address), fhir.WithMultiTenancyEnabled(config.FHIR.Server.SupportsMultiTenancy()))
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
+	reportRepository := reports.NewFHIRRepository(fhirClientFactory)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferSenderRepo := sender.NewTransferRepository(sqlDB)
@@ -205,6 +207,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		NutsAuth:                nodeClient,
 		CustomerRepository:      customerRepository,
 		PatientRepository:       patientRepository,
+		ReportRepository:        reportRepository,
 		DossierRepository:       dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB),
 		TransferSenderRepo:      transferSenderRepo,
 		OrganizationRegistry:    orgRegistry,

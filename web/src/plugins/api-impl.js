@@ -357,6 +357,20 @@ function createApi(options) {
 
         });
     },
+    getReports(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getReports');
+      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     getPatientTransfers(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

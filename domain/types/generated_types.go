@@ -236,6 +236,18 @@ type Problem struct {
 // ProblemStatus defines model for Problem.Status.
 type ProblemStatus string
 
+// Report defines model for Report.
+type Report struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id ObjectID `json:"id"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	PatientID ObjectID `json:"patientID"`
+	Source    string   `json:"source"`
+	Type      string   `json:"type"`
+	Value     string   `json:"value"`
+}
+
 // Result of a signing session.
 type SessionToken struct {
 	// the result from a signing session. It's an updated JWT.

@@ -50,7 +50,6 @@ oapi-codegen -generate client,types -package auth -exclude-schemas VerifiableCre
 oapi-codegen -generate client,types -package vcr -o nuts/client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/v1.yaml
 oapi-codegen -generate client,types -package didman -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
 oapi-codegen -generate client,types -package vdr -o nuts/client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
-
 ```
 
 ### Docker

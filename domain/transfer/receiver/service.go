@@ -20,7 +20,7 @@ type TransferService interface {
 	// CreateOrUpdate creates or updates an incoming transfer record in the local storage
 	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
-	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*types.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error)
 }
 
 type service struct {
@@ -57,7 +57,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	}
 
 	taskPath := fmt.Sprintf("/Task/%s", fhirTaskID)
-	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath)
+	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, nil)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	return fmt.Errorf("invalid state change from %s to %s", task.Status, newState)
 }
 
-func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string) (*types.TransferRequest, error) {
+func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error) {
 	const getTransferRequestErr = "unable to get transferRequest: %w"
 
 	customer, err := s.customerRepo.FindByID(customerID)
@@ -99,7 +99,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	}
 
 	taskPath := fmt.Sprintf("/Task/%s", fhirTaskID)
-	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath)
+	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, &identity)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	return &transferRequest, nil
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string) (fhir.Client, error) {
+func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string, identity *string) (fhir.Client, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
@@ -171,7 +171,7 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 		transformed[i] = tCred
 	}
 
-	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed)
+	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed, identity)
 	if err != nil {
 		return nil, err
 	}

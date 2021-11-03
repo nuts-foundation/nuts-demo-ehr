@@ -1,12 +1,13 @@
 <template>
   <form @submit.stop.prevent="createDossierAndTransfer" novalidate>
+    <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md shadow-sm" v-if="formErrors.length">
+      <label class="text-red-500">Please correct the following error{{formErrors.length === 0 ? '' : 's'}}:</label>
 
-    <div class="sticky top-0 z-10 p-3 bg-red-100 rounded-md" v-if="formErrors.length">
-      <b>Please correct the following error(s):</b>
-      <ul>
-        <li v-for="error in formErrors">* {{ error }}</li>
+      <ul class="text-sm">
+        <li v-for="error in formErrors">— {{ error }}</li>
       </ul>
     </div>
+
     <transfer-form :transfer="transfer"></transfer-form>
 
     <div class="mt-6">

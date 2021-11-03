@@ -140,6 +140,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	if service == nil {
 		return errors.New("access-token doesn't contain 'service' claim")
 	}
+
 	if *service != transfer.SenderServiceName {
 		return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be %s", *service, transfer.SenderServiceName)
 	}
@@ -152,6 +153,7 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 		if route.operation != "read" {
 			return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
 		}
+
 		// query params(code and _lastUpdated) are optional
 		// ok for Task search
 		return nil
@@ -169,8 +171,9 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	if route.operation == "update" && strings.HasPrefix(route.path(), serverTaskPath) {
 		tenant, err := server.getTenant(*token.Iss)
 		if err != nil {
-			fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
+			return fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
 		}
+
 		// task handling
 		req := ctx.Request()
 		path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
@@ -187,26 +190,30 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 
 func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse, route fhirRoute) error {
 	hasUser := token.Email != nil
+
 	if token.Vcs != nil {
 		for _, credentialID := range *token.Vcs {
 			// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
-			vc, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
+			verifiableCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
 			if err != nil {
 				return fmt.Errorf("invalid credential: %w", err)
 			}
 
-			didVC, err := convertCredential(*vc)
+			didVC, err := convertCredential(*verifiableCredential)
 			if err != nil {
 				return fmt.Errorf("invalid credential format: %w", err)
 			}
+
 			if !validCredentialType(*didVC) {
 				continue
 			}
 
 			subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+
 			if err := didVC.UnmarshalCredentialSubject(&subject); err != nil {
 				return fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
 			}
+
 			for _, resource := range subject[0].Resources {
 				// path should match
 				if !strings.Contains(route.path(), resource.Path) {
@@ -227,6 +234,7 @@ func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Contex
 				}
 			}
 		}
+
 		return errors.New("no matching NutsAuthorizationCredential found in access-token")
 	}
 

@@ -7,20 +7,20 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	nutsAuth "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 )
 
 const BearerAuthScopes = types.BearerAuthScopes
@@ -157,10 +157,12 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
+
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
+
 	bytes, err := w.NutsAuth.CreateDummySession(*customer)
 	if err != nil {
 		return err
@@ -168,7 +170,11 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 
 	// convert to map so echo rendering doesn't escape double quotes
 	j := map[string]interface{}{}
-	json.Unmarshal(bytes, &j)
+
+	if err := json.Unmarshal(bytes, &j); err != nil {
+		return err
+	}
+
 	return ctx.JSON(http.StatusOK, j)
 }
 
@@ -178,24 +184,30 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return err
 	}
 
-	var (
-		sessionStatus string
-	)
+	var sessionResult *nutsAuth.SignSessionStatusResponse
 
 	// for dummy, it takes a few request to get to status completed.
-	for i := 0; i < 4 && sessionStatus != "completed"; i++ {
+	for i := 0; i < 4; i++ {
 		// forward to node
-		sessionResult, err := w.NutsAuth.GetDummySessionResult(sessionToken)
+		sessionResult, err = w.NutsAuth.GetDummySessionResult(sessionToken)
 		if err != nil {
 			return err
 		}
-		sessionStatus = sessionResult.Status
+
+		if sessionResult.Status == "completed" {
+			break
+		}
 	}
 
-	if sessionStatus != "completed" {
+	if sessionResult.Status != "completed" {
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
-	sessionBytes, _ := json.Marshal(sessionStatus)
+
+	sessionBytes, err := json.Marshal(sessionResult.VerifiablePresentation)
+	if err != nil {
+		return err
+	}
+
 	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
 
 	sessionID := w.APIAuth.StoreVP(customerID, base64String)

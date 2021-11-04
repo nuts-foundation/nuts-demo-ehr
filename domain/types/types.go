@@ -14,4 +14,3 @@ type IncomingTransfer struct {
 	Status     TransferNegotiationStatus `json:"status"`
 	CreatedAt  time.Time                 `json:"createdAt"`
 }
-

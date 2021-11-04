@@ -19,12 +19,12 @@ type TransferFHIRBuilder interface {
 	BuildNursingHandoffComposition(patient *types.Patient, advanceNotice AdvanceNotice) (fhir.Composition, error)
 }
 
-type FHIRBuilder struct{
+type FHIRBuilder struct {
 	IDGenerator IDGenerator
 }
 
 func NewFHIRBuilder() TransferFHIRBuilder {
-	return FHIRBuilder{ IDGenerator: UUIDGenerator{} }
+	return FHIRBuilder{IDGenerator: UUIDGenerator{}}
 }
 
 // BuildTask builds a task from the TaskProperties struct. If no ID is set, a new uuid is generated.
@@ -43,7 +43,7 @@ func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
 			},
 		},
 		Status: fhir.ToCodePtr(props.Status),
-		Code: &SnomedTransferType,
+		Code:   &SnomedTransferType,
 		Requester: &resources.TaskRequester{
 			Agent: &datatypes.Reference{
 				Identifier: &datatypes.Identifier{
@@ -112,7 +112,7 @@ func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) 
 			},
 		},
 		Title: fhir.ToStringPtr("Administrative data"),
-		Code: AdministrativeDocConcept,
+		Code:  AdministrativeDocConcept,
 	}
 
 }
@@ -183,12 +183,7 @@ func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resource
 
 	// Start with empty care plan
 	careplan := fhir.CompositionSection{
-		Code: datatypes.CodeableConcept{
-			Coding: []datatypes.Coding{{
-				System:  &fhir.SnomedCodingSystem,
-				Code:    fhir.ToCodePtr(CarePlanCode),
-				Display: fhir.ToStringPtr("Nursing care plan (record artifact)"),
-			}}},
+		Code: CarePlanConcept,
 		Section: []fhir.CompositionSection{
 			patientProblems,
 		},
@@ -246,7 +241,8 @@ type IDGenerator interface {
 	GenerateID() string
 }
 
-type UUIDGenerator struct {}
+type UUIDGenerator struct{}
+
 func (UUIDGenerator) GenerateID() string {
 	return uuid.NewString()
 }

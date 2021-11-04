@@ -11,7 +11,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
-
 func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	return eoverdracht.ToDomainPatient(fhirPatient)
 }
@@ -21,25 +20,25 @@ func ToFHIRPatient(domainPatient types.Patient) resources.Patient {
 
 	fhirPatient := resources.Patient{
 		Domain: resources.Domain{
-			Base:      resources.Base{
+			Base: resources.Base{
 				ResourceType: "Patient",
-				ID: fhir.ToIDPtr(string(domainPatient.ObjectID)),
+				ID:           fhir.ToIDPtr(string(domainPatient.ObjectID)),
 			},
 		},
 		Name: []datatypes.HumanName{{
-			Use:     fhir.ToCodePtr("official"),
-			Family:  fhir.ToStringPtr(domainPatient.Surname),
-			Given:   []datatypes.String{datatypes.String(domainPatient.FirstName)},
+			Use:    fhir.ToCodePtr("official"),
+			Family: fhir.ToStringPtr(domainPatient.Surname),
+			Given:  []datatypes.String{datatypes.String(domainPatient.FirstName)},
 		}},
 		BirthDate: &dob,
-		Gender: fhir.ToCodePtr(string(domainPatient.Gender)),
+		Gender:    fhir.ToCodePtr(string(domainPatient.Gender)),
 	}
 
 	if domainPatient.Ssn != nil {
 		fhirPatient.Identifier = append(fhirPatient.Identifier, datatypes.Identifier{System: fhir.ToUriPtr(types.BsnSystem), Value: fhir.ToStringPtr(*domainPatient.Ssn)})
 	}
 	if domainPatient.AvatarUrl != nil {
-		fhirPatient.Photo = append(fhirPatient.Photo, datatypes.Attachment{URL: fhir.ToUriPtr(*domainPatient.AvatarUrl) })
+		fhirPatient.Photo = append(fhirPatient.Photo, datatypes.Attachment{URL: fhir.ToUriPtr(*domainPatient.AvatarUrl)})
 	}
 	if domainPatient.Zipcode != "" {
 		fhirPatient.Address = append(fhirPatient.Address, datatypes.Address{
@@ -104,7 +103,7 @@ func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *st
 		params = map[string]string{"name": *name}
 	} else {
 		// Filter patients by having a name. This filters out the anonymous patients created just for the eOverdracht advance notice.
-		params = map[string]string{"name:above":"_"}
+		params = map[string]string{"name:above": "_"}
 	}
 	fhirPatients := []resources.Patient{}
 	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Patient", params, &fhirPatients)

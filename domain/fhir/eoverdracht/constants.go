@@ -5,7 +5,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 )
 
-
 var (
 	SnomedTransferCode        datatypes.Code   = "308292007"
 	LoincAdvanceNoticeCode    datatypes.Code   = "57830-2"
@@ -35,6 +34,14 @@ var LoincAdvanceNoticeType = datatypes.CodeableConcept{
 		Code:   &LoincAdvanceNoticeCode,
 	}},
 	Text: fhir.ToStringPtr("Aanmeldbericht"),
+}
+
+var CarePlanConcept = datatypes.CodeableConcept{
+	Coding: []datatypes.Coding{{
+		System:  &fhir.SnomedCodingSystem,
+		Code:    fhir.ToCodePtr(CarePlanCode),
+		Display: fhir.ToStringPtr("Nursing care plan (record artifact)"),
+	}},
 }
 
 var SnomedNursingHandoffType = datatypes.CodeableConcept{

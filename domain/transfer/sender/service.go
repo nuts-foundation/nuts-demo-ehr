@@ -155,7 +155,6 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
 
-
 		compositionPath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
 		composition := fhir.Composition{}
 		err = fhirClient.ReadOne(ctx, compositionPath, &composition)

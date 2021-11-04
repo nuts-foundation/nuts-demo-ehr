@@ -2,8 +2,8 @@ package eoverdracht
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/monarko/fhirgo/STU3/datatypes"
@@ -30,7 +30,7 @@ func NewFHIRTransferService(client fhir.Client) TransferService {
 }
 
 type transferService struct {
-	fhirClient fhir.Client
+	fhirClient      fhir.Client
 	resourceBuilder TransferFHIRBuilder
 }
 
@@ -145,12 +145,12 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, LoincAdvanceNoticeCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
-		ref = strings.Split(ref, "/Composition/")[1]
+		ref = strings.Split(ref, "Composition/")[1]
 		task.AdvanceNoticeID = &ref
 	}
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, SnomedNursingHandoffCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
-		ref = strings.Split(ref, "/Composition/")[1]
+		ref = strings.Split(ref, "Composition/")[1]
 		task.NursingHandoffID = &ref
 	}
 
@@ -173,9 +173,9 @@ func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string
 }
 
 // GetAdvanceNotice converts a resolved composition into a AdvanceNotice
-func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error) {
+func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionID string) (AdvanceNotice, error) {
 
-	composition, sections, patient, err := s.ResolveComposition(ctx, fhirCompositionPath)
+	composition, patient, err := s.ResolveComposition(ctx, "Composition/"+fhirCompositionID)
 	if err != nil {
 		return AdvanceNotice{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
 	}
@@ -184,18 +184,23 @@ func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPa
 		Patient:     *patient,
 	}
 
-	nursingDiagnosisEntries, ok := sections[CarePlanCode+"/"+NursingDiagnosisCode]
-	if !ok {
-		return AdvanceNotice{}, errors.New("NursingDiagnosis not set in composition")
-	}
+	carePlanCompositions, err := s.resolveCompositionSections(composition.Section, CarePlanConcept)
 
-	// the nursing diagnosis contains both conditions and procedures
-	for _, entry := range nursingDiagnosisEntries {
-		if condition, ok := entry.(resources.Condition); ok {
-			advanceNotice.Problems = append(advanceNotice.Problems, condition)
+	for _, handoffComposition := range carePlanCompositions {
+		conditions, err := s.resolveCompositionEntry(ctx, handoffComposition, resources.Condition{})
+		if err != nil {
+			return AdvanceNotice{}, err
 		}
-		if procedure, ok := entry.(fhir.Procedure); ok {
-			advanceNotice.Interventions = append(advanceNotice.Interventions, procedure)
+		for _, condition := range conditions {
+			advanceNotice.Problems = append(advanceNotice.Problems, *condition.(*resources.Condition))
+		}
+
+		procedures, err := s.resolveCompositionEntry(ctx, handoffComposition, fhir.Procedure{})
+		if err != nil {
+			return AdvanceNotice{}, err
+		}
+		for _, procedure := range procedures {
+			advanceNotice.Interventions = append(advanceNotice.Interventions, *procedure.(*fhir.Procedure))
 		}
 	}
 
@@ -203,9 +208,9 @@ func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionPa
 }
 
 // GetNursingHandoff converts a resolved composition into a NursingHandoff
-func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error) {
+func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionID string) (NursingHandoff, error) {
 
-	composition, sections, patient, err := s.ResolveComposition(ctx, fhirCompositionPath)
+	composition, patient, err := s.ResolveComposition(ctx, "Composition/"+fhirCompositionID)
 	if err != nil {
 		return NursingHandoff{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
 	}
@@ -214,18 +219,22 @@ func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionP
 		Patient:     *patient,
 	}
 
-	nursingDiagnosisEntries, ok := sections[CarePlanCode+"/"+NursingDiagnosisCode]
-	if !ok {
-		return NursingHandoff{}, errors.New("NursingDiagnosis not set in composition")
-	}
-
-	// the nursing diagnosis contains both conditions and procedures
-	for _, entry := range nursingDiagnosisEntries {
-		if condition, ok := entry.(resources.Condition); ok {
-			nursingHandoff.Problems = append(nursingHandoff.Problems, condition)
+	carePlanCompositions, err := s.resolveCompositionSections(composition.Section, CarePlanConcept)
+	for _, handoffComposition := range carePlanCompositions {
+		conditions, err := s.resolveCompositionEntry(ctx, handoffComposition, resources.Condition{})
+		if err != nil {
+			return NursingHandoff{}, err
 		}
-		if procedure, ok := entry.(fhir.Procedure); ok {
-			nursingHandoff.Interventions = append(nursingHandoff.Interventions, procedure)
+		for _, condition := range conditions {
+			nursingHandoff.Problems = append(nursingHandoff.Problems, *condition.(*resources.Condition))
+		}
+
+		procedures, err := s.resolveCompositionEntry(ctx, handoffComposition, fhir.Procedure{})
+		if err != nil {
+			return NursingHandoff{}, err
+		}
+		for _, procedure := range procedures {
+			nursingHandoff.Interventions = append(nursingHandoff.Interventions, *procedure.(*fhir.Procedure))
 		}
 	}
 
@@ -241,58 +250,51 @@ func (s transferService) findTaskInputOutputByCode(ios []resources.TaskInputOutp
 	return nil
 }
 
-func (s transferService) ResolveComposition(ctx context.Context, compositionPath string) (*fhir.Composition, map[string][]interface{}, *resources.Patient, error) {
+func (s transferService) resolveCompositionSections(sections []fhir.CompositionSection, code datatypes.CodeableConcept) ([]fhir.CompositionSection, error) {
+	for _, section := range sections {
+		if fhir.FromCodePtr(section.Code.Coding[0].Code) == fhir.FromCodePtr(code.Coding[0].Code) {
+			return section.Section, nil
+		}
+	}
+	return nil, fmt.Errorf("sections not found")
+}
+
+func (s transferService) resolveCompositionEntry(ctx context.Context, section fhir.CompositionSection, resource interface{}) ([]interface{}, error) {
+	resourceType := reflect.TypeOf(resource)
+	res := []interface{}{}
+
+	typeStr := resourceType.Name()
+	for _, entry := range section.Entry {
+		entryPath := fhir.FromStringPtr(entry.Reference)
+		resourceTypeStr := strings.Split(entryPath, "/")[0]
+		if resourceTypeStr != typeStr {
+			continue
+		}
+		newResourceType := reflect.New(resourceType)
+		newResource := newResourceType.Interface()
+		err := s.fhirClient.ReadOne(ctx, entryPath, &newResource)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, newResource)
+	}
+	return res, nil
+}
+
+func (s transferService) ResolveComposition(ctx context.Context, compositionPath string) (*fhir.Composition, *resources.Patient, error) {
 	composition := fhir.Composition{}
 	patient := resources.Patient{}
-	sections := map[string][]interface{}{}
 
 	err := s.fhirClient.ReadOne(ctx, "/"+compositionPath, &composition)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error while fetching the composition(id=%s): %w", compositionPath, err)
+		return nil, nil, fmt.Errorf("error while fetching the composition(id=%s): %w", compositionPath, err)
 	}
 
 	// Fetch the Patient
 	err = s.fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(composition.Subject.Reference), &patient)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
+		return nil, nil, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
 	}
 
-	// Fill a map with sections by code
-	for _, l1 := range composition.Section {
-		l1code := fhir.FromCodePtr(l1.Code.Coding[0].Code)
-		if l1code == "" {
-			continue
-		}
-		for _, l2 := range l1.Section {
-			l2code := fhir.FromCodePtr(l2.Code.Coding[0].Code)
-			if l2code == "" {
-				continue
-			}
-			var entryResources []interface{}
-			for _, l2entry := range l2.Entry {
-				entryPath := fhir.FromStringPtr(l2entry.Reference)
-				resourceTypeStr := strings.Split(entryPath, "/")[0]
-				switch resourceTypeStr {
-				case "Condition":
-					resource := resources.Condition{}
-					err := s.fhirClient.ReadOne(ctx, entryPath, &resource)
-					if err != nil {
-						return nil, nil, nil, err
-					}
-					entryResources = append(entryResources, resource)
-				case "Procedure":
-					resource := fhir.Procedure{}
-					err := s.fhirClient.ReadOne(ctx, entryPath, &resource)
-					if err != nil {
-						return nil, nil, nil, err
-					}
-					entryResources = append(entryResources, resource)
-				}
-
-			}
-			sections[l1code+"/"+l2code] = entryResources
-		}
-	}
-
-	return &composition, sections, &patient, nil
+	return &composition, &patient, nil
 }

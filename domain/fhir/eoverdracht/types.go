@@ -6,7 +6,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 )
 
-
 type TransferTask struct {
 	ID               string
 	Status           string

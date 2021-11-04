@@ -57,8 +57,8 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, purposeOfUse, subjectID, resourcePath string) ([]vcr.VerifiableCredential, error) {
 	// may be extended by issuanceDate for even faster results.
 	params := map[string]string{
-		"credentialSubject.id": subjectID,
-		"credentialSubject.purposeOfUse": purposeOfUse,
+		"credentialSubject.id":               subjectID,
+		"credentialSubject.purposeOfUse":     purposeOfUse,
 		"credentialSubject.resources.#.path": resourcePath,
 	}
 	return registry.nutsClient.FindAuthorizationCredentials(ctx, params)

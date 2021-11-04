@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockClient struct{
-	t assert.TestingT
+type mockClient struct {
+	t                      assert.TestingT
 	ExpectedCreateOrUpdate map[string]interface{}
-	readMock []map[string]interface{}
+	readMock               []map[string]interface{}
 }
 
 func NewMockClientWithExpectedCreateOrUpdate(t assert.TestingT, expected map[string]interface{}) mockClient {
@@ -35,5 +35,3 @@ func (m mockClient) ReadOne(ctx context.Context, path string, result interface{}
 	resourceJSON, _ := json.Marshal(m.readMock[0])
 	return json.Unmarshal(resourceJSON, &result)
 }
-
-

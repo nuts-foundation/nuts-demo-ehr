@@ -178,4 +178,3 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 
 	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))(), nil
 }
-

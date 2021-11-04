@@ -13,7 +13,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func FHIRConditionToDomainProblem(condition resources.Condition) types.Problem {
+func ToDomainProblem(condition resources.Condition) types.Problem {
 	var notes []string
 	for _, note := range condition.Note {
 		notes = append(notes, fhir.FromStringPtr(note.Text))
@@ -25,11 +25,11 @@ func FHIRConditionToDomainProblem(condition resources.Condition) types.Problem {
 	}
 }
 
-func FHIRProcedureToDomainIntervention(procedure fhir.Procedure) types.Intervention {
+func ToDomainIntervention(procedure fhir.Procedure) types.Intervention {
 	return types.Intervention{Comment: fhir.FromStringPtr(procedure.Note[0].Text)}
 }
 
-func FHIRPatientToDomainPatient(fhirPatient resources.Patient) types.Patient {
+func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	asJSON, _ := json.Marshal(fhirPatient)
 	p := gjson.ParseBytes(asJSON)
 
@@ -59,8 +59,8 @@ func FHIRPatientToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	}
 }
 
-func FHIRAdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProperties, error) {
-	patient := FHIRPatientToDomainPatient(notice.Patient)
+func AdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProperties, error) {
+	patient := ToDomainPatient(notice.Patient)
 	adminData, err := FilterCompositionSectionByType(notice.Composition.Section, AdministrativeDocCode)
 	if err != nil {
 		return types.TransferProperties{}, fmt.Errorf("administrativeData section missing in advance notice: %w", err)
@@ -77,21 +77,21 @@ func FHIRAdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProp
 		var interventions []types.Intervention
 		for _, procedure := range notice.Interventions {
 			if fhir.FromStringPtr(procedure.ReasonReference[0].Reference) == "Condition/"+fhir.FromIDPtr(condition.ID) {
-				interventions = append(interventions, FHIRProcedureToDomainIntervention(procedure))
+				interventions = append(interventions, ToDomainIntervention(procedure))
 			}
 		}
 		domainTransfer.CarePlan.PatientProblems = append(domainTransfer.CarePlan.PatientProblems,
 			types.PatientProblem{
 				Interventions: interventions,
-				Problem:       FHIRConditionToDomainProblem(condition),
+				Problem:       ToDomainProblem(condition),
 			})
 
 	}
 	return domainTransfer, nil
 }
 
-func FHIRNursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.TransferProperties, error) {
-	patient := FHIRPatientToDomainPatient(nursingHandoff.Patient)
+func NursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.TransferProperties, error) {
+	patient := ToDomainPatient(nursingHandoff.Patient)
 	adminData, err := FilterCompositionSectionByType(nursingHandoff.Composition.Section, AdministrativeDocCode)
 	if err != nil {
 		return types.TransferProperties{}, fmt.Errorf("administrativeData section missing in advance notice: %w", err)
@@ -108,13 +108,13 @@ func FHIRNursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.Tr
 		var interventions []types.Intervention
 		for _, procedure := range nursingHandoff.Interventions {
 			if fhir.FromStringPtr(procedure.ReasonReference[0].Reference) == "Condition/"+fhir.FromIDPtr(condition.ID) {
-				interventions = append(interventions, FHIRProcedureToDomainIntervention(procedure))
+				interventions = append(interventions, ToDomainIntervention(procedure))
 			}
 		}
 		domainTransfer.CarePlan.PatientProblems = append(domainTransfer.CarePlan.PatientProblems,
 			types.PatientProblem{
 				Interventions: interventions,
-				Problem:       FHIRConditionToDomainProblem(condition),
+				Problem:       ToDomainProblem(condition),
 			})
 
 	}

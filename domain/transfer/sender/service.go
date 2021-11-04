@@ -109,7 +109,7 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 		return types.Transfer{}, err
 	}
 
-	domainTransfer, err := eoverdracht.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	domainTransfer, err := eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
 	if err != nil || customer.Did == nil {
 		return types.Transfer{}, err
 	}

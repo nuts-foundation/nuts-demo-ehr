@@ -119,7 +119,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	if err != nil {
 		return nil, fmt.Errorf("unable to get advance notice: %w", err)
 	}
-	domainAdvanceNotice, err := eoverdracht.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	domainAdvanceNotice, err := eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		if err != nil {
 			return nil, fmt.Errorf("unable to get nursing handoff: %w", err)
 		}
-		domainNursingHandoff, err := eoverdracht.FHIRNursingHandoffToDomainTransfer(nursingHandoff)
+		domainNursingHandoff, err := eoverdracht.NursingHandoffToDomainTransfer(nursingHandoff)
 		if err != nil {
 			return nil, err
 		}

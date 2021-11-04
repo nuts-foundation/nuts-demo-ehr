@@ -13,7 +13,7 @@ import (
 
 
 func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
-	return eoverdracht.FHIRPatientToDomainPatient(fhirPatient)
+	return eoverdracht.ToDomainPatient(fhirPatient)
 }
 
 func ToFHIRPatient(domainPatient types.Patient) resources.Patient {

@@ -37,7 +37,7 @@ var expected = map[string]interface{}{
 	"status":       "requested",
 }
 
-func (m *mockIDGenerator) String() string {
+func (m *mockIDGenerator) GenerateID() string {
 	if m.uuid == nil {
 		id := uuid.New()
 		m.uuid = &id
@@ -47,7 +47,7 @@ func (m *mockIDGenerator) String() string {
 
 func Test_transferService_CreateTask(t *testing.T) {
 	idGenerator := &mockIDGenerator{}
-	expected["id"] = idGenerator.String()
+	expected["id"] = idGenerator.GenerateID()
 	fhirBuilder := FHIRBuilder{IDGenerator: idGenerator}
 
 	advanceNoticeID := "123"
@@ -70,16 +70,16 @@ func Test_transferService_CreateTask(t *testing.T) {
 
 func Test_transferService_GetTask(t *testing.T) {
 	idGenerator := &mockIDGenerator{}
-	expected["id"] = idGenerator.String()
+	expected["id"] = idGenerator.GenerateID()
 
 	mockClient := fhir.NewMockClientWithReadMock(t, []map[string]interface{}{expected})
 	service := transferService{fhirClient: mockClient}
-	taskID := idGenerator.String()
+	taskID := idGenerator.GenerateID()
 	resolvedTask, err := service.GetTask(context.Background(), taskID)
 	assert.NoError(t, err)
 	assert.NotNil(t, resolvedTask)
 
-	assert.Equal(t, idGenerator.String(), resolvedTask.ID)
+	assert.Equal(t, idGenerator.GenerateID(), resolvedTask.ID)
 	assert.Equal(t, "123", *resolvedTask.AdvanceNoticeID)
 	assert.Equal(t, "456", *resolvedTask.NursingHandoffID)
 	assert.Equal(t, "did:nuts:123", resolvedTask.SenderDID)

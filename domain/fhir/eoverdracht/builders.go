@@ -33,7 +33,7 @@ func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
 	if props.ID != nil {
 		id = *props.ID
 	} else {
-		id = b.IDGenerator.String()
+		id = b.IDGenerator.GenerateID()
 	}
 	return resources.Task{
 		Domain: resources.Domain{
@@ -91,7 +91,7 @@ func (b FHIRBuilder) buildAnonymousPatient(patient *types.Patient) resources.Pat
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Patient",
-				ID:           fhir.ToIDPtr(b.IDGenerator.String()),
+				ID:           fhir.ToIDPtr(b.IDGenerator.GenerateID()),
 			},
 		},
 		Address: []datatypes.Address{{PostalCode: fhir.ToStringPtr(patient.Zipcode)}},
@@ -121,7 +121,7 @@ func (b FHIRBuilder) buildNursingHandoffComposition(administrativeData, careplan
 	return fhir.Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
-			ID:           fhir.ToIDPtr(b.IDGenerator.String()),
+			ID:           fhir.ToIDPtr(b.IDGenerator.GenerateID()),
 		},
 		Type: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{System: &fhir.SnomedCodingSystem, Code: fhir.ToCodePtr("371535009"), Display: fhir.ToStringPtr("verslag van overdracht")}},
@@ -137,7 +137,7 @@ func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, ad
 	return fhir.Composition{
 		Base: resources.Base{
 			ResourceType: "Composition",
-			ID:           fhir.ToIDPtr(b.IDGenerator.String()),
+			ID:           fhir.ToIDPtr(b.IDGenerator.GenerateID()),
 		},
 		Type: datatypes.CodeableConcept{
 			Coding: []datatypes.Coding{{System: &fhir.LoincCodingSystem, Code: fhir.ToCodePtr("57830-2")}},
@@ -201,7 +201,7 @@ func (b FHIRBuilder) buildProcedureFromIntervention(intervention types.Intervent
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Procedure",
-				ID:           fhir.ToIDPtr(b.IDGenerator.String()),
+				ID:           fhir.ToIDPtr(b.IDGenerator.GenerateID()),
 			},
 		},
 		ReasonReference: []datatypes.Reference{{Reference: fhir.ToStringPtr("Condition/" + problemID)}},
@@ -214,7 +214,7 @@ func (b FHIRBuilder) buildConditionFromProblem(problem types.Problem) resources.
 		Domain: resources.Domain{
 			Base: resources.Base{
 				ResourceType: "Condition",
-				ID:           fhir.ToIDPtr(b.IDGenerator.String()),
+				ID:           fhir.ToIDPtr(b.IDGenerator.GenerateID()),
 			},
 		},
 		Note: []datatypes.Annotation{{Text: fhir.ToStringPtr(problem.Name)}},
@@ -243,10 +243,10 @@ func (b FHIRBuilder) BuildNursingHandoffComposition(patient *types.Patient, adva
 }
 
 type IDGenerator interface {
-	String() string
+	GenerateID() string
 }
 
 type UUIDGenerator struct {}
-func (UUIDGenerator) String() string {
+func (UUIDGenerator) GenerateID() string {
 	return uuid.NewString()
 }

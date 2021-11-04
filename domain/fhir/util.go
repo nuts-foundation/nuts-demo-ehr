@@ -1,8 +1,6 @@
 package fhir
 
 import (
-	"strings"
-
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/tidwall/gjson"
 )
@@ -12,19 +10,6 @@ func Filter(resources []gjson.Result, predicate func(resource gjson.Result) bool
 	for _, resource := range resources {
 		if predicate(resource) {
 			result = append(result, resource)
-		}
-	}
-	return result
-}
-
-func FilterResources(resources []gjson.Result, codingSystem string, code Code) []gjson.Result {
-	var result []gjson.Result
-	for _, resource := range resources {
-		for _, coding := range resource.Get("code.coding").Array() {
-			if strings.TrimSpace(coding.Get("system").String()) == codingSystem && strings.TrimSpace(coding.Get("code").String()) == string(code) {
-				result = append(result, resource)
-				break
-			}
 		}
 	}
 	return result

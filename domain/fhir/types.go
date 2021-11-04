@@ -5,6 +5,14 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 )
 
+/* Coding systems */
+var (
+	SnomedCodingSystem datatypes.URI = "http://snomed.info/sct"
+	LoincCodingSystem  datatypes.URI = "http://loinc.org"
+	NutsCodingSystem   datatypes.URI = "http://nuts.nl"
+	UZICodingSystem    datatypes.URI = "http://fhir.nl/fhir/NamingSystem/uzi-nr-pers"
+)
+
 type TaskProperties struct {
 	ID        *string
 	Status    string

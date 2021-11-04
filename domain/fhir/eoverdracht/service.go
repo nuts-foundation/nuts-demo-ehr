@@ -43,13 +43,13 @@ func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask
 
 	if domainTask.AdvanceNoticeID != nil {
 		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
-			Type:           &fhir.LoincAdvanceNoticeType,
+			Type:           &LoincAdvanceNoticeType,
 			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
 		})
 	}
 	if domainTask.NursingHandoffID != nil {
 		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
-			Type:           &fhir.SnomedNursingHandoffType,
+			Type:           &SnomedNursingHandoffType,
 			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.NursingHandoffID)},
 		})
 	}
@@ -79,13 +79,13 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 
 	if domainTask.AdvanceNoticeID != nil {
 		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
-			Type:           &fhir.LoincAdvanceNoticeType,
+			Type:           &LoincAdvanceNoticeType,
 			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.AdvanceNoticeID)},
 		})
 	}
 	if domainTask.NursingHandoffID != nil {
 		transferTask.Input = append(transferTask.Input, resources.TaskInputOutput{
-			Type:           &fhir.SnomedNursingHandoffType,
+			Type:           &SnomedNursingHandoffType,
 			ValueReference: &datatypes.Reference{Reference: fhir.ToStringPtr("/Composition/" + *domainTask.NursingHandoffID)},
 		})
 	}
@@ -143,12 +143,12 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 		ReceiverDID: fhir.FromStringPtr(fhirTask.Owner.Identifier.Value),
 	}
 
-	if input := s.findTaskInputOutputByCode(fhirTask.Input, fhir.LoincAdvanceNoticeCode); input != nil {
+	if input := s.findTaskInputOutputByCode(fhirTask.Input, LoincAdvanceNoticeCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
 		ref = strings.Split(ref, "/Composition/")[1]
 		task.AdvanceNoticeID = &ref
 	}
-	if input := s.findTaskInputOutputByCode(fhirTask.Input, fhir.SnomedNursingHandoffCode); input != nil {
+	if input := s.findTaskInputOutputByCode(fhirTask.Input, SnomedNursingHandoffCode); input != nil {
 		ref := fhir.FromStringPtr(input.ValueReference.Reference)
 		ref = strings.Split(ref, "/Composition/")[1]
 		task.NursingHandoffID = &ref

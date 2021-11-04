@@ -43,11 +43,7 @@ func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
 			},
 		},
 		Status: fhir.ToCodePtr(props.Status),
-		Code: &datatypes.CodeableConcept{Coding: []datatypes.Coding{{
-			System:  &fhir.SnomedCodingSystem,
-			Code:    &fhir.SnomedTransferCode,
-			Display: &fhir.TransferDisplay,
-		}}},
+		Code: &SnomedTransferType,
 		Requester: &resources.TaskRequester{
 			Agent: &datatypes.Reference{
 				Identifier: &datatypes.Identifier{
@@ -116,12 +112,7 @@ func (FHIRBuilder) buildAdministrativeData(request types.CreateTransferRequest) 
 			},
 		},
 		Title: fhir.ToStringPtr("Administrative data"),
-		Code: datatypes.CodeableConcept{
-			Coding: []datatypes.Coding{{
-				System:  &fhir.SnomedCodingSystem,
-				Code:    fhir.ToCodePtr(AdministrativeDocCode),
-				Display: fhir.ToStringPtr("Administrative documentation (record artifact)"),
-			}}},
+		Code: AdministrativeDocConcept,
 	}
 
 }

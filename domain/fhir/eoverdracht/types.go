@@ -6,9 +6,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 )
 
-const AdministrativeDocCode = "405624007"
-const CarePlanCode = "773130005"
-const NursingDiagnosisCode = "86644006"
 
 type TransferTask struct {
 	ID               string

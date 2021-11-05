@@ -3,25 +3,24 @@ package receiver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/monarko/fhirgo/STU3/datatypes"
-	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
 type TransferService interface {
+	// CreateOrUpdate creates or updates an incoming transfer record in the local storage
 	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
-	GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*domain.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error)
 }
 
 type service struct {
@@ -48,11 +47,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 
 func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error {
 	_, err := s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s service) UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error {
@@ -62,51 +57,42 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	}
 
 	taskPath := fmt.Sprintf("/Task/%s", fhirTaskID)
-	client, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, nil)
+	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, nil)
 	if err != nil {
 		return err
 	}
 
-	task, err := s.getRemoteTransferTask(ctx, client, fhirTaskID)
+	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
+	task, err := fhirService.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return err
 	}
 
 	// state machine
-	if (*task.Status == transfer.InProgressState && newState == transfer.CompletedState) ||
-		(*task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
-		task.Status = fhir.ToCodePtr(newState)
-
-		err = client().CreateOrUpdate(ctx, task)
+	if (task.Status == transfer.InProgressState && newState == transfer.CompletedState) ||
+		(task.Status == transfer.RequestedState && newState == transfer.AcceptedState) {
+		err = fhirService.UpdateTaskStatus(ctx, fhirTaskID, newState)
 		if err != nil {
 			return err
 		}
 		// update was a success. Get the remote task again and update the local transfer_request
-		task, err = s.getRemoteTransferTask(ctx, client, fhirTaskID)
+		task, err = fhirService.GetTask(ctx, fhirTaskID)
 		if err != nil {
 			return err
 		}
-		_, err = s.transferRepo.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), fhirTaskID, customerID, requesterDID)
+		_, err = s.transferRepo.CreateOrUpdate(ctx, task.Status, fhirTaskID, customerID, requesterDID)
 		if err != nil {
 			return fmt.Errorf("could update incomming transfers with new state")
 		}
 		return nil
 	}
 
-	return fmt.Errorf("invalid state change from %s to %s", *task.Status, newState)
+	return fmt.Errorf("invalid state change from %s to %s", task.Status, newState)
 }
 
-func (s service) taskContainsCode(task resources.Task, code datatypes.Code) bool {
-	for _, input := range task.Input {
-		if fhir.FromCodePtr(input.Type.Coding[0].Code) == string(code) {
-			return true
-		}
-	}
+func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error) {
+	const getTransferRequestErr = "unable to get transferRequest: %w"
 
-	return false
-}
-
-func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*domain.TransferRequest, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil || customer.Did == nil {
 		return nil, fmt.Errorf("unable to find customer: %w", err)
@@ -118,20 +104,22 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, err
 	}
 
-	task, err := s.getRemoteTransferTask(ctx, fhirClient, fhirTaskID)
+	fhirReceiverService := eoverdracht.NewFHIRTransferService(fhirClient)
+
+	task, err := fhirReceiverService.GetTask(ctx, fhirTaskID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get remote transfer: %w", err)
+		return nil, fmt.Errorf(getTransferRequestErr, err)
 	}
 
-	if !s.taskContainsCode(task, fhir.LoincAdvanceNoticeCode) {
-		return nil, fmt.Errorf("invalid task, expected an advanceNotice composition")
+	if task.AdvanceNoticeID == nil {
+		return nil, fmt.Errorf(getTransferRequestErr, errors.New("invalid task, expected an advanceNotice composition"))
 	}
 
-	advanceNotice, err := s.getAdvanceNotice(ctx, fhirClient(), fhir.FromStringPtr(task.Input[0].ValueReference.Reference))
+	advanceNotice, err := fhirReceiverService.GetAdvanceNotice(ctx, *task.AdvanceNoticeID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get advance notice: %w", err)
 	}
-	domainAdvanceNotice, err := domain.FHIRAdvanceNoticeToDomainTransfer(advanceNotice)
+	domainAdvanceNotice, err := eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
 	if err != nil {
 		return nil, err
 	}
@@ -141,30 +129,29 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, fmt.Errorf("unable to get organization from registry: %w", err)
 	}
 
-	// TODO: Do we need nil checks?
-	transferRequest := domain.TransferRequest{
+	transferRequest := types.TransferRequest{
 		Sender:        *organization,
 		AdvanceNotice: domainAdvanceNotice,
-		Status:        fhir.FromCodePtr(task.Status),
+		Status:        task.Status,
 	}
 
 	// If the task input contains the nursing handoff, add that one too.
-	if len(task.Input) == 2 {
-		nursingHandoff, err := s.getNursingHandoff(ctx, fhirClient(), fhir.FromStringPtr(task.Input[1].ValueReference.Reference))
+	if task.NursingHandoffID != nil {
+		nursingHandoff, err := fhirReceiverService.GetNursingHandoff(ctx, *task.NursingHandoffID)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get nursing handoff: %w", err)
 		}
-		domainTransfer, err := domain.FHIRNursingHandoffToDomainTransfer(nursingHandoff)
+		domainNursingHandoff, err := eoverdracht.NursingHandoffToDomainTransfer(nursingHandoff)
 		if err != nil {
-			return nil, fmt.Errorf("unable to convert fhir nursing handoff to domain transfer: %w", err)
+			return nil, err
 		}
-		transferRequest.NursingHandoff = &domainTransfer
+		transferRequest.NursingHandoff = &domainNursingHandoff
 	}
 
 	return &transferRequest, nil
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string, identity *string) (fhir.Factory, error) {
+func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string, identity *string) (fhir.Client, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
@@ -189,119 +176,5 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 		return nil, err
 	}
 
-	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken)), nil
-}
-
-func (s service) getRemoteTransferTask(ctx context.Context, client fhir.Factory, fhirTaskID string) (resources.Task, error) {
-	// TODO: Read AdvanceNotification here instead of the transfer task
-	task := resources.Task{}
-	err := client().ReadOne(ctx, "/Task/"+fhirTaskID, &task)
-	if err != nil {
-		return resources.Task{}, fmt.Errorf("error while looking up transfer task remotely(task-id=%s): %w", fhirTaskID, err)
-	}
-	return task, nil
-}
-
-// getAdvanceNotice fetches a complete nursing handoff from a FHIR server
-func (s service) getNursingHandoff(ctx context.Context, fhirClient fhir.Client, fhirCompositionPath string) (eoverdracht.NursingHandoff, error) {
-	nursingHandoff := eoverdracht.NursingHandoff{}
-
-	// Fetch the composition
-	err := fhirClient.ReadOne(ctx, "/"+fhirCompositionPath, &nursingHandoff.Composition)
-	if err != nil {
-		return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
-	}
-
-	// Fetch the Patient
-	err = fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(nursingHandoff.Composition.Subject.Reference), &nursingHandoff.Patient)
-	if err != nil {
-		return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
-	}
-
-	// Fetch the careplan
-	careplan, err := eoverdracht.FilterCompositionSectionByType(nursingHandoff.Composition.Section, eoverdracht.CarePlanCode)
-	if err != nil {
-		return eoverdracht.NursingHandoff{}, err
-	}
-
-	// Fetchh the nursing diagnosis
-	nursingDiagnosis, err := eoverdracht.FilterCompositionSectionByType(careplan.Section, eoverdracht.NursingDiagnosisCode)
-	if err != nil {
-		return eoverdracht.NursingHandoff{}, err
-	}
-
-	// the nursing diagnosis contains both conditions and procedures
-	for _, entry := range nursingDiagnosis.Entry {
-		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
-			conditionID := fhir.FromStringPtr(entry.Reference)
-			condition := resources.Condition{}
-			err = fhirClient.ReadOne(ctx, "/"+conditionID, &condition)
-			if err != nil {
-				return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
-			}
-			nursingHandoff.Problems = append(nursingHandoff.Problems, condition)
-		}
-		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
-			procedureID := fhir.FromStringPtr(entry.Reference)
-			procedure := eoverdracht.Procedure{}
-			err = fhirClient.ReadOne(ctx, "/"+procedureID, &procedure)
-			if err != nil {
-				return eoverdracht.NursingHandoff{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
-			}
-			nursingHandoff.Interventions = append(nursingHandoff.Interventions, procedure)
-		}
-	}
-
-	return nursingHandoff, nil
-}
-
-// getAdvanceNotice fetches a complete advance notice from a FHIR server
-func (s service) getAdvanceNotice(ctx context.Context, fhirClient fhir.Client, fhirCompositionPath string) (eoverdracht.AdvanceNotice, error) {
-	advanceNotice := eoverdracht.AdvanceNotice{}
-
-	err := fhirClient.ReadOne(ctx, "/"+fhirCompositionPath, &advanceNotice.Composition)
-	if err != nil {
-		return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the advance notice composition(composition-id=%s): %w", fhirCompositionPath, err)
-	}
-
-	if advanceNotice.Composition.Subject.Reference != nil {
-		err = fhirClient.ReadOne(ctx, "/"+fhir.FromStringPtr(advanceNotice.Composition.Subject.Reference), &advanceNotice.Patient)
-		if err != nil {
-			return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching the transfer subject (patient): %w", err)
-		}
-	}
-
-	careplan, err := eoverdracht.FilterCompositionSectionByType(advanceNotice.Composition.Section, eoverdracht.CarePlanCode)
-	if err != nil {
-		return eoverdracht.AdvanceNotice{}, err
-	}
-
-	nursingDiagnosis, err := eoverdracht.FilterCompositionSectionByType(careplan.Section, eoverdracht.NursingDiagnosisCode)
-	if err != nil {
-		return eoverdracht.AdvanceNotice{}, err
-	}
-
-	// the nursing diagnosis contains both conditions and procedures
-	for _, entry := range nursingDiagnosis.Entry {
-		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Condition") {
-			conditionID := fhir.FromStringPtr(entry.Reference)
-			condition := resources.Condition{}
-			err = fhirClient.ReadOne(ctx, "/"+conditionID, &condition)
-			if err != nil {
-				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice condition (condition-id=%s): %w", conditionID, err)
-			}
-			advanceNotice.Problems = append(advanceNotice.Problems, condition)
-		}
-		if strings.HasPrefix(fhir.FromStringPtr(entry.Reference), "Procedure") {
-			procedureID := fhir.FromStringPtr(entry.Reference)
-			procedure := eoverdracht.Procedure{}
-			err = fhirClient.ReadOne(ctx, "/"+procedureID, &procedure)
-			if err != nil {
-				return eoverdracht.AdvanceNotice{}, fmt.Errorf("error while fetching a advance notice procedure (procedure-id=%s): %w", procedureID, err)
-			}
-			advanceNotice.Interventions = append(advanceNotice.Interventions, procedure)
-		}
-	}
-
-	return advanceNotice, nil
+	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))(), nil
 }

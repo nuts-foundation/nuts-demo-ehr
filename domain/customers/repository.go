@@ -7,20 +7,20 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 type Repository interface {
-	FindByID(id int) (*domain.Customer, error)
-	FindByDID(did string) (*domain.Customer, error)
-	All() ([]domain.Customer, error)
+	FindByID(id int) (*types.Customer, error)
+	FindByDID(did string) (*types.Customer, error)
+	All() ([]types.Customer, error)
 }
 
 type jsonFileRepo struct {
 	filepath string
 	mutex    sync.Mutex
 	// records is a cache
-	records map[string]domain.Customer
+	records map[string]types.Customer
 }
 
 func NewJsonFileRepository(filepath string) *jsonFileRepo {
@@ -33,7 +33,7 @@ func NewJsonFileRepository(filepath string) *jsonFileRepo {
 	repo := jsonFileRepo{
 		filepath: filepath,
 		mutex:    sync.Mutex{},
-		records:  make(map[string]domain.Customer, 0),
+		records:  make(map[string]types.Customer, 0),
 	}
 
 	if err := repo.readAll(); err != nil {
@@ -43,7 +43,7 @@ func NewJsonFileRepository(filepath string) *jsonFileRepo {
 	return &repo
 }
 
-func (db *jsonFileRepo) FindByID(id int) (*domain.Customer, error) {
+func (db *jsonFileRepo) FindByID(id int) (*types.Customer, error) {
 	if len(db.records) == 0 {
 		if err := db.readAll(); err != nil {
 			return nil, err
@@ -61,7 +61,7 @@ func (db *jsonFileRepo) FindByID(id int) (*domain.Customer, error) {
 	return nil, nil
 }
 
-func (db *jsonFileRepo) FindByDID(did string) (*domain.Customer, error) {
+func (db *jsonFileRepo) FindByDID(did string) (*types.Customer, error) {
 	if len(db.records) == 0 {
 		if err := db.readAll(); err != nil {
 			return nil, err
@@ -90,7 +90,7 @@ func (db *jsonFileRepo) readAll() error {
 		return nil
 	}
 
-	v := map[string]domain.Customer{}
+	v := map[string]types.Customer{}
 	if err = json.Unmarshal(bytes, &v); err != nil {
 		return fmt.Errorf("unable to unmarshall db from file: %w", err)
 	}
@@ -100,7 +100,7 @@ func (db *jsonFileRepo) readAll() error {
 	return nil
 }
 
-func (db *jsonFileRepo) All() ([]domain.Customer, error) {
+func (db *jsonFileRepo) All() ([]types.Customer, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -108,7 +108,7 @@ func (db *jsonFileRepo) All() ([]domain.Customer, error) {
 		return nil, err
 	}
 
-	v := make([]domain.Customer, len(db.records))
+	v := make([]types.Customer, len(db.records))
 
 	idx := 0
 	for _, value := range db.records {

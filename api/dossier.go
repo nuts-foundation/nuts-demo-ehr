@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
 )
 
-type GetDossierParams = domain.GetDossierParams
-type CreateDossierRequest = domain.CreateDossierRequest
+type GetDossierParams = types.GetDossierParams
+type CreateDossierRequest = types.CreateDossierRequest
 
 func (w Wrapper) GetDossier(ctx echo.Context, params GetDossierParams) error {
 	cid, err := w.getCustomerID(ctx)
@@ -27,7 +27,7 @@ func (w Wrapper) GetDossier(ctx echo.Context, params GetDossierParams) error {
 }
 
 func (w Wrapper) CreateDossier(ctx echo.Context) error {
-	request := domain.CreateDossierRequest{}
+	request := types.CreateDossierRequest{}
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}

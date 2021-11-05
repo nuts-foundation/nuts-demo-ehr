@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
 type Auth interface {
-	CreateIrmaSession(customer domain.Customer) ([]byte, error)
+	CreateIrmaSession(customer types.Customer) ([]byte, error)
 	GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 
-	CreateDummySession(customer domain.Customer) ([]byte, error)
+	CreateDummySession(customer types.Customer) ([]byte, error)
 	GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 }
 
@@ -41,7 +41,7 @@ func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignS
 	return sessionResponse, nil
 }
 
-func (c HTTPClient) CreateIrmaSession(customer domain.Customer) ([]byte, error) {
+func (c HTTPClient) CreateIrmaSession(customer types.Customer) ([]byte, error) {
 	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansIrma)
 }
 
@@ -49,7 +49,7 @@ func (c HTTPClient) GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.S
 	return c.getSessionResult(sessionToken)
 }
 
-func (c HTTPClient) CreateDummySession(customer domain.Customer) ([]byte, error) {
+func (c HTTPClient) CreateDummySession(customer types.Customer) ([]byte, error) {
 	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansDummy)
 }
 
@@ -57,7 +57,7 @@ func (c HTTPClient) GetDummySessionResult(sessionToken string) (*nutsAuthClient.
 	return c.getSessionResult(sessionToken)
 }
 
-func (c HTTPClient) createSession(customer domain.Customer, means nutsAuthClient.SignSessionRequestMeans) ([]byte, error) {
+func (c HTTPClient) createSession(customer types.Customer, means nutsAuthClient.SignSessionRequestMeans) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

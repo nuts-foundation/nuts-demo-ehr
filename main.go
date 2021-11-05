@@ -20,9 +20,9 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -240,13 +240,13 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 	pstring := func(value string) *string {
 		return &value
 	}
-	props := []domain.PatientProperties{
+	props := []types.PatientProperties{
 		{
 			Ssn:       pstring("1234567890"),
 			Dob:       pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Henk",
 			Surname:   "de Vries",
-			Gender:    domain.PatientPropertiesGenderMale,
+			Gender:    types.PatientPropertiesGenderMale,
 			Zipcode:   "6825AX",
 		},
 		{
@@ -254,7 +254,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Grepelsteeltje",
 			Surname:   "Grouw",
-			Gender:    domain.PatientPropertiesGenderFemale,
+			Gender:    types.PatientPropertiesGenderFemale,
 			Zipcode:   "9999AA",
 		},
 		{
@@ -262,7 +262,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Dibbes",
 			Surname:   "Bouwman",
-			Gender:    domain.PatientPropertiesGenderMale,
+			Gender:    types.PatientPropertiesGenderMale,
 			Zipcode:   "1234ZZ",
 		},
 		{
@@ -270,7 +270,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(2001, 2, 27, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Anne",
 			Surname:   "von Oben",
-			Gender:    domain.PatientPropertiesGenderOther,
+			Gender:    types.PatientPropertiesGenderOther,
 			Zipcode:   "7777AX",
 		},
 	}

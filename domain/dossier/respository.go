@@ -4,21 +4,21 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 type Repository interface {
-	FindByID(ctx context.Context, customerID int, id string) (*domain.Dossier, error)
-	Create(ctx context.Context, customerID int, name, patientID string) (*domain.Dossier, error)
-	AllByPatient(ctx context.Context, customerID int, patientID string) ([]domain.Dossier, error)
+	FindByID(ctx context.Context, customerID int, id string) (*types.Dossier, error)
+	Create(ctx context.Context, customerID int, name, patientID string) (*types.Dossier, error)
+	AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Dossier, error)
 }
 
 type Factory struct{}
 
-func (Factory) NewDossier(patientID, name string) *domain.Dossier {
-	return &domain.Dossier{
-		Id:        domain.ObjectID(uuid.NewString()),
+func (Factory) NewDossier(patientID, name string) *types.Dossier {
+	return &types.Dossier{
+		Id:        types.ObjectID(uuid.NewString()),
 		Name:      name,
-		PatientID: domain.ObjectID(patientID),
+		PatientID: types.ObjectID(patientID),
 	}
 }

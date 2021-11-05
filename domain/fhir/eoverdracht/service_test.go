@@ -40,67 +40,25 @@ var expected = map[string]interface{}{
 	"status":       "requested",
 }
 
-var compositionFHIR = `
+var conditionFHIR = `
 {
-  "resourceType": "Composition",
-  "id": "c1561592-dbcd-440d-834c-08ce2ab14015",
-  "meta": {
-    "extension": [ {
-      "url": "http://hapifhir.io/fhir/StructureDefinition/resource-meta-source",
-      "valueUri": "#Xtge9s39Ke9H4XTP"
-    } ],
-    "versionId": "1",
-    "lastUpdated": "2021-09-22T14:58:12.677+00:00"
-  },
-  "type": {
-    "coding": [ {
-      "system": "http://loinc.org",
-      "code": "57830-2"
-    } ]
-  },
-  "subject": {
-    "reference": "Patient/58327c5e-ef34-4d37-a6f2-8cde4526c1b0"
-  },
-  "title": "Advance notice",
-  "section": [ {
-    "extension": [ {
-      "url": "http://nictiz.nl/fhir/StructureDefinition/eOverdracht-TransferDate",
-      "valueDateTime": "2021-09-23T00:00:00Z"
-    } ],
-    "title": "Administrative data",
-    "code": {
-      "coding": [ {
-        "system": "http://snomed.info/sct",
-        "code": "405624007",
-        "display": "Administrative documentation (record artifact)"
-      } ]
-    }
-  }, {
-    "code": {
-      "coding": [ {
-        "system": "http://snomed.info/sct",
-        "code": "773130005",
-        "display": "Nursing care plan (record artifact)"
-      } ]
+    "resourceType": "Condition",
+    "id": "ae889298-d09c-477a-bd80-227da1868b85",
+    "meta": {
+        "extension": [
+            {
+                "url": "http://hapifhir.io/fhir/StructureDefinition/resource-meta-source",
+                "valueUri": "#7ei18dobJKzqoHON"
+            }
+        ],
+        "versionId": "1",
+        "lastUpdated": "2021-09-22T14:58:12.496+00:00"
     },
-    "section": [ {
-      "title": "Current patient problems",
-      "code": {
-        "coding": [ {
-          "system": "http://snomed.info/sct",
-          "code": "86644006",
-          "display": "Nursing diagnosis"
-        } ]
-      },
-      "entry": [ {
-        "reference": "Condition/ae889298-d09c-477a-bd80-227da1868b85"
-      }, {
-        "reference": "Condition/7c863eb7-243c-4bf6-b953-88757b14dd93"
-      }, {
-        "reference": "Procedure/7295c1db-b0b3-4e2f-a5ca-1ff95cecea70"
-      } ]
-    } ]
-  } ]
+    "note": [
+        {
+            "text": "we have  problem"
+        }
+    ]
 }`
 
 func (m *mockIDGenerator) GenerateID() string {
@@ -136,9 +94,11 @@ func Test_transferService_CreateTask(t *testing.T) {
 
 func Test_transferService_GetTask(t *testing.T) {
 	idGenerator := &mockIDGenerator{}
-	expected["id"] = idGenerator.GenerateID()
+	mockID := idGenerator.GenerateID()
+	expected["id"] = mockID
+	path := "Task/" + mockID
 
-	mockClient := fhir.NewMockClientWithReadMock(t, []map[string]interface{}{expected})
+	mockClient := fhir.NewMockClientWithReadMock(t, map[string]map[string]interface{}{path: expected})
 	service := transferService{fhirClient: mockClient}
 	taskID := idGenerator.GenerateID()
 	resolvedTask, err := service.GetTask(context.Background(), taskID)
@@ -158,13 +118,17 @@ func TestTransferService_ResolveComposition(t *testing.T) {
 
 func TestTransferService_resolveCompositionEntry(t *testing.T) {
 	expected := map[string]interface{}{}
-	json.Unmarshal([]byte(compositionFHIR), &expected)
-	mockClient := fhir.NewMockClientWithReadMock(t, []map[string]interface{}{expected})
+	json.Unmarshal([]byte(conditionFHIR), &expected)
+	path := "Condition/ae889298-d09c-477a-bd80-227da1868b85"
+	mockClient := fhir.NewMockClientWithReadMock(t, map[string]map[string]interface{}{path: expected})
 	service := transferService{fhirClient: mockClient}
 	section := fhir.CompositionSection{
 		Entry: []datatypes.Reference{{
-			Reference: fhir.ToStringPtr("Composition/c1561592-dbcd-440d-834c-08ce2ab14015"),
-		}},
+			Reference: fhir.ToStringPtr(path),
+		}, {
+			Reference: fhir.ToStringPtr("Procedure/7295c1db-b0b3-4e2f-a5ca-1ff95cecea70"),
+		},
+		},
 	}
 	conditions, err := service.resolveCompositionEntry(context.Background(), section, resources.Condition{})
 	if !assert.NoError(t, err) {
@@ -176,5 +140,5 @@ func TestTransferService_resolveCompositionEntry(t *testing.T) {
 	}
 	condition := conditions[0]
 	assert.IsType(t, &resources.Condition{}, condition)
-	assert.Equal(t, "c1561592-dbcd-440d-834c-08ce2ab14015", fhir.FromIDPtr(condition.(*resources.Condition).ID))
+	assert.Equal(t, "ae889298-d09c-477a-bd80-227da1868b85", fhir.FromIDPtr(condition.(*resources.Condition).ID))
 }

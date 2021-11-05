@@ -131,7 +131,7 @@ func (s transferService) CreateNursingHandoff(ctx context.Context, nursingHandof
 
 func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferTask, error) {
 	fhirTask := resources.Task{}
-	err := s.fhirClient.ReadOne(ctx, "/Task/"+taskID, &fhirTask)
+	err := s.fhirClient.ReadOne(ctx, "Task/"+taskID, &fhirTask)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching task (task-id=%s): %w", taskID, err)
 	}

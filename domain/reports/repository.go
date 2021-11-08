@@ -3,15 +3,17 @@ package reports
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"strings"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
 type Repository interface {
-	AllByPatient(ctx context.Context, customerID int, patientID string) ([]domain.Report, error)
+	AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error)
 }
 
 type fhirRepository struct {
@@ -28,7 +30,7 @@ func renderQuantity(quantity *datatypes.Quantity) string {
 	return fmt.Sprintf("%f %s", *quantity.Value, fhir.FromStringPtr(quantity.Unit))
 }
 
-func convertToDomain(observation *resources.Observation, id string) domain.Report {
+func convertToDomain(observation *resources.Observation, id string) types.Report {
 	var value string
 
 	if observation.ValueString != nil {
@@ -55,16 +57,16 @@ func convertToDomain(observation *resources.Observation, id string) domain.Repor
 		source = fhir.FromStringPtr(observation.Performer[0].Display)
 	}
 
-	return domain.Report{
+	return types.Report{
 		Type:      fhir.FromStringPtr(observation.Code.Coding[0].Display),
-		Id:        domain.ObjectID(fhir.FromIDPtr(observation.ID)),
+		Id:        types.ObjectID(fhir.FromIDPtr(observation.ID)),
 		Source:    source,
-		PatientID: domain.ObjectID(id),
+		PatientID: types.ObjectID(id),
 		Value:     value,
 	}
 }
 
-func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]domain.Report, error) {
+func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error) {
 	observations := []resources.Observation{}
 
 	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", map[string]string{
@@ -73,7 +75,7 @@ func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, pa
 		return nil, err
 	}
 
-	var reports []domain.Report
+	var reports []types.Report
 
 	for _, observation := range observations {
 		ref := fhir.FromStringPtr(observation.Subject.Reference)

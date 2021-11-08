@@ -58,7 +58,7 @@ type AccessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 
 	// The lifetime in seconds of the access token.
-	ExpiresIn float32 `json:"expires_in"`
+	ExpiresIn int `json:"expires_in"`
 
 	// The type of the token issued
 	TokenType string `json:"token_type"`
@@ -254,16 +254,13 @@ type TokenIntrospectionResponse struct {
 
 	// Surname(s) or last name(s) of the End-User.
 	FamilyName *string `json:"family_name,omitempty"`
+	Iat        *int    `json:"iat,omitempty"`
 
-	// Given name(s) or first name(s) of the End-User.
-	GivenName *string `json:"given_name,omitempty"`
-	Iat       *int    `json:"iat,omitempty"`
+	// Initials of the End-User.
+	Initials *string `json:"initials,omitempty"`
 
 	// The subject (not a Nuts subject) contains the DID of the authorizer.
 	Iss *string `json:"iss,omitempty"`
-
-	// End-User's full name in displayable form including all name parts, possibly including titles and suffixes, ordered according to the End-User's locale and preferences.
-	Name *string `json:"name,omitempty"`
 
 	// encoded ops signature. (TBD)
 	Osi *string `json:"osi,omitempty"`

@@ -62,7 +62,6 @@
     <table class="reports-list min-w-full divide-y divide-gray-200">
       <thead>
       <tr>
-        <th>Date</th>
         <th>Type</th>
         <th>Value</th>
         <th>Source</th>
@@ -70,7 +69,6 @@
       </thead>
       <tbody>
       <tr v-for="report in reports">
-        <td>{{ report.date }}</td>
         <td>{{ report.type }}</td>
         <td>{{ truncate(report.value, 30) }}</td>
         <td>{{ report.source }}</td>
@@ -85,20 +83,7 @@ export default {
     return {
       dossiers: [],
       transfers: [],
-      reports: [
-        {
-          date: "2021-06-01",
-          type: "heartbeat",
-          value: "72 bpm",
-          source: "HA de Leeuw"
-        },
-        {
-          date: "2021-06-02",
-          type: "text",
-          value: "Meneer is gevallen op maandag en heeft veel pijn aan de linkerheup.",
-          source: "TZ de Kastanjeboom"
-        }
-      ],
+      reports: [],
     }
   },
   computed: {
@@ -116,6 +101,11 @@ export default {
     fetchDossiers() {
       this.$api.getDossier({patientID: this.$route.params.id})
           .then(dossiers => this.dossiers = dossiers)
+          .catch(error => this.$status.error(error))
+    },
+    fetchReports() {
+      this.$api.getReports({patientID: this.$route.params.id})
+          .then(reports => this.reports = reports)
           .catch(error => this.$status.error(error))
     },
     fetchTransfers() {
@@ -141,6 +131,7 @@ export default {
   },
   mounted() {
     this.fetchDossiers()
+    this.fetchReports()
     this.fetchTransfers()
   },
 }

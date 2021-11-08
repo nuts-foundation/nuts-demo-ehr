@@ -11,6 +11,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -40,6 +41,7 @@ type Wrapper struct {
 	NutsAuth                nutsClient.Auth
 	CustomerRepository      customers.Repository
 	PatientRepository       patients.Repository
+	ReportRepository        reports.Repository
 	DossierRepository       dossier.Repository
 	OrganizationRegistry    registry.OrganizationRegistry
 	TransferSenderRepo      sender.TransferRepository

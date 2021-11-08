@@ -494,13 +494,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/InboxInfo"
 
-  /private/dossier:
+  /private/reports/{patientID}:
+    get:
+      description: Get list of reports for a patient
+      operationId: getReports
+      parameters:
+        - name: patientID
+          in: path
+          description: The patient ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The list of reports for the patient
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+
+  /private/dossier/{patientID}:
     get:
       description: Get list of dossiers for a patient
       operationId: getDossier
       parameters:
         - name: patientID
-          in: query
+          in: path
           description: The patient ID
           required: true
           schema:
@@ -514,6 +535,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Dossier"
+
+  /private/dossier:
     post:
       description: Create a new dossier for a patient
       operationId: createDossier
@@ -872,6 +895,24 @@ components:
           format: date
         status:
           description: State of the transfer request. Maps to FHIR task state.
+          type: string
+    Report:
+      required:
+        - id
+        - patientID
+        - type
+        - value
+        - source
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectID'
+        patientID:
+          $ref: '#/components/schemas/ObjectID'
+        type:
+          type: string
+        value:
+          type: string
+        source:
           type: string
     Dossier:
       required:

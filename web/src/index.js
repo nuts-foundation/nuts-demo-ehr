@@ -23,6 +23,7 @@ import Inbox from "./ehr/inbox/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 import Elevation from "./components/auth/SessionElevation.vue"
+import NewReport from "./ehr/patient/dossier/NewReport.vue";
 
 const routes = [
   {path: '/', component: Login},
@@ -96,6 +97,11 @@ const routes = [
             path: 'dossier/new',
             name: 'ehr.patient.dossier.new',
             component: NewDossier
+          },
+          {
+            path: 'dossier/newReport',
+            name: 'ehr.patient.dossier.newReport',
+            component: NewReport
           },
           {
             path: 'transfer',

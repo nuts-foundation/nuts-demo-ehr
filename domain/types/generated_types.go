@@ -11,6 +11,23 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for CollaborationStatus.
+const (
+	CollaborationStatusActive CollaborationStatus = "active"
+
+	CollaborationStatusCancelled CollaborationStatus = "cancelled"
+
+	CollaborationStatusEnteredInError CollaborationStatus = "entered-in-error"
+
+	CollaborationStatusFinished CollaborationStatus = "finished"
+
+	CollaborationStatusOnhold CollaborationStatus = "onhold"
+
+	CollaborationStatusPlanned CollaborationStatus = "planned"
+
+	CollaborationStatusWaitlist CollaborationStatus = "waitlist"
+)
+
 // Defines values for InboxEntryType.
 const (
 	InboxEntryTypeTransferRequest InboxEntryType = "transferRequest"
@@ -70,8 +87,12 @@ type CarePlan struct {
 // A collaboration is a group of care organizations that share a common care plan.
 type Collaboration struct {
 	// An internal object UUID which can be used as unique identifier for entities.
-	Id ObjectID `json:"id"`
+	Id     ObjectID             `json:"id"`
+	Status *CollaborationStatus `json:"status,omitempty"`
 }
+
+// CollaborationStatus defines model for Collaboration.Status.
+type CollaborationStatus string
 
 // Request to create a collaboration.
 type CreateCollaborationRequest struct {

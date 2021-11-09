@@ -218,6 +218,20 @@ function createApi(options) {
 
         });
     },
+    getCollaboration(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getCollaboration');
+      return fetch(endpoint + basePath + '/private/collaboration/' + params['collaborationID'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     getCustomer(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

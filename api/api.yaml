@@ -191,6 +191,27 @@ paths:
         404:
           description: The patient or the doctor does not exist
 
+  /private/collaboration/{collaborationID}:
+    get:
+      description: Get the collaboration by the collaborationID
+      operationId: getCollaboration
+      parameters:
+        - name: collaborationID
+          in: path
+          description: The collaboration ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The requested collaboration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collaboration"
+        404:
+          description: The collaboration does not exist
+
   /private/transfer:
     post:
       description: Create a new patient transfer dossier.
@@ -870,6 +891,16 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ObjectID'
+        status:
+          type: string
+          enum:
+            - planned
+            - waitlist
+            - active
+            - onhold
+            - finished
+            - cancelled
+            - entered-in-error
     CreateTransferRequest:
       description: >
         Create a new transfer for a specific dossier with a date and description.

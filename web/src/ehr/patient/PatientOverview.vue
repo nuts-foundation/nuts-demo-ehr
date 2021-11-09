@@ -127,6 +127,8 @@ export default {
       const patientID = this.$route.params.id
       if (dossier.transfer) {
         this.$router.push({name: 'ehr.patient.transfer.edit', params: {id: patientID, transferID: dossier.transfer.id}})
+      } else {
+        this.$router.push({name: 'ehr.patient.collaboration.edit', params: {id: patientID, collaborationID: dossier.id}})
       }
     }
   },

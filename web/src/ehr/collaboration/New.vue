@@ -42,7 +42,7 @@ export default {
           .then(collaboration => {
             return this.$router.push({
               name: 'ehr.patient.collaboration.edit',
-              params: {transferID: collaboration.id}
+              params: {collaborationID: collaboration.id}
             })
           })
           .catch(error => this.$status.error(error))

@@ -11,6 +11,7 @@ import (
 
 type Service interface {
 	CreateEpisode(ctx context.Context, dossierID, patientID string) (*fhir.EpisodeOfCare, error)
+	GetEpisode(ctx context.Context, dossierID string) (*fhir.EpisodeOfCare, error)
 }
 
 type service struct {
@@ -26,7 +27,6 @@ func NewService(fhirClient fhir.Client) Service {
 func (service *service) CreateEpisode(ctx context.Context, dossierID, patientID string) (*fhir.EpisodeOfCare, error) {
 	episode := &fhir.EpisodeOfCare{
 		Base: resources.Base{
-			//ID:           fhir.ToIDPtr(uuid.NewString()),
 			ID:           fhir.ToIDPtr(dossierID),
 			ResourceType: "EpisodeOfCare",
 		},
@@ -37,6 +37,16 @@ func (service *service) CreateEpisode(ctx context.Context, dossierID, patientID 
 	}
 
 	if err := service.fhirClient.CreateOrUpdate(ctx, episode); err != nil {
+		return nil, err
+	}
+
+	return episode, nil
+}
+
+func (service *service) GetEpisode(ctx context.Context, dossierID string) (*fhir.EpisodeOfCare, error) {
+	episode := &fhir.EpisodeOfCare{}
+
+	if err := service.fhirClient.ReadOne(ctx, fmt.Sprintf("EpisodeOfCare/%s", dossierID), episode); err != nil {
 		return nil, err
 	}
 

@@ -54,7 +54,7 @@ export default {
       let patientID = this.$route.params.id
       const payload = {
         type: "heartRate",
-        patientID: patientID,
+        patientID,
         value: this.report.heartRate.toString(),
       };
 

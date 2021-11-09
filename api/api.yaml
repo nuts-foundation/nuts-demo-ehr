@@ -495,16 +495,16 @@ paths:
                 $ref: "#/components/schemas/InboxInfo"
 
   /private/reports/{patientID}:
+    parameters:
+      - name: patientID
+        in: path
+        description: The patient ID
+        required: true
+        schema:
+          type: string
     get:
       description: Get list of reports for a patient
       operationId: getReports
-      parameters:
-        - name: patientID
-          in: path
-          description: The patient ID
-          required: true
-          schema:
-            type: string
       responses:
         200:
           description: The list of reports for the patient
@@ -515,6 +515,21 @@ paths:
                 items:
                   $ref: "#/components/schemas/Report"
 
+    post:
+      description: Create a new record for a patient
+      operationId: createReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Report"
+      responses:
+        200:
+          description: The creation of the new report is completed
+          content:
+            applaction/json:
+              schema:
   /private/dossier/{patientID}:
     get:
       description: Get list of dossiers for a patient

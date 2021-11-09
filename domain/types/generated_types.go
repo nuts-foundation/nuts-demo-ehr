@@ -369,6 +369,9 @@ type GetPatientsParams struct {
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
 
+// CreateReportJSONBody defines parameters for CreateReport.
+type CreateReportJSONBody Report
+
 // GetPatientTransfersParams defines parameters for GetPatientTransfers.
 type GetPatientTransfersParams struct {
 	// The patient ID
@@ -407,6 +410,9 @@ type UpdatePatientJSONRequestBody UpdatePatientJSONBody
 
 // NewPatientJSONRequestBody defines body for NewPatient for application/json ContentType.
 type NewPatientJSONRequestBody NewPatientJSONBody
+
+// CreateReportJSONRequestBody defines body for CreateReport for application/json ContentType.
+type CreateReportJSONRequestBody CreateReportJSONBody
 
 // CreateTransferJSONRequestBody defines body for CreateTransfer for application/json ContentType.
 type CreateTransferJSONRequestBody CreateTransferJSONBody

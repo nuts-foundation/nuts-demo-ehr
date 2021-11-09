@@ -371,6 +371,23 @@ function createApi(options) {
           mode,
         });
     },
+    createReport(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createReport');
+      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + ''
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
     getPatientTransfers(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

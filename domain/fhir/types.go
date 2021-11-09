@@ -70,14 +70,14 @@ type Composition struct {
 // EpisodeOfCare defines a basic FHIR STU3 EpisodeOfCare resource which is currently not included in the FHIR library.
 type EpisodeOfCare struct {
 	resources.Base
-	Identifier           datatypes.Identifier        `json:"identifier"`
+	Identifier           []datatypes.Identifier      `json:"identifier,omitempty"`
 	Status               datatypes.Code              `json:"status"`
-	Type                 []datatypes.CodeableConcept `json:"type"`
+	Type                 []datatypes.CodeableConcept `json:"type,omitempty"`
 	Patient              datatypes.Reference         `json:"patient"`
-	ManagingOrganization datatypes.Reference         `json:"managingOrganization"`
-	Period               datatypes.Period            `json:"period"`
-	ReferralRequest      datatypes.Reference         `json:"referralRequest"`
-	CareManager          datatypes.Reference         `json:"careManager"`
-	Team                 datatypes.Reference         `json:"team"`
-	Account              datatypes.Reference         `json:"account"`
+	ManagingOrganization *datatypes.Reference        `json:"managingOrganization,omitempty"`
+	Period               *datatypes.Period           `json:"period,omitempty"`
+	ReferralRequest      []datatypes.Reference       `json:"referralRequest,omitempty"`
+	CareManager          *datatypes.Reference        `json:"careManager,omitempty"`
+	Team                 []datatypes.Reference       `json:"team,omitempty"`
+	Account              []datatypes.Reference       `json:"account,omitempty"`
 }

@@ -67,6 +67,18 @@ type CarePlan struct {
 	PatientProblems []PatientProblem `json:"patientProblems"`
 }
 
+// A collaboration is a group of care organizations that share a common care plan.
+type Collaboration struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id ObjectID `json:"id"`
+}
+
+// Request to create a collaboration.
+type CreateCollaborationRequest struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	DossierID ObjectID `json:"dossierID"`
+}
+
 // API request to create a dossier for a patient.
 type CreateDossierRequest struct {
 	Name string `json:"name"`
@@ -345,6 +357,9 @@ type SetCustomerJSONBody Customer
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
+// CreateCollaborationJSONBody defines parameters for CreateCollaboration.
+type CreateCollaborationJSONBody CreateCollaborationRequest
+
 // CreateDossierJSONBody defines parameters for CreateDossier.
 type CreateDossierJSONBody CreateDossierRequest
 
@@ -401,6 +416,9 @@ type SetCustomerJSONRequestBody SetCustomerJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
+
+// CreateCollaborationJSONRequestBody defines body for CreateCollaboration for application/json ContentType.
+type CreateCollaborationJSONRequestBody CreateCollaborationJSONBody
 
 // CreateDossierJSONRequestBody defines body for CreateDossier for application/json ContentType.
 type CreateDossierJSONRequestBody CreateDossierJSONBody

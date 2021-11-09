@@ -171,6 +171,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
+  /private/collaboration:
+    post:
+      description: Create a collaboration
+      operationId: createCollaboration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollaborationRequest"
+      responses:
+        200:
+          description: The created collaboration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collaboration"
+        404:
+          description: The patient or the doctor does not exist
+
   /private/transfer:
     post:
       description: Create a new patient transfer dossier.
@@ -834,7 +854,22 @@ components:
           type: string
 
 
-
+    CreateCollaborationRequest:
+      description: >
+        Request to create a collaboration.
+      required:
+        - dossierID
+      properties:
+        dossierID:
+          $ref: '#/components/schemas/ObjectID'
+    Collaboration:
+      description: >
+        A collaboration is a group of care organizations that share a common care plan.
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectID'
     CreateTransferRequest:
       description: >
         Create a new transfer for a specific dossier with a date and description.

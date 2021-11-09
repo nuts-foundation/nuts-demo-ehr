@@ -44,6 +44,9 @@ type ServerInterface interface {
 	// (GET /private)
 	CheckSession(ctx echo.Context) error
 
+	// (POST /private/collaboration)
+	CreateCollaboration(ctx echo.Context) error
+
 	// (GET /private/customer)
 	GetCustomer(ctx echo.Context) error
 
@@ -255,6 +258,17 @@ func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.CheckSession(ctx)
+	return err
+}
+
+// CreateCollaboration converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCollaboration(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CreateCollaboration(ctx)
 	return err
 }
 
@@ -705,6 +719,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/external/transfer/notify", wrapper.NotifyTransferUpdate)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
+	router.POST(baseURL+"/private/collaboration", wrapper.CreateCollaboration)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.POST(baseURL+"/private/dossier", wrapper.CreateDossier)
 	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)

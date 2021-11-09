@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/collaboration"
 	"net/http"
 	"strconv"
 
@@ -48,6 +49,7 @@ type Wrapper struct {
 	TransferSenderService   sender.TransferService
 	TransferReceiverService receiver.TransferService
 	TransferReceiverRepo    receiver.TransferRepository
+	CollaborationService    collaboration.Service
 	NotificationHandler     notification.Handler
 	TenantInitializer       func(tenant int) error
 }

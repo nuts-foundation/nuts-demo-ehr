@@ -71,6 +71,7 @@
             </div>
           </div>
         </div>
+
         <div class="bg-gray-100 px-4 py-3 mt-4 sm:px-6 sm:flex sm:flex-row-reverse">
           <button type="button"
                   class="btn btn-secondary"
@@ -80,6 +81,7 @@
           </button>
 
           <button type="button"
+                  v-if="confirmText || confirmFn"
                   class="btn btn-primary mr-3"
                   @click="confirmFn"
                   :class="type === 'warn' ? 'bg-red-600 hover:bg-red-700' : ''"

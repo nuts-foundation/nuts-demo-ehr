@@ -8,15 +8,8 @@
     <div class="mt-4">
       <h1>New report</h1>
       <form>
-        <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md" v-if="formErrors.length">
-          <label class="text-red-500">Please correct the following error{{
-              formErrors.length === 0 ? '' : 's'
-            }}:</label>
-
-          <ul class="text-sm">
-            <li v-for="error in formErrors">— {{ error }}</li>
-          </ul>
-        </div>
+        <form-errors-banner :errors="formErrors">
+        </form-errors-banner>
         <label>Heart rate
           <input type="text" v-model="report.heartRate">
         </label>
@@ -28,10 +21,11 @@
 
 <script>
 import ModalWindow from "../../../components/ModalWindow.vue";
+import FormErrorsBanner from "../../../components/FormErrorsBanner.vue"
 
 export default {
   name: "NewReport",
-  components: {ModalWindow},
+  components: {ModalWindow, FormErrorsBanner},
   data() {
     return {
       formErrors: [],

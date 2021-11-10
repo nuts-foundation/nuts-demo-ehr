@@ -94,8 +94,11 @@ type CreateDossierRequest struct {
 
 // Request to create a episode.
 type CreateEpisodeRequest struct {
+	Diagnosis string `json:"diagnosis"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
+	Period    Period   `json:"period"`
 }
 
 // An request object to create a new transfer negotiation.
@@ -149,8 +152,11 @@ type Dossier struct {
 
 // A episode is a group of care organizations that share a common care plan.
 type Episode struct {
+	Diagnosis string `json:"diagnosis"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id     ObjectID       `json:"id"`
+	Period Period         `json:"period"`
 	Status *EpisodeStatus `json:"status,omitempty"`
 }
 
@@ -259,6 +265,12 @@ type PatientProperties struct {
 
 // Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
 type PatientPropertiesGender string
+
+// Period defines model for Period.
+type Period struct {
+	End   *openapi_types.Date `json:"end,omitempty"`
+	Start *openapi_types.Date `json:"start,omitempty"`
+}
 
 // Problem defines model for Problem.
 type Problem struct {

@@ -37,6 +37,10 @@
         </tbody>
       </table>
 
+      <div v-else-if="loadingDossiers">
+        Loading...
+      </div>
+
       <div v-else class="min-w-full">
         No dossiers for this patient found.
         <router-link :to="{name: 'ehr.patient.dossier.new'}">Create one!</router-link>
@@ -82,6 +86,7 @@
 export default {
   data() {
     return {
+      loadingDossiers: false,
       dossiers: [],
       transfers: [],
       reports: [],
@@ -100,9 +105,13 @@ export default {
       return (str.length > n) ? str.substr(0, n - 1) + '...' : str
     },
     fetchDossiers() {
+      this.loadingDossiers = true
       this.$api.getDossier({patientID: this.$route.params.id})
           .then(dossiers => this.dossiers = dossiers)
-          .catch(error => this.$status.error(error))
+          .catch(error => {
+            this.loadingDossiers = false
+            this.$status.error(error)
+          })
     },
     fetchReports() {
       this.$api.getReports({patientID: this.$route.params.id})

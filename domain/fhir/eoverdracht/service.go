@@ -21,8 +21,8 @@ type TransferService interface {
 	CreateAdvanceNotice(ctx context.Context, advanceNotice AdvanceNotice) error
 	CreateNursingHandoff(ctx context.Context, nursingHandoff NursingHandoff) error
 
-	GetAdvanceNotice(ctx context.Context, fhirCompositionPath string) (AdvanceNotice, error)
-	GetNursingHandoff(ctx context.Context, fhirCompositionPath string) (NursingHandoff, error)
+	GetAdvanceNotice(ctx context.Context, fhirCompositionID string) (AdvanceNotice, error)
+	GetNursingHandoff(ctx context.Context, fhirCompositionID string) (NursingHandoff, error)
 }
 
 func NewFHIRTransferService(client fhir.Client) TransferService {

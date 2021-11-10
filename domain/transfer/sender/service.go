@@ -104,7 +104,7 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
 
-	advanceNotice, err := fhirService.GetAdvanceNotice(ctx, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
+	advanceNotice, err := fhirService.GetAdvanceNotice(ctx, dbTransfer.FhirAdvanceNoticeComposition)
 	if err != nil {
 		return types.Transfer{}, err
 	}
@@ -292,7 +292,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		// The advance notice contains a lot of the same resources which should also be used in the Nursing Handoff
 		// Fetch the advanceNotice FHIR resources
-		advanceNotice, err := fhirService.GetAdvanceNotice(ctx, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
+		advanceNotice, err := fhirService.GetAdvanceNotice(ctx, dbTransfer.FhirAdvanceNoticeComposition)
 		if err != nil {
 			return nil, err
 		}

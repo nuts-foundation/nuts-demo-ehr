@@ -25,7 +25,7 @@ func (w Wrapper) CreateEpisode(ctx echo.Context) error {
 		return err
 	}
 
-	episode, err := w.EpisodeService.Create(ctx.Request().Context(), cid, string(dossier.Id), string(dossier.PatientID))
+	episode, err := w.EpisodeService.Create(ctx.Request().Context(), cid, string(dossier.PatientID), request)
 	if err != nil {
 		return err
 	}

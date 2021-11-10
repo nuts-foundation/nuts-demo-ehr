@@ -84,6 +84,12 @@ type CarePlan struct {
 	PatientProblems []PatientProblem `json:"patientProblems"`
 }
 
+// Request to create a collaboration.
+type CreateCollaborationRequest struct {
+	// A care organization available through the Nuts Network to exchange information.
+	Sender Organization `json:"sender"`
+}
+
 // API request to create a dossier for a patient.
 type CreateDossierRequest struct {
 	Name string `json:"name"`
@@ -384,6 +390,9 @@ type CreateDossierJSONBody CreateDossierRequest
 // CreateEpisodeJSONBody defines parameters for CreateEpisode.
 type CreateEpisodeJSONBody CreateEpisodeRequest
 
+// CreateCollaborationJSONBody defines parameters for CreateCollaboration.
+type CreateCollaborationJSONBody CreateCollaborationRequest
+
 // SearchOrganizationsParams defines parameters for SearchOrganizations.
 type SearchOrganizationsParams struct {
 	// Keyword for finding care organizations.
@@ -443,6 +452,9 @@ type CreateDossierJSONRequestBody CreateDossierJSONBody
 
 // CreateEpisodeJSONRequestBody defines body for CreateEpisode for application/json ContentType.
 type CreateEpisodeJSONRequestBody CreateEpisodeJSONBody
+
+// CreateCollaborationJSONRequestBody defines body for CreateCollaboration for application/json ContentType.
+type CreateCollaborationJSONRequestBody CreateCollaborationJSONBody
 
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody UpdatePatientJSONBody

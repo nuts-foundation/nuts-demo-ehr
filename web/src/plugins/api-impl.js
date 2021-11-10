@@ -277,6 +277,23 @@ function createApi(options) {
           mode,
         });
     },
+    createCollaboration(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createCollaboration');
+      return fetch(endpoint + basePath + '/private/episode/' + params['episodeID'] + '/collaboration'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
     getInbox(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

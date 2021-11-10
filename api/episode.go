@@ -33,18 +33,27 @@ func (w Wrapper) CreateEpisode(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, episode)
 }
 
-func (w Wrapper) GetEpisode(ctx echo.Context, dossierID string) error {
+func (w Wrapper) getEpisode(ctx echo.Context, dossierID string) (*types.Episode, error) {
 	cid, err := w.getCustomerID(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), cid, dossierID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	episode, err := w.EpisodeService.Get(ctx.Request().Context(), cid, string(dossier.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	return episode, nil
+}
+
+func (w Wrapper) GetEpisode(ctx echo.Context, dossierID string) error {
+	episode, err := w.getEpisode(ctx, dossierID)
 	if err != nil {
 		return err
 	}

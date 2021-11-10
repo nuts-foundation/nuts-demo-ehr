@@ -12,7 +12,7 @@ import (
 
 type VerifiableCredentialRegistry interface {
 	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
-	CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error
+	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
@@ -25,21 +25,13 @@ type httpVerifiableCredentialRegistry struct {
 	nutsClient nutsClient.VCRClient
 }
 
-func NewVerifiableCredentialRegistry(client *nutsClient.HTTPClient) VerifiableCredentialRegistry {
+func NewVerifiableCredentialRegistry(client nutsClient.VCRClient) VerifiableCredentialRegistry {
 	return &httpVerifiableCredentialRegistry{
 		nutsClient: client,
 	}
 }
 
-func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error {
-	subject := credential.NutsAuthorizationCredentialSubject{
-		ID: subjectID,
-		LegalBase: credential.LegalBase{
-			ConsentType: "implied",
-		},
-		PurposeOfUse: purposeOfUse,
-		Resources:    resources,
-	}
+func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error {
 	subjectMap := map[string]interface{}{}
 
 	data, err := json.Marshal(subject)

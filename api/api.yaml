@@ -212,6 +212,29 @@ paths:
         404:
           description: The episode does not exist
 
+  /private/episode/{episodeID}/collaboration:
+    post:
+      description: Create a collaboration
+      operationId: createCollaboration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollaborationRequest"
+      parameters:
+        - name: episodeID
+          in: path
+          description: The episode ID
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: The created collaboration
+        404:
+          description: The episode does not exist
+
   /private/transfer:
     post:
       description: Create a new patient transfer dossier.
@@ -883,6 +906,14 @@ components:
           type: string
           format: date
 
+    CreateCollaborationRequest:
+      description: >
+        Request to create a collaboration.
+      required:
+        - sender
+      properties:
+        sender:
+          $ref: '#/components/schemas/Organization'
     CreateEpisodeRequest:
       description: >
         Request to create a episode.

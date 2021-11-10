@@ -12,6 +12,8 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 )
 
+const ServiceName = "zorginzage"
+
 type Service interface {
 	CreateEpisode(ctx context.Context, patientID string, request types.CreateEpisodeRequest) (*fhir.EpisodeOfCare, error)
 	GetEpisode(ctx context.Context, dossierID string) (*fhir.EpisodeOfCare, error)

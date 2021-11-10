@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
@@ -59,7 +60,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
-func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requesterDID string, fhirTaskID string) error {
 	updateRequest := &types.TransferNegotiationStatus{}
 	err := ctx.Bind(updateRequest)
 	if err != nil {
@@ -70,7 +71,7 @@ func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requestorDID strin
 		return err
 	}
 
-	err = w.TransferReceiverService.UpdateTransferRequestState(ctx.Request().Context(), cid, requestorDID, fhirTaskID, string(updateRequest.Status))
+	err = w.TransferReceiverService.UpdateTransferRequestState(ctx.Request().Context(), cid, requesterDID, fhirTaskID, string(updateRequest.Status))
 	if err != nil {
 		return err
 	}
@@ -182,10 +183,12 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	}
 	newState := request.Status
 	if newState == transfer.InProgressState {
-		w.TransferSenderService.ConfirmNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
+		_, err = w.TransferSenderService.ConfirmNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
 	} else if newState == transfer.CancelledState {
-
-		w.TransferSenderService.CancelNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
+		_, err = w.TransferSenderService.CancelNegotiation(ctx.Request().Context(), cid, transferID, negotiationID)
+	}
+	if err != nil {
+		return fmt.Errorf("unable to update transfer negotiation state: %w", err)
 	}
 	negotiation, err := w.TransferSenderRepo.UpdateNegotiationState(ctx.Request().Context(), cid, negotiationID, request.Status)
 	if err != nil {

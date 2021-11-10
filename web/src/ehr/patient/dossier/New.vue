@@ -19,9 +19,9 @@
       Do you want to collaborate with a group of care professionals on a specific case?
       With the dossier type you invite other care professionals to exchange reports on a specific case.
       <button
-          @click.prevent="() => $router.push({name: 'ehr.patient.collaboration.new', params: {id: this.$route.params.id}})"
+          @click.prevent="() => $router.push({name: 'ehr.patient.episode.new', params: {id: this.$route.params.id}})"
           class="btn btn-primary block mt-2">
-        Create collaboration
+        Create episode
       </button>
     </div>
   </modal-window>

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/collaboration"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
@@ -215,7 +215,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferSenderService:   transferSenderService,
 		TransferReceiverService: transferReceiverService,
 		TransferReceiverRepo:    transferReceiverRepo,
-		CollaborationService:    collaboration.NewService(fhirClientFactory),
+		EpisodeService:          episode.NewService(fhirClientFactory),
 		TenantInitializer:       tenantInitializer,
 		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry),
 	}

@@ -37,19 +37,19 @@ export default {
 
       this.loading = true
 
-      this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Collaboration'}})
-          .then(dossier => this.createCollaboration(dossier.id))
-          .then(collaboration => {
+      this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Episode'}})
+          .then(dossier => this.createEpisode(dossier.id))
+          .then(episode => {
             return this.$router.push({
-              name: 'ehr.patient.collaboration.edit',
-              params: {collaborationID: collaboration.id}
+              name: 'ehr.patient.episode.edit',
+              params: {episodeID: episode.id}
             })
           })
           .catch(error => this.$status.error(error))
           .finally(() => this.loading = false)
     },
-    createCollaboration(dossierID) {
-      return this.$api.createCollaboration({body: {dossierID, name: 'Collaboration'}})
+    createEpisode(dossierID) {
+      return this.$api.createEpisode({body: {dossierID, name: 'Episode'}})
     }
   },
 }

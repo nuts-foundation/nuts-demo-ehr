@@ -171,46 +171,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
-  /private/collaboration:
+  /private/episode:
     post:
-      description: Create a collaboration
-      operationId: createCollaboration
+      description: Create a episode
+      operationId: createEpisode
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCollaborationRequest"
+              $ref: "#/components/schemas/CreateEpisodeRequest"
       responses:
         200:
-          description: The created collaboration
+          description: The created episode
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Collaboration"
+                $ref: "#/components/schemas/Episode"
         404:
           description: The patient or the doctor does not exist
 
-  /private/collaboration/{collaborationID}:
+  /private/episode/{episodeID}:
     get:
-      description: Get the collaboration by the collaborationID
-      operationId: getCollaboration
+      description: Get the episode by the episodeID
+      operationId: getEpisode
       parameters:
-        - name: collaborationID
+        - name: episodeID
           in: path
-          description: The collaboration ID
+          description: The episode ID
           required: true
           schema:
             type: string
       responses:
         200:
-          description: The requested collaboration
+          description: The requested episode
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Collaboration"
+                $ref: "#/components/schemas/Episode"
         404:
-          description: The collaboration does not exist
+          description: The episode does not exist
 
   /private/transfer:
     post:
@@ -875,17 +875,17 @@ components:
           type: string
 
 
-    CreateCollaborationRequest:
+    CreateEpisodeRequest:
       description: >
-        Request to create a collaboration.
+        Request to create a episode.
       required:
         - dossierID
       properties:
         dossierID:
           $ref: '#/components/schemas/ObjectID'
-    Collaboration:
+    Episode:
       description: >
-        A collaboration is a group of care organizations that share a common care plan.
+        A episode is a group of care organizations that share a common care plan.
       required:
         - id
       properties:

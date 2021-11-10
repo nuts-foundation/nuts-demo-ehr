@@ -13,8 +13,8 @@ import StatusReporter from './plugins/StatusReporter.js'
 import Patients from './ehr/patient/Patients.vue'
 import Patient from './ehr/patient/Patient.vue'
 import PatientOverview from './ehr/patient/PatientOverview.vue'
-import NewCollaboration from './ehr/collaboration/New.vue'
-import EditCollaboration from './ehr/collaboration/Edit.vue'
+import NewEpisode from './ehr/episode/New.vue'
+import EditEpisode from './ehr/episode/Edit.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
@@ -106,14 +106,14 @@ const routes = [
             component: NewReport
           },
           {
-            path: 'collaboration/new',
-            name: 'ehr.patient.collaboration.new',
-            component: NewCollaboration
+            path: 'episode/new',
+            name: 'ehr.patient.episode.new',
+            component: NewEpisode
           },
           {
-            path: 'collaboration/edit/:collaborationID',
-            name: 'ehr.patient.collaboration.edit',
-            component: EditCollaboration
+            path: 'episode/edit/:episodeID',
+            name: 'ehr.patient.episode.edit',
+            component: EditEpisode
           },
           {
             path: 'transfer',

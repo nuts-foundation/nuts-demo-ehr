@@ -11,7 +11,7 @@
       <button
           @click.prevent="() => $router.push({name: 'ehr.patient.transfer.new', params: {id: this.$route.params.id}})"
           class="btn btn-primary block mt-2">
-        Create transfer
+        New transfer
       </button>
     </div>
 
@@ -21,7 +21,7 @@
       <button
           @click.prevent="() => $router.push({name: 'ehr.patient.episode.new', params: {id: this.$route.params.id}})"
           class="btn btn-primary block mt-2">
-        Create episode
+        New episode
       </button>
     </div>
   </modal-window>

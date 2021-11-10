@@ -30,7 +30,7 @@
   </div>
 
   <div class="px-12">
-    <div class="grid gap-5 grid-cols-4">
+    <div class="grid gap-5 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
       <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg opacity-0 transition-opacity"
            :class="{'opacity-100': state === 'done'}"
            v-for="(patient, i) in patients"

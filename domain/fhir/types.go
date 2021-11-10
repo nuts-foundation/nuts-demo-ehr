@@ -5,12 +5,23 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 )
 
-/* Coding systems */
+// Coding systems
 var (
 	SnomedCodingSystem datatypes.URI = "http://snomed.info/sct"
 	LoincCodingSystem  datatypes.URI = "http://loinc.org"
 	NutsCodingSystem   datatypes.URI = "http://nuts.nl"
 	UZICodingSystem    datatypes.URI = "http://fhir.nl/fhir/NamingSystem/uzi-nr-pers"
+)
+
+// Codes for the status of an EpisodeOfCare
+const (
+	EpisodeStatusPlanned        = datatypes.Code("planned")
+	EpisodeStatusWaitlist       = datatypes.Code("waitlist")
+	EpisodeStatusActive         = datatypes.Code("active")
+	EpisodeStatusOnHold         = datatypes.Code("onhold")
+	EpisodeStatusFinished       = datatypes.Code("finished")
+	EpisodeStatusCancelled      = datatypes.Code("cancelled")
+	EpisodeStatusEnteredInError = datatypes.Code("entered-in-error")
 )
 
 type TaskProperties struct {
@@ -54,4 +65,19 @@ type Composition struct {
 	Author     []datatypes.Reference     `json:"author,omitempty"`
 	Title      datatypes.String          `json:"title,omitempty"`
 	Section    []CompositionSection      `json:"section,omitempty"`
+}
+
+// EpisodeOfCare defines a basic FHIR STU3 EpisodeOfCare resource which is currently not included in the FHIR library.
+type EpisodeOfCare struct {
+	resources.Base
+	Identifier           []datatypes.Identifier      `json:"identifier,omitempty"`
+	Status               datatypes.Code              `json:"status"`
+	Type                 []datatypes.CodeableConcept `json:"type,omitempty"`
+	Patient              datatypes.Reference         `json:"patient"`
+	ManagingOrganization *datatypes.Reference        `json:"managingOrganization,omitempty"`
+	Period               *datatypes.Period           `json:"period,omitempty"`
+	ReferralRequest      []datatypes.Reference       `json:"referralRequest,omitempty"`
+	CareManager          *datatypes.Reference        `json:"careManager,omitempty"`
+	Team                 []datatypes.Reference       `json:"team,omitempty"`
+	Account              []datatypes.Reference       `json:"account,omitempty"`
 }

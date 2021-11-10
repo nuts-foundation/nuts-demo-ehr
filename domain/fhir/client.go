@@ -79,7 +79,7 @@ func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) er
 	}
 	if !resp.IsSuccess() {
 		log.Warnf("FHIR server replied: %s", resp.String())
-		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %w", requestURI, resp.StatusCode(), err)
+		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %s", requestURI, resp.StatusCode(), string(resp.Body()))
 	}
 	return nil
 }

@@ -11,6 +11,23 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for EpisodeStatus.
+const (
+	EpisodeStatusActive EpisodeStatus = "active"
+
+	EpisodeStatusCancelled EpisodeStatus = "cancelled"
+
+	EpisodeStatusEnteredInError EpisodeStatus = "entered-in-error"
+
+	EpisodeStatusFinished EpisodeStatus = "finished"
+
+	EpisodeStatusOnhold EpisodeStatus = "onhold"
+
+	EpisodeStatusPlanned EpisodeStatus = "planned"
+
+	EpisodeStatusWaitlist EpisodeStatus = "waitlist"
+)
+
 // Defines values for InboxEntryType.
 const (
 	InboxEntryTypeTransferRequest InboxEntryType = "transferRequest"
@@ -75,6 +92,12 @@ type CreateDossierRequest struct {
 	PatientID ObjectID `json:"patientID"`
 }
 
+// Request to create a episode.
+type CreateEpisodeRequest struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	DossierID ObjectID `json:"dossierID"`
+}
+
 // An request object to create a new transfer negotiation.
 type CreateTransferNegotiationRequest struct {
 	// Decentralized Identifier of the organization to which transfer of a patient is requested.
@@ -123,6 +146,16 @@ type Dossier struct {
 	// An internal object UUID which can be used as unique identifier for entities.
 	PatientID ObjectID `json:"patientID"`
 }
+
+// A episode is a group of care organizations that share a common care plan.
+type Episode struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id     ObjectID       `json:"id"`
+	Status *EpisodeStatus `json:"status,omitempty"`
+}
+
+// EpisodeStatus defines model for Episode.Status.
+type EpisodeStatus string
 
 // InboxEntry defines model for InboxEntry.
 type InboxEntry struct {
@@ -348,6 +381,9 @@ type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 // CreateDossierJSONBody defines parameters for CreateDossier.
 type CreateDossierJSONBody CreateDossierRequest
 
+// CreateEpisodeJSONBody defines parameters for CreateEpisode.
+type CreateEpisodeJSONBody CreateEpisodeRequest
+
 // SearchOrganizationsParams defines parameters for SearchOrganizations.
 type SearchOrganizationsParams struct {
 	// Keyword for finding care organizations.
@@ -404,6 +440,9 @@ type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody
 
 // CreateDossierJSONRequestBody defines body for CreateDossier for application/json ContentType.
 type CreateDossierJSONRequestBody CreateDossierJSONBody
+
+// CreateEpisodeJSONRequestBody defines body for CreateEpisode for application/json ContentType.
+type CreateEpisodeJSONRequestBody CreateEpisodeJSONBody
 
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody UpdatePatientJSONBody

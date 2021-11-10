@@ -13,6 +13,8 @@ import StatusReporter from './plugins/StatusReporter.js'
 import Patients from './ehr/patient/Patients.vue'
 import Patient from './ehr/patient/Patient.vue'
 import PatientOverview from './ehr/patient/PatientOverview.vue'
+import NewEpisode from './ehr/episode/New.vue'
+import EditEpisode from './ehr/episode/Edit.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
@@ -104,6 +106,16 @@ const routes = [
             component: NewReport
           },
           {
+            path: 'episode/new',
+            name: 'ehr.patient.episode.new',
+            component: NewEpisode
+          },
+          {
+            path: 'episode/edit/:episodeID',
+            name: 'ehr.patient.episode.edit',
+            component: EditEpisode
+          },
+          {
             path: 'transfer',
             name: 'ehr.patient.transfer.new',
             component: NewTransfer
@@ -150,7 +162,7 @@ router.beforeEach((to, from, next) => {
   // Check before rendering the target route that we're authenticated, if it's required by the particular route.
   if (to.meta.requiresAuth === true) {
     if (!localStorage.getItem("session")) {
-      return next({name: 'login', props: true, query: {redirect: to.path }})
+      return next({name: 'login', props: true, query: {redirect: to.path}})
     }
   }
   if (to.meta.requiresElevation === true) {
@@ -158,7 +170,7 @@ router.beforeEach((to, from, next) => {
     let rawToken = atob(sessionStr.split('.')[1])
     let token = JSON.parse(rawToken)
     if (!token["elv"]) {
-      return next({name: 'ehr.elevate', props: true, query: {redirect: to.path }})
+      return next({name: 'ehr.elevate', props: true, query: {redirect: to.path}})
     }
   }
   next()

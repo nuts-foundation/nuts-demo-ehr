@@ -14,7 +14,7 @@
 
     <div class="dossier-list">
 
-      <table v-if="collaborationDossiers.length > 0" class="min-w-full divide-y divide-gray-200">
+      <table v-if="episodeDossiers.length > 0" class="min-w-full divide-y divide-gray-200">
         <thead>
         <tr>
           <th>Name</th>
@@ -25,7 +25,7 @@
         <tbody>
         <tr class="cursor-pointer"
             @click="openDossier(dossier)"
-            v-for="dossier in collaborationDossiers">
+            v-for="dossier in episodeDossiers">
           <td>{{ dossier.name }}</td>
           <td>{{ dossier.transfer ? dossier.transfer.status : "" }}</td>
           <td>
@@ -88,7 +88,7 @@ export default {
     }
   },
   computed: {
-    collaborationDossiers() {
+    episodeDossiers() {
       return this.dossiers.map((dossier) => {
         dossier.transfer = this.transfers.find(transfer => transfer.dossierID === dossier.id)
         return dossier
@@ -127,6 +127,8 @@ export default {
       const patientID = this.$route.params.id
       if (dossier.transfer) {
         this.$router.push({name: 'ehr.patient.transfer.edit', params: {id: patientID, transferID: dossier.transfer.id}})
+      } else {
+        this.$router.push({name: 'ehr.patient.episode.edit', params: {id: patientID, episodeID: dossier.id}})
       }
     }
   },

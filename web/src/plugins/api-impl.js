@@ -246,6 +246,37 @@ function createApi(options) {
           mode,
         });
     },
+    createEpisode(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createEpisode');
+      return fetch(endpoint + basePath + '/private/episode'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
+    getEpisode(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getEpisode');
+      return fetch(endpoint + basePath + '/private/episode/' + params['episodeID'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     getInbox(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

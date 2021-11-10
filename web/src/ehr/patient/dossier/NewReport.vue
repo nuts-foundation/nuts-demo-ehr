@@ -4,7 +4,7 @@
       type="add"
       :confirm-fn="submit"
       confirm-text="Create Report"
-      :cancel-route="{name: 'ehr.patient', params: {id: this.$route.params.id}}">
+      :cancel-route="{name: 'ehr.patient.episode.edit', params: {id: $route.params.id, episodeID: $route.params.episodeID}}">
     <div class="mt-4">
       <h1>New report</h1>
       <form>
@@ -56,13 +56,14 @@ export default {
         type: "heartRate",
         patientID,
         value: this.report.heartRate.toString(),
+        episodeID: this.$route.params.episodeID,
       };
 
       this.$api.createReport({
         body: payload,
-        patientID: patientID,
+        patientID,
       })
-      this.$router.push({name: 'ehr.patient', params: {id: this.$route.params.id}})
+      this.$router.push({name: 'ehr.patient.episode.edit', params: {id: this.$route.params.id}})
     },
   },
 }

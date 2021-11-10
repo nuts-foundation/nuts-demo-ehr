@@ -567,6 +567,13 @@ paths:
         schema:
           type: string
     get:
+      parameters:
+        - name: episodeID
+          in: query
+          description: The identifier of episode the report must be part of.
+          required: false
+          schema:
+            type: string
       description: Get list of reports for a patient
       operationId: getReports
       responses:
@@ -1040,6 +1047,8 @@ components:
         id:
           $ref: '#/components/schemas/ObjectID'
         patientID:
+          $ref: '#/components/schemas/ObjectID'
+        episodeID:
           $ref: '#/components/schemas/ObjectID'
         type:
           type: string

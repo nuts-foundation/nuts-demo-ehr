@@ -84,7 +84,7 @@ type ServerInterface interface {
 	NewPatient(ctx echo.Context) error
 
 	// (GET /private/reports/{patientID})
-	GetReports(ctx echo.Context, patientID string) error
+	GetReports(ctx echo.Context, patientID string, params GetReportsParams) error
 
 	// (POST /private/reports/{patientID})
 	CreateReport(ctx echo.Context, patientID string) error
@@ -483,8 +483,17 @@ func (w *ServerInterfaceWrapper) GetReports(ctx echo.Context) error {
 
 	ctx.Set(BearerAuthScopes, []string{""})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetReportsParams
+	// ------------- Optional query parameter "episodeID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "episodeID", ctx.QueryParams(), &params.EpisodeID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter episodeID: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetReports(ctx, patientID)
+	err = w.Handler.GetReports(ctx, patientID, params)
 	return err
 }
 

@@ -43,6 +43,9 @@ func (w Wrapper) getEpisode(ctx echo.Context, dossierID string) (*types.Episode,
 	if err != nil {
 		return nil, err
 	}
+	if dossier == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "dossier not found")
+	}
 
 	episode, err := w.EpisodeService.Get(ctx.Request().Context(), cid, string(dossier.Id))
 	if err != nil {

@@ -52,16 +52,6 @@
   <div class="bg-white px-7 py-5 rounded-lg shadow-sm mt-8">
     <div class="flex justify-between items-center mb-3">
       <h2>Reports</h2>
-
-      <button
-          class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
-          @click="$router.push({name: 'ehr.patient.dossier.newReport'})"
-        >
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
-          <path d="M0 0h24v24H0V0z" fill="none"/>
-          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-        </svg>
-      </button>
     </div>
 
     <table class="reports-list min-w-full divide-y divide-gray-200">

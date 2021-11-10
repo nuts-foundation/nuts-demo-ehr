@@ -412,7 +412,10 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getReports');
-      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + ''
+      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + '' + '?' + buildQuery({
+          'episodeID': params['episodeID'],
+        })
+
         , {
           method: 'GET',
           headers,

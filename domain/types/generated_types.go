@@ -290,6 +290,9 @@ type ProblemStatus string
 // Report defines model for Report.
 type Report struct {
 	// An internal object UUID which can be used as unique identifier for entities.
+	EpisodeID *ObjectID `json:"episodeID,omitempty"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 
 	// An internal object UUID which can be used as unique identifier for entities.
@@ -425,6 +428,12 @@ type GetPatientsParams struct {
 
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
+
+// GetReportsParams defines parameters for GetReports.
+type GetReportsParams struct {
+	// The identifier of episode the report must be part of.
+	EpisodeID *string `json:"episodeID,omitempty"`
+}
 
 // CreateReportJSONBody defines parameters for CreateReport.
 type CreateReportJSONBody Report

@@ -15,7 +15,7 @@ import (
 )
 
 type Repository interface {
-	AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error)
+	AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error)
 	Create(ctx context.Context, customerID int, patientID string, report types.Report) error
 }
 
@@ -74,6 +74,9 @@ func convertToFHIR(report types.Report) (*resources.Observation, error) {
 				Value: &valueDecimal,
 			},
 		}
+		if report.EpisodeID != nil {
+			observation.Context = &datatypes.Reference{Reference: fhir.ToStringPtr("EpisodeOfCare/" + string(*report.EpisodeID))}
+		}
 		return observation, nil
 	}
 
@@ -107,25 +110,36 @@ func convertToDomain(observation *resources.Observation, patientId string) types
 		source = fhir.FromStringPtr(observation.Performer[0].Display)
 	}
 
-	return types.Report{
+	report := types.Report{
 		Type:      fhir.FromStringPtr(observation.Code.Coding[0].Display),
 		Id:        types.ObjectID(fhir.FromIDPtr(observation.ID)),
 		Source:    source,
 		PatientID: types.ObjectID(patientId),
 		Value:     value,
 	}
+
+	if observation.Context != nil {
+		id := types.ObjectID(strings.Split(fhir.FromStringPtr(observation.Context.Reference), "/")[1])
+		report.EpisodeID = &id
+	}
+
+	return report
 }
 
-func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error) {
+func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error) {
 	observations := []resources.Observation{}
-
-	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", map[string]string{
+	queryMap := map[string]string{
 		"patient": patientID,
-	}, &observations); err != nil {
+	}
+	if episodeID != nil {
+		queryMap["context"] = *episodeID
+	}
+
+	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", queryMap, &observations); err != nil {
 		return nil, err
 	}
 
-	var reports []types.Report
+	reports := []types.Report{}
 
 	for _, observation := range observations {
 		ref := fhir.FromStringPtr(observation.Subject.Reference)

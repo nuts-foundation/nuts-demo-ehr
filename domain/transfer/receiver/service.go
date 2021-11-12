@@ -156,7 +156,12 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
 	}
-	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, transfer.SenderServiceName, localRequesterDID, resource)
+
+	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, &registry.VCRSearchParams{
+		PurposeOfUse: transfer.SenderServiceName,
+		SubjectID:    localRequesterDID,
+		ResourcePath: resource,
+	})
 
 	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {

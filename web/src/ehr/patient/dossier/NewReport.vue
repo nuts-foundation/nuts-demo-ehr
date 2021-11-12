@@ -1,18 +1,16 @@
 <template>
   <modal-window
-      title="Create new Dossier report"
+      title="Create new report"
       type="add"
       :confirm-fn="submit"
       confirm-text="Create Report"
       :cancel-route="{name: 'ehr.patient.episode.edit', params: {id: $route.params.id, episodeID: $route.params.episodeID}}">
     <div class="mt-4">
-      <h1>New report</h1>
       <form>
-        <form-errors-banner :errors="formErrors">
-        </form-errors-banner>
-        <label>Heart rate
-          <input type="text" v-model="report.heartRate">
-        </label>
+        <form-errors-banner :errors="formErrors" />
+
+        <label>Heart rate</label>
+        <input type="text" v-model="report.heartRate">
       </form>
     </div>
   </modal-window>
@@ -49,9 +47,11 @@ export default {
       if (!this.checkForm()) {
         return false
       }
-      this.loading = true;
 
-      let patientID = this.$route.params.id
+      this.loading = true
+
+      const patientID = this.$route.params.id
+
       const payload = {
         type: "heartRate",
         patientID,

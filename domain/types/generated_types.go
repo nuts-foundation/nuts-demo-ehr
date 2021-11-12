@@ -84,6 +84,18 @@ type CarePlan struct {
 	PatientProblems []PatientProblem `json:"patientProblems"`
 }
 
+// An object that represents the relation between an episode and a collaborator
+type Collaboration struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	EpisodeID ObjectID `json:"episodeID"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id *ObjectID `json:"id,omitempty"`
+
+	// The DID of the collaborator
+	OrganizationDID string `json:"organizationDID"`
+}
+
 // Request to create a collaboration.
 type CreateCollaborationRequest struct {
 	// A care organization available through the Nuts Network to exchange information.

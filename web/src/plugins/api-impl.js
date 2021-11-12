@@ -277,6 +277,20 @@ function createApi(options) {
           mode,
         });
     },
+    getCollaboration(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getCollaboration');
+      return fetch(endpoint + basePath + '/private/episode/' + params['episodeID'] + '/collaboration'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     createCollaboration(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

@@ -213,6 +213,27 @@ paths:
           description: The episode does not exist
 
   /private/episode/{episodeID}/collaboration:
+    get:
+      description: Get the collaboration of the episode by the episodeID
+      operationId: getCollaboration
+      parameters:
+        - name: episodeID
+          in: path
+          description: The episode ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The collaborations of the episode
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collaboration"
+        404:
+          description: The episode does not exist
     post:
       description: Create a collaboration
       operationId: createCollaboration
@@ -704,6 +725,20 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
+    Collaboration:
+      description: An object that represents the relation between an episode and a collaborator
+      type: object
+      required:
+        - episodeID
+        - organizationDID
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectID'
+        episodeID:
+          $ref: '#/components/schemas/ObjectID'
+        organizationDID:
+          type: string
+          description: The DID of the collaborator
     ObjectID:
       description: An internal object UUID which can be used as unique identifier for entities.
       type: string

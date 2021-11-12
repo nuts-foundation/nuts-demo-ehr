@@ -97,7 +97,10 @@ export default {
     fetchDossiers() {
       this.loadingDossiers = true
       this.$api.getDossier({patientID: this.$route.params.id})
-          .then(dossiers => this.dossiers = dossiers)
+          .then(dossiers => {
+            this.dossiers = dossiers
+            this.loadingDossiers = false
+          })
           .catch(error => {
             this.loadingDossiers = false
             this.$status.error(error)

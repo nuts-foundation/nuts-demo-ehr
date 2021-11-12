@@ -59,6 +59,9 @@ type ServerInterface interface {
 	// (GET /private/episode/{episodeID})
 	GetEpisode(ctx echo.Context, episodeID string) error
 
+	// (GET /private/episode/{episodeID}/collaboration)
+	GetCollaboration(ctx echo.Context, episodeID string) error
+
 	// (POST /private/episode/{episodeID}/collaboration)
 	CreateCollaboration(ctx echo.Context, episodeID string) error
 
@@ -333,6 +336,24 @@ func (w *ServerInterfaceWrapper) GetEpisode(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetEpisode(ctx, episodeID)
+	return err
+}
+
+// GetCollaboration converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCollaboration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "episodeID" -------------
+	var episodeID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "episodeID", runtime.ParamLocationPath, ctx.Param("episodeID"), &episodeID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter episodeID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetCollaboration(ctx, episodeID)
 	return err
 }
 
@@ -775,6 +796,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)
 	router.POST(baseURL+"/private/episode", wrapper.CreateEpisode)
 	router.GET(baseURL+"/private/episode/:episodeID", wrapper.GetEpisode)
+	router.GET(baseURL+"/private/episode/:episodeID/collaboration", wrapper.GetCollaboration)
 	router.POST(baseURL+"/private/episode/:episodeID/collaboration", wrapper.CreateCollaboration)
 	router.GET(baseURL+"/private/network/inbox", wrapper.GetInbox)
 	router.GET(baseURL+"/private/network/inbox/info", wrapper.GetInboxInfo)

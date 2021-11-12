@@ -17,20 +17,61 @@ func (w Wrapper) CreateCollaboration(ctx echo.Context, dossierID string) error {
 		return err
 	}
 
-	customerDID := w.getCustomerDID(ctx)
+	customer := w.getCustomer(ctx)
 
-	if customerDID == nil {
-		return errors.New("DID missing for customer")
-	}
-
-	episode, err := w.getEpisode(ctx, dossierID)
+	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), customer.Id, dossierID)
 	if err != nil {
 		return err
 	}
 
-	if err := w.EpisodeService.CreateCollaboration(ctx.Request().Context(), *customerDID, string(episode.Id), request.Sender.Did); err != nil {
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), customer.Id, string(dossier.PatientID))
+	if err != nil {
+		return err
+	}
+
+	if patient.Ssn == nil {
+		return errors.New("no SSN registered for patient")
+	}
+
+	if err := w.EpisodeService.CreateCollaboration(
+		ctx.Request().Context(),
+		*customer.Did,
+		dossierID,
+		*patient.Ssn,
+		request.Sender.Did,
+	); err != nil {
 		return err
 	}
 
 	return ctx.JSON(http.StatusCreated, nil)
+}
+
+func (w Wrapper) GetCollaboration(ctx echo.Context, dossierID string) error {
+	customerDID := w.getCustomerDID(ctx)
+	if customerDID == nil {
+		return errors.New("DID missing for customer")
+	}
+
+	customer := w.getCustomer(ctx)
+
+	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), customer.Id, dossierID)
+	if err != nil {
+		return err
+	}
+
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), customer.Id, string(dossier.PatientID))
+	if err != nil {
+		return err
+	}
+
+	if patient.Ssn == nil {
+		return errors.New("no SSN registered for patient")
+	}
+
+	collaborations, err := w.EpisodeService.GetCollaborations(ctx.Request().Context(), *customer.Did, dossierID, *patient.Ssn)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(http.StatusOK, collaborations)
 }

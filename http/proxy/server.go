@@ -161,8 +161,8 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 
 			for _, subject := range subjects {
 				for _, resource := range subject.Resources {
-					if strings.HasPrefix(resource.Path, "EpisodeOfCare/") {
-						episodeOfCareID = resource.Path[len("EpisodeOfCare/"):]
+					if strings.HasPrefix(resource.Path, "/EpisodeOfCare/") {
+						episodeOfCareID = resource.Path[len("/EpisodeOfCare/"):]
 						break
 					}
 				}
@@ -172,17 +172,9 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 				return fmt.Errorf("unable to find context for route: %s", route.path())
 			}
 
-			req := ctx.Request()
-			requestURL := &url.URL{}
-			*requestURL = *req.URL
-
-			query := requestURL.Query()
-			query.Set("context", episodeOfCareID)
-			query.Set("subject", *token.Sub)
-
-			req.URL = requestURL
-
-			ctx.SetRequest(req)
+			if route.url.Query().Get("context") != fmt.Sprintf("EpisodeOfCare/%s", episodeOfCareID) {
+				return fmt.Errorf("access denied for episode %s in route: %s", episodeOfCareID, route.path())
+			}
 
 			return nil
 		}

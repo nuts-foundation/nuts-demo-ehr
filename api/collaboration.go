@@ -68,7 +68,8 @@ func (w Wrapper) GetCollaboration(ctx echo.Context, dossierID string) error {
 		return errors.New("no SSN registered for patient")
 	}
 
-	collaborations, err := w.EpisodeService.GetCollaborations(ctx.Request().Context(), *customer.Did, dossierID, *patient.Ssn)
+	// We want to find collaborations pointing to us, so we don't want to search on the customer DID
+	collaborations, err := w.EpisodeService.GetCollaborations(ctx.Request().Context(), "", dossierID, *patient.Ssn)
 	if err != nil {
 		return err
 	}

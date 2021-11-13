@@ -3,8 +3,14 @@ package episode
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
+	reports "github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
+	"strings"
 	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
@@ -18,6 +24,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error)
 	Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error)
+	GetReports(ctx context.Context, customerDID, patientSSN string) ([]types.Report, error)
 	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error
 	GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string) ([]types.Collaboration, error)
 }
@@ -26,13 +33,50 @@ func ssnURN(ssn string) string {
 	return fmt.Sprintf("urn:oid:2.16.840.1.113883.2.4.6.3:%s", ssn)
 }
 
-type service struct {
-	factory fhir.Factory
-	vcr     registry.VerifiableCredentialRegistry
+func parseAuthCredentialSubject(credentialResponse vcr.VerifiableCredential) (*credential.NutsAuthorizationCredentialSubject, error) {
+	bytes, err := json.Marshal(credentialResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	authCredential := vc.VerifiableCredential{}
+	if err = json.Unmarshal(bytes, &authCredential); err != nil {
+		return nil, err
+	}
+
+	subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+
+	if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
+		return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
+	}
+
+	return &subject[0], nil
 }
 
-func NewService(factory fhir.Factory, vcr registry.VerifiableCredentialRegistry) Service {
-	return &service{factory: factory, vcr: vcr}
+type service struct {
+	factory  fhir.Factory
+	auth     auth.Service
+	registry registry.OrganizationRegistry
+	vcr      registry.VerifiableCredentialRegistry
+}
+
+func NewService(factory fhir.Factory, auth auth.Service, registry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) Service {
+	return &service{factory: factory, auth: auth, registry: registry, vcr: vcr}
+}
+
+func parseEpisodeOfCareID(authCredential vcr.VerifiableCredential) (string, error) {
+	subject, err := parseAuthCredentialSubject(authCredential)
+	if err != nil {
+		return "", err
+	}
+
+	for _, resource := range subject.Resources {
+		if strings.HasPrefix(resource.Path, "/EpisodeOfCare/") {
+			return resource.Path[len("/EpisodeOfCare/"):], nil
+		}
+	}
+
+	return "", errors.New("no episode found in credential")
 }
 
 func toEpisode(episode *fhir.EpisodeOfCare) *types.Episode {
@@ -98,45 +142,111 @@ func (service *service) CreateCollaboration(ctx context.Context, customerDID, do
 	})
 }
 
-func (service *service) GetCollaborations(ctx context.Context, _customerDID, dossierID, patientSSN string) ([]types.Collaboration, error) {
+func (service *service) GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string) ([]types.Collaboration, error) {
+	params := &registry.VCRSearchParams{
+		PurposeOfUse: zorginzage.ServiceName,
+		Subject:      ssnURN(patientSSN),
+		ResourcePath: fmt.Sprintf("/EpisodeOfCare/%s", dossierID),
+	}
+
+	if customerDID != "" {
+		params.SubjectID = customerDID
+	}
+
 	credentials, err := service.vcr.FindAuthorizationCredentials(
 		ctx,
-		&registry.VCRSearchParams{
-			PurposeOfUse: zorginzage.ServiceName,
-			Subject:      ssnURN(patientSSN),
-			ResourcePath: fmt.Sprintf("/EpisodeOfCare/%s", dossierID),
-		},
+		params,
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	var subjects []credential.NutsAuthorizationCredentialSubject
+
+	for _, authCredential := range credentials {
+		subject, err := parseAuthCredentialSubject(authCredential)
+		if err != nil {
+			return nil, err
+		}
+
+		subjects = append(subjects, *subject)
 	}
 
 	episodeID := types.ObjectID(dossierID)
 
 	var collaborations []types.Collaboration
 
-	for _, credentialResponse := range credentials {
-		bytes, err := json.Marshal(credentialResponse)
-		if err != nil {
-			return nil, err
-		}
-
-		authCredential := vc.VerifiableCredential{}
-		if err = json.Unmarshal(bytes, &authCredential); err != nil {
-			return nil, err
-		}
-
-		subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
-
-		if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
-			return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
-		}
-
+	for _, subject := range subjects {
 		collaborations = append(collaborations, types.Collaboration{
 			EpisodeID:       episodeID,
-			OrganizationDID: subject[0].ID,
+			OrganizationDID: subject.ID,
 		})
 	}
 
 	return collaborations, nil
+}
+
+func (service *service) GetReports(ctx context.Context, customerDID, patientSSN string) ([]types.Report, error) {
+	credentials, err := service.vcr.FindAuthorizationCredentials(
+		ctx,
+		&registry.VCRSearchParams{
+			PurposeOfUse: zorginzage.ServiceName,
+			SubjectID:    customerDID,
+			Subject:      ssnURN(patientSSN),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(credentials) == 0 {
+		return []types.Report{}, nil
+	}
+
+	issuer := string(credentials[0].Issuer)
+
+	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, issuer, zorginzage.ServiceName, "fhir")
+	if err != nil {
+		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", issuer, err)
+	}
+
+	bytes, err := json.Marshal(credentials[0])
+	if err != nil {
+		return nil, err
+	}
+
+	authCredential := &vc.VerifiableCredential{}
+
+	if err := json.Unmarshal(bytes, authCredential); err != nil {
+		return nil, err
+	}
+
+	accessToken, err := service.auth.RequestAccessToken(ctx, customerDID, issuer, zorginzage.ServiceName, []vc.VerifiableCredential{*authCredential}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	episodeOfCareID, err := parseEpisodeOfCareID(credentials[0])
+	if err != nil {
+		return nil, err
+	}
+
+	observations := []resources.Observation{}
+
+	fhirClient := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))()
+
+	if err := fhirClient.ReadMultiple(ctx, "/Observation", map[string]string{
+		"context": fmt.Sprintf("EpisodeOfCare/%s", episodeOfCareID),
+		"subject": fmt.Sprintf("Patient/%s", patientSSN),
+	}, &observations); err != nil {
+		return nil, err
+	}
+
+	results := make([]types.Report, len(observations))
+
+	for _, observation := range observations {
+		results = append(results, reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID)))
+	}
+
+	return results, nil
 }

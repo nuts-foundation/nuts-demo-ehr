@@ -88,7 +88,7 @@ func convertToFHIR(report types.Report) (*resources.Observation, error) {
 	return nil, errors.New("unknown report type")
 }
 
-func convertToDomain(observation *resources.Observation, patientID string) types.Report {
+func ConvertToDomain(observation *resources.Observation, patientID string) types.Report {
 	var value string
 
 	switch {
@@ -132,6 +132,7 @@ func convertToDomain(observation *resources.Observation, patientID string) types
 
 func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error) {
 	observations := []resources.Observation{}
+
 	queryMap := map[string]string{
 		"subject": fmt.Sprintf("Patient/%s", patientID),
 	}
@@ -152,7 +153,7 @@ func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, pa
 			continue
 		}
 
-		reports = append(reports, convertToDomain(&observation, ref[len("Patient/"):]))
+		reports = append(reports, ConvertToDomain(&observation, ref[len("Patient/"):]))
 	}
 
 	return reports, nil

@@ -14,14 +14,27 @@ type GetReportsParams struct {
 }
 
 func (w Wrapper) GetReports(ctx echo.Context, patientID string, params GetReportsParams) error {
-	cid, err := w.getCustomerID(ctx)
+	customer := w.getCustomer(ctx)
+
+	// Get the local reports for the patient
+	reports, err := w.ReportRepository.AllByPatient(ctx.Request().Context(), customer.Id, patientID, params.EpisodeID)
 	if err != nil {
 		return err
 	}
 
-	reports, err := w.ReportRepository.AllByPatient(ctx.Request().Context(), cid, patientID, params.EpisodeID)
+	// Get the remote reports for the patient
+	patient, err := w.PatientRepository.FindByID(ctx.Request().Context(), customer.Id, patientID)
 	if err != nil {
 		return err
+	}
+
+	if patient.Ssn != nil {
+		remoteReports, err := w.EpisodeService.GetReports(ctx.Request().Context(), *customer.Did, *patient.Ssn)
+		if err != nil {
+			return err
+		}
+
+		reports = append(reports, remoteReports...)
 	}
 
 	return ctx.JSON(http.StatusOK, reports)

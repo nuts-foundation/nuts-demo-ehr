@@ -237,7 +237,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 
 	if err := fhirClient.ReadMultiple(ctx, "/Observation", map[string]string{
 		"context": fmt.Sprintf("EpisodeOfCare/%s", episodeOfCareID),
-		"subject": fmt.Sprintf("Patient/%s", patientSSN),
+		//"subject": fmt.Sprintf("Patient/%s", patientSSN),
 	}, &observations); err != nil {
 		return nil, err
 	}

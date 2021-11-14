@@ -5,7 +5,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-const DateTimeLayout = "2006-01-02T15:04:05-07:0"
+const DateTimeLayout = "2006-01-02T15:04:05-07:00"
 
 func Filter(resources []gjson.Result, predicate func(resource gjson.Result) bool) []gjson.Result {
 	var result []gjson.Result

@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
 	reports "github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
-	"strings"
-	"time"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -210,6 +211,11 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", issuer, err)
 	}
 
+	org, err := service.registry.Get(ctx, customerDID)
+	if err != nil {
+		return nil, fmt.Errorf("error while searching organization :%w", err)
+	}
+
 	bytes, err := json.Marshal(credentials[0])
 	if err != nil {
 		return nil, err
@@ -245,7 +251,10 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	results := make([]types.Report, len(observations))
 
 	for _, observation := range observations {
-		results = append(results, reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID)))
+		domainObservation := reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID))
+		domainObservation.Source = org.Name
+		results = append(results, domainObservation)
+
 	}
 
 	return results, nil

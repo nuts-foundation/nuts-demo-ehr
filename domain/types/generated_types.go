@@ -302,7 +302,8 @@ type ProblemStatus string
 // Report defines model for Report.
 type Report struct {
 	// An internal object UUID which can be used as unique identifier for entities.
-	EpisodeID *ObjectID `json:"episodeID,omitempty"`
+	EpisodeID   *ObjectID `json:"episodeID,omitempty"`
+	EpisodeName *string   `json:"episodeName,omitempty"`
 
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`

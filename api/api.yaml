@@ -1091,6 +1091,8 @@ components:
           type: string
         source:
           type: string
+        episodeName:
+          type: string
     Dossier:
       required:
         - id

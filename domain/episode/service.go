@@ -238,10 +238,16 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, err
 	}
 
-	observations := []resources.Observation{}
-
 	fhirClient := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))()
 
+	fhirEpisode := &fhir.EpisodeOfCare{}
+	err = fhirClient.ReadOne(ctx, "/EpisodeOfCare/" + episodeOfCareID, fhirEpisode)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve episode of care: %w", err)
+	}
+	episode := toEpisode(fhirEpisode)
+
+	observations := []resources.Observation{}
 	if err := fhirClient.ReadMultiple(ctx, "/Observation", map[string]string{
 		"context": fmt.Sprintf("EpisodeOfCare/%s", episodeOfCareID),
 		//"subject": fmt.Sprintf("Patient/%s", patientSSN),
@@ -254,8 +260,8 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	for _, observation := range observations {
 		domainObservation := reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID))
 		domainObservation.Source = issuerOrg.Name
+		domainObservation.EpisodeName = &episode.Diagnosis
 		results = append(results, domainObservation)
-
 	}
 
 	return results, nil

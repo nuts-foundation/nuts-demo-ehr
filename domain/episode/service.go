@@ -80,7 +80,7 @@ func parseEpisodeOfCareID(authCredential vcr.VerifiableCredential) (string, erro
 	return "", errors.New("no episode found in credential")
 }
 
-func toEpisode(episode *fhir.EpisodeOfCare) *types.Episode {
+func ToEpisode(episode *fhir.EpisodeOfCare) *types.Episode {
 	status := types.EpisodeStatus(episode.Status)
 	periodStart := time.Time{}
 	if episode.Period != nil {
@@ -110,7 +110,7 @@ func (service *service) Create(ctx context.Context, customerID int, patientID st
 		return nil, err
 	}
 
-	return toEpisode(episode), nil
+	return ToEpisode(episode), nil
 }
 
 func (service *service) Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error) {
@@ -121,7 +121,7 @@ func (service *service) Get(ctx context.Context, customerID int, dossierID strin
 		return nil, err
 	}
 
-	return toEpisode(episode), nil
+	return ToEpisode(episode), nil
 }
 
 func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error {
@@ -245,7 +245,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve episode of care: %w", err)
 	}
-	episode := toEpisode(fhirEpisode)
+	episode := ToEpisode(fhirEpisode)
 
 	observations := []resources.Observation{}
 	if err := fhirClient.ReadMultiple(ctx, "/Observation", map[string]string{

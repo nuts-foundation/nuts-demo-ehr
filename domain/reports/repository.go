@@ -11,8 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
+	episode2 "github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	"github.com/sirupsen/logrus"
 )
 
 type Repository interface {
@@ -140,20 +142,40 @@ func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, pa
 		queryMap["context"] = fmt.Sprintf("EpisodeOfCare/%s", *episodeID)
 	}
 
-	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", queryMap, &observations); err != nil {
+	fhirClient := repo.factory(fhir.WithTenant(customerID))
+	if err := fhirClient.ReadMultiple(ctx, "Observation", queryMap, &observations); err != nil {
 		return nil, err
 	}
 
 	reports := []types.Report{}
 
+	episodeCache := map[string]types.Episode{}
 	for _, observation := range observations {
 		ref := fhir.FromStringPtr(observation.Subject.Reference)
 
 		if !strings.HasPrefix(ref, "Patient/") {
 			continue
 		}
+		report := ConvertToDomain(&observation, ref[len("Patient/"):])
+		report.Source = "Local"
 
-		reports = append(reports, ConvertToDomain(&observation, ref[len("Patient/"):]))
+		if report.EpisodeID != nil {
+			episodeID := string(*report.EpisodeID)
+			if _, ok := episodeCache[episodeID]; !ok {
+				fhirEpisode := &fhir.EpisodeOfCare{}
+				err := fhirClient.ReadOne(ctx, "EpisodeOfCare/"+string(*report.EpisodeID), &fhirEpisode)
+				if err != nil {
+					// A failure is not fatal for this request
+					logrus.StandardLogger().WithError(err).Warn("could not fetch episode for local report")
+					continue
+				}
+				episode := episode2.ToEpisode(fhirEpisode)
+				episodeCache[episodeID] = *episode
+			}
+			diagnosis := episodeCache[episodeID].Diagnosis
+			report.EpisodeName = &diagnosis
+		}
+		reports = append(reports, report)
 	}
 
 	return reports, nil

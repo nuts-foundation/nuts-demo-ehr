@@ -1,5 +1,13 @@
 <template>
   <div>
+    <new-report
+        :patient-id="$route.params.id"
+        :episode-id="$route.params.episodeID"
+        v-if="newReportActive"
+        @cancelled="cancelNewReport"
+        @added="reportAdded"
+    />
+
     <h1>View episode</h1>
     <episode-fields v-if="episode"
                     :episode="episode"
@@ -20,7 +28,7 @@
 
         <button
             class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
-            @click="$router.push({name: 'ehr.patient.episode.newReport'})"
+            @click="newReportActive = true"
         >
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff">
             <path d="M0 0h24v24H0V0z" fill="none"/>
@@ -40,7 +48,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="report in reports">
+          <tr v-for="report in reports" :key="report.id">
             <td>{{ report.type }}</td>
             <td>{{ truncate(report.value, 30) }}</td>
             <td>{{ report.source }}</td>
@@ -65,7 +73,6 @@
             <tr v-for="collaboration in collaborations">
               <td>{{ collaboration.organizationName }}</td>
             </tr>
-
             <tr>
               <td>
                 <auto-complete
@@ -86,17 +93,19 @@
   </div>
 </template>
 <script>
+import NewReport from "./NewReport.vue";
 import EpisodeFields from "./EpisodeFields.vue";
 import AutoComplete from "../../components/Autocomplete.vue"
 
 export default {
-  components: {EpisodeFields, AutoComplete},
+  components: {EpisodeFields, NewReport, AutoComplete},
   data() {
     return {
       episode: null,
       reports: [],
       collaborations: [],
       organizations: [],
+      newReportActive: false
     }
   },
   emits: ['statusUpdate'],
@@ -133,6 +142,13 @@ export default {
           })
           .catch(error => this.$status.error(error))
     },
+    cancelNewReport() {
+      this.newReportActive = false
+    },
+    reportAdded() {
+      this.newReportActive = false
+      this.fetchReports(this.$route.params.id, this.$route.params.episodeID)
+    }
   },
   mounted() {
     this.fetchEpisode(this.$route.params.episodeID)

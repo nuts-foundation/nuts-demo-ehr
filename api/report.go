@@ -55,5 +55,5 @@ func (w Wrapper) CreateReport(ctx echo.Context, patientID string) error {
 		return err
 	}
 
-	return ctx.NoContent(http.StatusOK)
+	return ctx.NoContent(http.StatusCreated)
 }

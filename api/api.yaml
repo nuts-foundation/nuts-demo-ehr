@@ -617,11 +617,8 @@ paths:
             schema:
               $ref: "#/components/schemas/Report"
       responses:
-        200:
+        201:
           description: The creation of the new report is completed
-          content:
-            applaction/json:
-              schema:
   /private/dossier/{patientID}:
     get:
       description: Get list of dossiers for a patient

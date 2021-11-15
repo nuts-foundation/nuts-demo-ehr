@@ -25,7 +25,6 @@ import Inbox from "./ehr/inbox/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 import Elevation from "./components/auth/SessionElevation.vue"
-import NewReport from "./ehr/patient/dossier/NewReport.vue";
 
 const routes = [
   {path: '/', component: Login},
@@ -109,11 +108,7 @@ const routes = [
             path: 'episode/edit/:episodeID',
             name: 'ehr.patient.episode.edit',
             component: EditEpisode,
-            children: [{
-              path: 'newReport',
-              name: 'ehr.patient.episode.newReport',
-              component: NewReport
-            }]
+            children: []
           },
           {
             path: 'transfer',

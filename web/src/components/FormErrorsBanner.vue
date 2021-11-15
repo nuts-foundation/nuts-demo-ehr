@@ -1,5 +1,5 @@
 <template>
-  <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md" v-if="errors.length">
+  <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md" v-if="errors.length > 0">
     <label class="text-red-500">Please correct the following error{{
         errors.length === 0 ? '' : 's'
       }}:</label>
@@ -13,7 +13,11 @@
 <script>
 export default {
   props: {
-    errors: []
+    errors: {
+      type: Array,
+      required: false,
+      default: []
+    }
   }
 }
 </script>

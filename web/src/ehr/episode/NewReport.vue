@@ -4,10 +4,10 @@
       type="add"
       :confirm-fn="submit"
       confirm-text="Create Report"
-      :cancel-route="{name: 'ehr.patient.episode.edit', params: {id: $route.params.id, episodeID: $route.params.episodeID}}">
+      :cancel-fn="{cancel}">
     <div class="mt-4">
       <form>
-        <form-errors-banner :errors="formErrors" />
+        <form-errors-banner :errors="formErrors"/>
 
         <label>Heart rate</label>
         <input type="text" v-model="report.heartRate">
@@ -18,12 +18,23 @@
 </template>
 
 <script>
-import ModalWindow from "../../../components/ModalWindow.vue";
-import FormErrorsBanner from "../../../components/FormErrorsBanner.vue"
+import ModalWindow from "../../components/ModalWindow.vue";
+import FormErrorsBanner from "../../components/FormErrorsBanner.vue"
 
 export default {
   name: "NewReport",
   components: {ModalWindow, FormErrorsBanner},
+  emits: ["added", "cancelled"],
+  props: {
+    episodeId: {
+      type: String,
+      required: true
+    },
+    patientId: {
+      type: String,
+      required: true
+    }
+  },
   data() {
     return {
       formErrors: [],
@@ -33,7 +44,7 @@ export default {
     }
   },
   methods: {
-    checkForm(e) {
+    checkForm() {
       // reset the errors
       this.formErrors.length = 0
 
@@ -43,6 +54,9 @@ export default {
 
       return this.formErrors.length === 0
     },
+    cancel() {
+      this.$emit("cancelled")
+    },
     submit() {
       if (!this.checkForm()) {
         return false
@@ -50,20 +64,19 @@ export default {
 
       this.loading = true
 
-      const patientID = this.$route.params.id
-
-      const payload = {
+      const body = {
         type: "heartRate",
-        patientID,
+        patientID: this.patientId,
         value: this.report.heartRate.toString(),
-        episodeID: this.$route.params.episodeID,
+        episodeID: this.episodeId,
       };
 
       this.$api.createReport({
-        body: payload,
-        patientID,
+        body,
+        patientID: this.patientId,
       })
-      this.$router.push({name: 'ehr.patient.episode.edit', params: {id: this.$route.params.id}})
+
+      this.$emit("added")
     },
   },
 }

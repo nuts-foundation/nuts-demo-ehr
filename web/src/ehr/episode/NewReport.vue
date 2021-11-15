@@ -74,9 +74,9 @@ export default {
       this.$api.createReport({
         body,
         patientID: this.patientId,
+      }).then(() => {
+        this.$emit("added")
       })
-
-      this.$emit("added")
     },
   },
 }

@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/zorginzage"
@@ -15,7 +14,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -240,23 +238,18 @@ func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, tok
 
 	for _, credentialID := range *token.Vcs {
 		// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
-		verifiableCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
+		authCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid credential: %w", err)
 		}
 
-		didVC, err := convertCredential(*verifiableCredential)
-		if err != nil {
-			return nil, fmt.Errorf("invalid credential format: %w", err)
-		}
-
-		if !validCredentialType(*didVC) {
+		if !validCredentialType(*authCredential) {
 			continue
 		}
 
 		subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
 
-		if err := didVC.UnmarshalCredentialSubject(&subject); err != nil {
+		if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
 			return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
 		}
 
@@ -307,18 +300,6 @@ func (server *Server) getTenant(requesterDID string) (int, error) {
 		return 0, errors.New("unknown tenant")
 	}
 	return customer.Id, nil
-}
-
-func convertCredential(verifiableCredential vcr.VerifiableCredential) (*vc.VerifiableCredential, error) {
-	data, err := json.Marshal(verifiableCredential)
-	if err != nil {
-		return nil, err
-	}
-	didVC := vc.VerifiableCredential{}
-	if err = json.Unmarshal(data, &didVC); err != nil {
-		return nil, err
-	}
-	return &didVC, nil
 }
 
 func validCredentialType(verifiableCredential vc.VerifiableCredential) bool {

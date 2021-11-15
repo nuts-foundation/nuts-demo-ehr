@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
@@ -14,7 +13,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/zorginzage"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -80,28 +78,6 @@ func parseEpisodeOfCareID(authCredential vcr.VerifiableCredential) (string, erro
 	return "", errors.New("no episode found in credential")
 }
 
-func ToEpisode(episode *fhir.EpisodeOfCare) *types.Episode {
-	status := types.EpisodeStatus(episode.Status)
-	periodStart := time.Time{}
-	if episode.Period != nil {
-		if episode.Period.Start != nil {
-			periodStart, _ = time.Parse(time.RFC3339, string(*episode.Period.Start))
-		}
-	}
-
-	diagnosis := ""
-	if len(episode.Type) > 0 {
-		diagnosis = fhir.FromStringPtr(episode.Type[0].Text)
-	}
-
-	return &types.Episode{
-		Id:        types.ObjectID(fhir.FromIDPtr(episode.ID)),
-		Status:    &status,
-		Period:    types.Period{Start: &openapi_types.Date{Time: periodStart}},
-		Diagnosis: diagnosis,
-	}
-}
-
 func (service *service) Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error) {
 	svc := zorginzage.NewService(service.factory(fhir.WithTenant(customerID)))
 
@@ -110,7 +86,7 @@ func (service *service) Create(ctx context.Context, customerID int, patientID st
 		return nil, err
 	}
 
-	return ToEpisode(episode), nil
+	return zorginzage.ToEpisode(episode), nil
 }
 
 func (service *service) Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error) {
@@ -121,7 +97,7 @@ func (service *service) Get(ctx context.Context, customerID int, dossierID strin
 		return nil, err
 	}
 
-	return ToEpisode(episode), nil
+	return zorginzage.ToEpisode(episode), nil
 }
 
 func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error {
@@ -245,7 +221,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve episode of care: %w", err)
 	}
-	episode := ToEpisode(fhirEpisode)
+	episode := zorginzage.ToEpisode(fhirEpisode)
 
 	observations := []resources.Observation{}
 	if err := fhirClient.ReadMultiple(ctx, "/Observation", map[string]string{

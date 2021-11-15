@@ -63,7 +63,7 @@
           </thead>
           <tbody>
             <tr v-for="collaboration in collaborations">
-              <td>{{ collaboration.organizationDID }}</td>
+              <td>{{ collaboration.organizationName }}</td>
             </tr>
 
             <tr>

@@ -94,6 +94,9 @@ type Collaboration struct {
 
 	// The DID of the collaborator
 	OrganizationDID string `json:"organizationDID"`
+
+	// The name of the collaborator
+	OrganizationName string `json:"organizationName"`
 }
 
 // Request to create a collaboration.

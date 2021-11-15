@@ -731,6 +731,7 @@ components:
       required:
         - episodeID
         - organizationDID
+        - organizationName
       properties:
         id:
           $ref: '#/components/schemas/ObjectID'
@@ -739,6 +740,9 @@ components:
         organizationDID:
           type: string
           description: The DID of the collaborator
+        organizationName:
+          type: string
+          description: The name of the collaborator
     ObjectID:
       description: An internal object UUID which can be used as unique identifier for entities.
       type: string

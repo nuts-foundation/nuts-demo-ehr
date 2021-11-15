@@ -154,9 +154,14 @@ func (service *service) GetCollaborations(ctx context.Context, customerDID, doss
 	var collaborations []types.Collaboration
 
 	for _, subject := range subjects {
+		org, err := service.registry.Get(ctx, subject.ID)
+		if err != nil {
+			return nil, err
+		}
 		collaborations = append(collaborations, types.Collaboration{
 			EpisodeID:       episodeID,
 			OrganizationDID: subject.ID,
+			OrganizationName: org.Name,
 		})
 	}
 

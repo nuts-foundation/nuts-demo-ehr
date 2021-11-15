@@ -55,7 +55,6 @@ export default {
       }
     }
   },
-  emits: ["statusUpdate"],
   mounted() {
     this.fetchPatient()
   },
@@ -87,7 +86,7 @@ export default {
 
       this.$api.updatePatient({patientID: patientID, body: this.patient})
           .then(() => {
-            this.$emit("statusUpdate", "Patient updated")
+            this.$store.commit("statusUpdate", "Patient updated")
             this.$router.push({name: 'ehr.patient', params: {id: this.patient.ObjectID}})
           })
           .catch(error => this.$status.error(error))

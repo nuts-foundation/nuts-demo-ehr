@@ -35,7 +35,6 @@ export default {
       }
     }
   },
-  emits: ['statusUpdate'],
   methods: {
     checkForm() {
       this.formErrors.length = 0

@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
-	episode2 "github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
+	episodeService "github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/sirupsen/logrus"
@@ -169,7 +169,7 @@ func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, pa
 					logrus.StandardLogger().WithError(err).Warn("could not fetch episode for local report")
 					continue
 				}
-				episode := episode2.ToEpisode(fhirEpisode)
+				episode := episodeService.ToEpisode(fhirEpisode)
 				episodeCache[episodeID] = *episode
 			}
 			diagnosis := episodeCache[episodeID].Diagnosis

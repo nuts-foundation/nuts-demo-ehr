@@ -60,6 +60,7 @@
         <th>Type</th>
         <th>Value</th>
         <th>Source</th>
+        <th>Episode</th>
       </tr>
       </thead>
       <tbody>
@@ -67,6 +68,7 @@
         <td>{{ report.type }}</td>
         <td>{{ truncate(report.value, 30) }}</td>
         <td>{{ report.source }}</td>
+        <td>{{ report.episodeName }}</td>
       </tr>
       </tbody>
     </table>

@@ -204,6 +204,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return []types.Report{}, nil
 	}
 
+	// TODO: loop over all credentials
 	issuer := string(credentials[0].Issuer)
 
 	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, issuer, zorginzage.ServiceName, "fhir")
@@ -211,7 +212,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", issuer, err)
 	}
 
-	org, err := service.registry.Get(ctx, customerDID)
+	issuerOrg, err := service.registry.Get(ctx, issuer)
 	if err != nil {
 		return nil, fmt.Errorf("error while searching organization :%w", err)
 	}
@@ -252,7 +253,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 
 	for _, observation := range observations {
 		domainObservation := reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID))
-		domainObservation.Source = org.Name
+		domainObservation.Source = issuerOrg.Name
 		results = append(results, domainObservation)
 
 	}

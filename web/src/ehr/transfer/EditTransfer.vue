@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h1>Edit Transfer</h1>
     <transfer-form
         v-if="transfer"
         :transfer="transfer"

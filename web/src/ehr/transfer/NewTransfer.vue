@@ -1,4 +1,5 @@
 <template>
+  <h1>New Transfer</h1>
   <form @submit.stop.prevent="createDossierAndTransfer" novalidate>
     <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md shadow-sm" v-if="formErrors.length">
       <label class="text-red-500">Please correct the following error{{formErrors.length === 0 ? '' : 's'}}:</label>

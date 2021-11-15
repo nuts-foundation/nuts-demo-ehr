@@ -104,7 +104,7 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
 
-	advanceNotice, err := fhirService.GetAdvanceNotice(ctx, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
+	advanceNotice, err := fhirService.GetAdvanceNotice(ctx, dbTransfer.FhirAdvanceNoticeComposition)
 	if err != nil {
 		return types.Transfer{}, err
 	}
@@ -199,7 +199,14 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			})
 		}
 
-		if err := s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, organizationDID, authorizedResources); err != nil {
+		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
+			ID: organizationDID,
+			LegalBase: credential.LegalBase{
+				ConsentType: "implied",
+			},
+			PurposeOfUse: transfer.SenderServiceName,
+			Resources:    authorizedResources,
+		}); err != nil {
 			return nil, err
 		}
 
@@ -292,7 +299,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		// The advance notice contains a lot of the same resources which should also be used in the Nursing Handoff
 		// Fetch the advanceNotice FHIR resources
-		advanceNotice, err := fhirService.GetAdvanceNotice(ctx, "Composition/"+dbTransfer.FhirAdvanceNoticeComposition)
+		advanceNotice, err := fhirService.GetAdvanceNotice(ctx, dbTransfer.FhirAdvanceNoticeComposition)
 		if err != nil {
 			return nil, err
 		}
@@ -356,9 +363,17 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
-		if err = s.vcr.CreateAuthorizationCredential(ctx, transfer.SenderServiceName, *customer.Did, negotiation.OrganizationDID, authorizedResources); err != nil {
+		if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
+			ID: negotiation.OrganizationDID,
+			LegalBase: credential.LegalBase{
+				ConsentType: "implied",
+			},
+			PurposeOfUse: transfer.SenderServiceName,
+			Resources:    authorizedResources,
+		}); err != nil {
 			return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
 		}
+
 		notifications = append(notifications, &notification{
 			customer:        customer,
 			organizationDID: negotiation.OrganizationDID,

@@ -59,6 +59,12 @@ type ServerInterface interface {
 	// (GET /private/episode/{episodeID})
 	GetEpisode(ctx echo.Context, episodeID string) error
 
+	// (GET /private/episode/{episodeID}/collaboration)
+	GetCollaboration(ctx echo.Context, episodeID string) error
+
+	// (POST /private/episode/{episodeID}/collaboration)
+	CreateCollaboration(ctx echo.Context, episodeID string) error
+
 	// (GET /private/network/inbox)
 	GetInbox(ctx echo.Context) error
 
@@ -81,7 +87,7 @@ type ServerInterface interface {
 	NewPatient(ctx echo.Context) error
 
 	// (GET /private/reports/{patientID})
-	GetReports(ctx echo.Context, patientID string) error
+	GetReports(ctx echo.Context, patientID string, params GetReportsParams) error
 
 	// (POST /private/reports/{patientID})
 	CreateReport(ctx echo.Context, patientID string) error
@@ -333,6 +339,42 @@ func (w *ServerInterfaceWrapper) GetEpisode(ctx echo.Context) error {
 	return err
 }
 
+// GetCollaboration converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCollaboration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "episodeID" -------------
+	var episodeID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "episodeID", runtime.ParamLocationPath, ctx.Param("episodeID"), &episodeID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter episodeID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetCollaboration(ctx, episodeID)
+	return err
+}
+
+// CreateCollaboration converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCollaboration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "episodeID" -------------
+	var episodeID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "episodeID", runtime.ParamLocationPath, ctx.Param("episodeID"), &episodeID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter episodeID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CreateCollaboration(ctx, episodeID)
+	return err
+}
+
 // GetInbox converts echo context to params.
 func (w *ServerInterfaceWrapper) GetInbox(ctx echo.Context) error {
 	var err error
@@ -462,8 +504,17 @@ func (w *ServerInterfaceWrapper) GetReports(ctx echo.Context) error {
 
 	ctx.Set(BearerAuthScopes, []string{""})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetReportsParams
+	// ------------- Optional query parameter "episodeID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "episodeID", ctx.QueryParams(), &params.EpisodeID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter episodeID: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetReports(ctx, patientID)
+	err = w.Handler.GetReports(ctx, patientID, params)
 	return err
 }
 
@@ -745,6 +796,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)
 	router.POST(baseURL+"/private/episode", wrapper.CreateEpisode)
 	router.GET(baseURL+"/private/episode/:episodeID", wrapper.GetEpisode)
+	router.GET(baseURL+"/private/episode/:episodeID/collaboration", wrapper.GetCollaboration)
+	router.POST(baseURL+"/private/episode/:episodeID/collaboration", wrapper.CreateCollaboration)
 	router.GET(baseURL+"/private/network/inbox", wrapper.GetInbox)
 	router.GET(baseURL+"/private/network/inbox/info", wrapper.GetInboxInfo)
 	router.GET(baseURL+"/private/network/organizations", wrapper.SearchOrganizations)
@@ -767,3 +820,4 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/private/transfer/:transferID/negotiation/:negotiationID", wrapper.UpdateTransferNegotiationStatus)
 
 }
+

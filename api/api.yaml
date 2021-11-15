@@ -212,6 +212,50 @@ paths:
         404:
           description: The episode does not exist
 
+  /private/episode/{episodeID}/collaboration:
+    get:
+      description: Get the collaboration of the episode by the episodeID
+      operationId: getCollaboration
+      parameters:
+        - name: episodeID
+          in: path
+          description: The episode ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The collaborations of the episode
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collaboration"
+        404:
+          description: The episode does not exist
+    post:
+      description: Create a collaboration
+      operationId: createCollaboration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollaborationRequest"
+      parameters:
+        - name: episodeID
+          in: path
+          description: The episode ID
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: The created collaboration
+        404:
+          description: The episode does not exist
+
   /private/transfer:
     post:
       description: Create a new patient transfer dossier.
@@ -544,6 +588,13 @@ paths:
         schema:
           type: string
     get:
+      parameters:
+        - name: episodeID
+          in: query
+          description: The identifier of episode the report must be part of.
+          required: false
+          schema:
+            type: string
       description: Get list of reports for a patient
       operationId: getReports
       responses:
@@ -674,6 +725,20 @@ components:
         active:
           type: boolean
           description: If a VC has been issued for this customer.
+    Collaboration:
+      description: An object that represents the relation between an episode and a collaborator
+      type: object
+      required:
+        - episodeID
+        - organizationDID
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectID'
+        episodeID:
+          $ref: '#/components/schemas/ObjectID'
+        organizationDID:
+          type: string
+          description: The DID of the collaborator
     ObjectID:
       description: An internal object UUID which can be used as unique identifier for entities.
       type: string
@@ -874,20 +939,45 @@ components:
         comment:
           type: string
 
+    Period:
+      properties:
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
 
+    CreateCollaborationRequest:
+      description: >
+        Request to create a collaboration.
+      required:
+        - sender
+      properties:
+        sender:
+          $ref: '#/components/schemas/Organization'
     CreateEpisodeRequest:
       description: >
         Request to create a episode.
       required:
         - dossierID
+        - diagnosis
+        - period
       properties:
         dossierID:
           $ref: '#/components/schemas/ObjectID'
+        diagnosis:
+          type: string
+        period:
+          $ref: '#/components/schemas/Period'
+
     Episode:
       description: >
         A episode is a group of care organizations that share a common care plan.
       required:
         - id
+        - diagnosis
+        - period
       properties:
         id:
           $ref: '#/components/schemas/ObjectID'
@@ -901,6 +991,10 @@ components:
             - finished
             - cancelled
             - entered-in-error
+        diagnosis:
+          type: string
+        period:
+          $ref: '#/components/schemas/Period'
     CreateTransferRequest:
       description: >
         Create a new transfer for a specific dossier with a date and description.
@@ -988,6 +1082,8 @@ components:
         id:
           $ref: '#/components/schemas/ObjectID'
         patientID:
+          $ref: '#/components/schemas/ObjectID'
+        episodeID:
           $ref: '#/components/schemas/ObjectID'
         type:
           type: string

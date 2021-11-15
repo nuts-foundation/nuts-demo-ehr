@@ -33,9 +33,9 @@ export default {
       switch (this.$route.name) {
         case 'ehr.patient.transfer.edit':
         case 'ehr.patient.edit':
-          return 'patient';
+          return 'patient overview';
         default:
-          return 'overview';
+          return 'patient list';
       }
     }
   },

@@ -101,11 +101,6 @@ const routes = [
             component: NewDossier
           },
           {
-            path: 'dossier/newReport',
-            name: 'ehr.patient.dossier.newReport',
-            component: NewReport
-          },
-          {
             path: 'episode/new',
             name: 'ehr.patient.episode.new',
             component: NewEpisode
@@ -113,7 +108,12 @@ const routes = [
           {
             path: 'episode/edit/:episodeID',
             name: 'ehr.patient.episode.edit',
-            component: EditEpisode
+            component: EditEpisode,
+            children: [{
+              path: 'newReport',
+              name: 'ehr.patient.episode.newReport',
+              component: NewReport
+            }]
           },
           {
             path: 'transfer',

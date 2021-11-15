@@ -10,36 +10,35 @@ import (
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
+type VCRSearchParams struct {
+	PurposeOfUse string
+	SubjectID    string
+	Subject      string
+	ResourcePath string
+}
+
 type VerifiableCredentialRegistry interface {
 	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
-	CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error
+	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
 	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vcr.VerifiableCredential, error)
 	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
-	FindAuthorizationCredentials(ctx context.Context, purposeOfUse, subjectID, resourcePath string) ([]vcr.VerifiableCredential, error)
+	FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vcr.VerifiableCredential, error)
 }
 
 type httpVerifiableCredentialRegistry struct {
 	nutsClient nutsClient.VCRClient
 }
 
-func NewVerifiableCredentialRegistry(client *nutsClient.HTTPClient) VerifiableCredentialRegistry {
+func NewVerifiableCredentialRegistry(client nutsClient.VCRClient) VerifiableCredentialRegistry {
 	return &httpVerifiableCredentialRegistry{
 		nutsClient: client,
 	}
 }
 
-func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, purposeOfUse, issuer, subjectID string, resources []credential.Resource) error {
-	subject := credential.NutsAuthorizationCredentialSubject{
-		ID: subjectID,
-		LegalBase: credential.LegalBase{
-			ConsentType: "implied",
-		},
-		PurposeOfUse: purposeOfUse,
-		Resources:    resources,
-	}
+func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error {
 	subjectMap := map[string]interface{}{}
 
 	data, err := json.Marshal(subject)
@@ -54,14 +53,22 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
 }
 
-func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, purposeOfUse, subjectID, resourcePath string) ([]vcr.VerifiableCredential, error) {
+func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vcr.VerifiableCredential, error) {
 	// may be extended by issuanceDate for even faster results.
-	params := map[string]string{
-		"credentialSubject.id":               subjectID,
-		"credentialSubject.purposeOfUse":     purposeOfUse,
-		"credentialSubject.resources.#.path": resourcePath,
+	searchParams := map[string]string{
+		"credentialSubject.purposeOfUse":     params.PurposeOfUse,
+		"credentialSubject.resources.#.path": params.ResourcePath,
 	}
-	return registry.nutsClient.FindAuthorizationCredentials(ctx, params)
+
+	if params.SubjectID != "" {
+		searchParams["credentialSubject.id"] = params.SubjectID
+	}
+
+	if params.Subject != "" {
+		searchParams["credentialSubject.subject"] = params.Subject
+	}
+
+	return registry.nutsClient.FindAuthorizationCredentials(ctx, searchParams)
 }
 
 func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {

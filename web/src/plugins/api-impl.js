@@ -277,6 +277,37 @@ function createApi(options) {
           mode,
         });
     },
+    getCollaboration(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getCollaboration');
+      return fetch(endpoint + basePath + '/private/episode/' + params['episodeID'] + '/collaboration'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
+    createCollaboration(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createCollaboration');
+      return fetch(endpoint + basePath + '/private/episode/' + params['episodeID'] + '/collaboration'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
     getInbox(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
@@ -395,7 +426,10 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'getReports');
-      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + ''
+      return fetch(endpoint + basePath + '/private/reports/' + params['patientID'] + '' + '?' + buildQuery({
+          'episodeID': params['episodeID'],
+        })
+
         , {
           method: 'GET',
           headers,

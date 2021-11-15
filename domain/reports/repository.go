@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/monarko/fhirgo/STU3/datatypes"
@@ -15,7 +16,7 @@ import (
 )
 
 type Repository interface {
-	AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error)
+	AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error)
 	Create(ctx context.Context, customerID int, patientID string, report types.Report) error
 }
 
@@ -33,14 +34,17 @@ func (repo *fhirRepository) Create(ctx context.Context, customerID int, patientI
 	if report.Id == "" {
 		report.Id = types.ObjectID(uuid.NewString())
 	}
+
 	observation, err := convertToFHIR(report)
 	if err != nil {
 		return fmt.Errorf("unable to convert report to FHIR observation: %w", err)
 	}
+
 	err = repo.factory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, observation)
 	if err != nil {
 		return fmt.Errorf("unable to write observation to FHIR store: %w", err)
 	}
+
 	return nil
 }
 
@@ -73,6 +77,10 @@ func convertToFHIR(report types.Report) (*resources.Observation, error) {
 			ValueQuantity: &datatypes.Quantity{
 				Value: &valueDecimal,
 			},
+			EffectiveDateTime: fhir.ToDateTimePtr(time.Now().Format(fhir.DateTimeLayout)),
+		}
+		if report.EpisodeID != nil {
+			observation.Context = &datatypes.Reference{Reference: fhir.ToStringPtr("EpisodeOfCare/" + string(*report.EpisodeID))}
 		}
 		return observation, nil
 	}
@@ -80,16 +88,16 @@ func convertToFHIR(report types.Report) (*resources.Observation, error) {
 	return nil, errors.New("unknown report type")
 }
 
-func convertToDomain(observation *resources.Observation, patientId string) types.Report {
+func ConvertToDomain(observation *resources.Observation, patientID string) types.Report {
 	var value string
 
-	if observation.ValueString != nil {
+	switch {
+	case observation.ValueString != nil:
 		value = fhir.FromStringPtr(observation.ValueString)
-	} else if observation.ValueQuantity != nil {
+	case observation.ValueQuantity != nil:
 		value = renderQuantity(observation.ValueQuantity)
-	} else if observation.Component != nil {
+	case observation.Component != nil:
 		var values []string
-
 		for _, component := range observation.Component {
 			if component.ValueString != nil {
 				values = append(values, fhir.FromStringPtr(component.ValueString))
@@ -97,7 +105,6 @@ func convertToDomain(observation *resources.Observation, patientId string) types
 				values = append(values, renderQuantity(component.ValueQuantity))
 			}
 		}
-
 		value = strings.Join(values, ", ")
 	}
 
@@ -107,25 +114,37 @@ func convertToDomain(observation *resources.Observation, patientId string) types
 		source = fhir.FromStringPtr(observation.Performer[0].Display)
 	}
 
-	return types.Report{
+	report := types.Report{
 		Type:      fhir.FromStringPtr(observation.Code.Coding[0].Display),
 		Id:        types.ObjectID(fhir.FromIDPtr(observation.ID)),
 		Source:    source,
-		PatientID: types.ObjectID(patientId),
+		PatientID: types.ObjectID(patientID),
 		Value:     value,
 	}
+
+	if observation.Context != nil {
+		id := types.ObjectID(strings.Split(fhir.FromStringPtr(observation.Context.Reference), "/")[1])
+		report.EpisodeID = &id
+	}
+
+	return report
 }
 
-func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Report, error) {
+func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error) {
 	observations := []resources.Observation{}
 
-	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", map[string]string{
-		"patient": patientID,
-	}, &observations); err != nil {
+	queryMap := map[string]string{
+		"subject": fmt.Sprintf("Patient/%s", patientID),
+	}
+	if episodeID != nil {
+		queryMap["context"] = fmt.Sprintf("EpisodeOfCare/%s", *episodeID)
+	}
+
+	if err := repo.factory(fhir.WithTenant(customerID)).ReadMultiple(ctx, "Observation", queryMap, &observations); err != nil {
 		return nil, err
 	}
 
-	var reports []types.Report
+	reports := []types.Report{}
 
 	for _, observation := range observations {
 		ref := fhir.FromStringPtr(observation.Subject.Reference)
@@ -134,7 +153,7 @@ func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, pa
 			continue
 		}
 
-		reports = append(reports, convertToDomain(&observation, ref[len("Patient/"):]))
+		reports = append(reports, ConvertToDomain(&observation, ref[len("Patient/"):]))
 	}
 
 	return reports, nil

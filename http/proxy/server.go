@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/zorginzage"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -141,80 +142,136 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 		return errors.New("access-token doesn't contain 'service' claim")
 	}
 
-	if *service != transfer.SenderServiceName {
-		return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be %s", *service, transfer.SenderServiceName)
-	}
-
-	// task specific access
-	serverTaskPath := server.path + "/Task"
-	if route.path() == serverTaskPath {
-		// §6.2.1.1 retrieving tasks via a search operation
-		// validate GET [base]/Task?code=http://snomed.info/sct|308292007&_lastUpdated=[time of last request]
-		if route.operation != "read" {
-			return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
-		}
-
-		// query params(code and _lastUpdated) are optional
-		// ok for Task search
-		return nil
-	}
-
-	// §6.2.1.2 Updating the Task
-	// and
-	// §6.2.2 other resources that require a credential and a user contract
-	// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
-	if err := server.validateWithNutsAuthorizationCredential(request.Context(), token, *route); err != nil {
-		return fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
-	}
-
-	// Task updates must be routed internally
-	if route.operation == "update" && strings.HasPrefix(route.path(), serverTaskPath) {
-		tenant, err := server.getTenant(*token.Iss)
+	switch *service {
+	case zorginzage.ServiceName:
+		subjects, err := server.parseNutsAuthorizationCredentials(request.Context(), token)
 		if err != nil {
-			return fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
+			return err
 		}
 
-		// task handling
-		req := ctx.Request()
-		path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
-		req.URL.Path = path
-		req.URL.RawPath = path
-		req.RequestURI = path
-		ctx.SetRequest(req)
+		// observation specific access
+		observationPath := server.path + "/Observation"
 
-		ctx.Set("internal", true)
+		if route.path() == observationPath {
+			if route.operation != "read" {
+				return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, observationPath)
+			}
+
+			var episodeOfCareID string
+
+			for _, subject := range subjects {
+				for _, resource := range subject.Resources {
+					if strings.HasPrefix(resource.Path, "/EpisodeOfCare/") {
+						episodeOfCareID = resource.Path[len("/EpisodeOfCare/"):]
+						break
+					}
+				}
+			}
+
+			if episodeOfCareID == "" {
+				return fmt.Errorf("unable to find context for route: %s", route.path())
+			}
+
+			if route.url.Query().Get("context") != fmt.Sprintf("EpisodeOfCare/%s", episodeOfCareID) {
+				return fmt.Errorf("access denied for episode %s in route: %s", episodeOfCareID, route.path())
+			}
+
+			return nil
+		}
+
+		if err := server.validateWithNutsAuthorizationCredential(token, subjects, *route); err != nil {
+			return fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
+		}
+	case transfer.SenderServiceName:
+		// task specific access
+		serverTaskPath := server.path + "/Task"
+
+		if route.path() == serverTaskPath {
+			// §6.2.1.1 retrieving tasks via a search operation
+			// validate GET [base]/Task?code=http://snomed.info/sct|308292007&_lastUpdated=[time of last request]
+			if route.operation != "read" {
+				return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
+			}
+
+			// query params(code and _lastUpdated) are optional
+			// ok for Task search
+			return nil
+		}
+
+		subjects, err := server.parseNutsAuthorizationCredentials(request.Context(), token)
+		if err != nil {
+			return err
+		}
+
+		// §6.2.1.2 Updating the Task
+		// and
+		// §6.2.2 other resources that require a credential and a user contract
+		// the existence of the user contract is validated by validateWithNutsAuthorizationCredential
+		if err := server.validateWithNutsAuthorizationCredential(token, subjects, *route); err != nil {
+			return fmt.Errorf("access denied for %s on %s: %w", route.operation, route.path(), err)
+		}
+
+		// Task updates must be routed internally
+		if route.operation == "update" && strings.HasPrefix(route.path(), serverTaskPath) {
+			tenant, err := server.getTenant(*token.Iss)
+			if err != nil {
+				return fmt.Errorf("access denied for %s on %s, tenant %s: %w", route.operation, route.path(), *token.Iss, err)
+			}
+
+			// task handling
+			req := ctx.Request()
+			path := fmt.Sprintf("/web/internal/customer/%d/task/%s", tenant, route.resourceID)
+			req.URL.Path = path
+			req.URL.RawPath = path
+			req.RequestURI = path
+			ctx.SetRequest(req)
+
+			ctx.Set("internal", true)
+		}
+	default:
+		return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be %s", *service, transfer.SenderServiceName)
 	}
 
 	return nil
 }
 
-func (server *Server) validateWithNutsAuthorizationCredential(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse, route fhirRoute) error {
+func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse) ([]credential.NutsAuthorizationCredentialSubject, error) {
+	var subjects []credential.NutsAuthorizationCredentialSubject
+
+	for _, credentialID := range *token.Vcs {
+		// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
+		verifiableCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid credential: %w", err)
+		}
+
+		didVC, err := convertCredential(*verifiableCredential)
+		if err != nil {
+			return nil, fmt.Errorf("invalid credential format: %w", err)
+		}
+
+		if !validCredentialType(*didVC) {
+			continue
+		}
+
+		subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+
+		if err := didVC.UnmarshalCredentialSubject(&subject); err != nil {
+			return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
+		}
+
+		subjects = append(subjects, subject...)
+	}
+
+	return subjects, nil
+}
+
+func (server *Server) validateWithNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionResponse, subjects []credential.NutsAuthorizationCredentialSubject, route fhirRoute) error {
 	hasUser := token.Email != nil
 
 	if token.Vcs != nil {
-		for _, credentialID := range *token.Vcs {
-			// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
-			verifiableCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
-			if err != nil {
-				return fmt.Errorf("invalid credential: %w", err)
-			}
-
-			didVC, err := convertCredential(*verifiableCredential)
-			if err != nil {
-				return fmt.Errorf("invalid credential format: %w", err)
-			}
-
-			if !validCredentialType(*didVC) {
-				continue
-			}
-
-			subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
-
-			if err := didVC.UnmarshalCredentialSubject(&subject); err != nil {
-				return fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
-			}
-
-			for _, resource := range subject[0].Resources {
+		for _, subject := range subjects {
+			for _, resource := range subject.Resources {
 				// path should match
 				if !strings.Contains(route.path(), resource.Path) {
 					continue

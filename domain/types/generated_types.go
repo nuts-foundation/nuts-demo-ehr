@@ -84,6 +84,24 @@ type CarePlan struct {
 	PatientProblems []PatientProblem `json:"patientProblems"`
 }
 
+// An object that represents the relation between an episode and a collaborator
+type Collaboration struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	EpisodeID ObjectID `json:"episodeID"`
+
+	// An internal object UUID which can be used as unique identifier for entities.
+	Id *ObjectID `json:"id,omitempty"`
+
+	// The DID of the collaborator
+	OrganizationDID string `json:"organizationDID"`
+}
+
+// Request to create a collaboration.
+type CreateCollaborationRequest struct {
+	// A care organization available through the Nuts Network to exchange information.
+	Sender Organization `json:"sender"`
+}
+
 // API request to create a dossier for a patient.
 type CreateDossierRequest struct {
 	Name string `json:"name"`
@@ -94,8 +112,11 @@ type CreateDossierRequest struct {
 
 // Request to create a episode.
 type CreateEpisodeRequest struct {
+	Diagnosis string `json:"diagnosis"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
+	Period    Period   `json:"period"`
 }
 
 // An request object to create a new transfer negotiation.
@@ -149,8 +170,11 @@ type Dossier struct {
 
 // A episode is a group of care organizations that share a common care plan.
 type Episode struct {
+	Diagnosis string `json:"diagnosis"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id     ObjectID       `json:"id"`
+	Period Period         `json:"period"`
 	Status *EpisodeStatus `json:"status,omitempty"`
 }
 
@@ -260,6 +284,12 @@ type PatientProperties struct {
 // Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
 type PatientPropertiesGender string
 
+// Period defines model for Period.
+type Period struct {
+	End   *openapi_types.Date `json:"end,omitempty"`
+	Start *openapi_types.Date `json:"start,omitempty"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	Name   string        `json:"name"`
@@ -271,6 +301,9 @@ type ProblemStatus string
 
 // Report defines model for Report.
 type Report struct {
+	// An internal object UUID which can be used as unique identifier for entities.
+	EpisodeID *ObjectID `json:"episodeID,omitempty"`
+
 	// An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 
@@ -384,6 +417,9 @@ type CreateDossierJSONBody CreateDossierRequest
 // CreateEpisodeJSONBody defines parameters for CreateEpisode.
 type CreateEpisodeJSONBody CreateEpisodeRequest
 
+// CreateCollaborationJSONBody defines parameters for CreateCollaboration.
+type CreateCollaborationJSONBody CreateCollaborationRequest
+
 // SearchOrganizationsParams defines parameters for SearchOrganizations.
 type SearchOrganizationsParams struct {
 	// Keyword for finding care organizations.
@@ -404,6 +440,12 @@ type GetPatientsParams struct {
 
 // NewPatientJSONBody defines parameters for NewPatient.
 type NewPatientJSONBody PatientProperties
+
+// GetReportsParams defines parameters for GetReports.
+type GetReportsParams struct {
+	// The identifier of episode the report must be part of.
+	EpisodeID *string `json:"episodeID,omitempty"`
+}
 
 // CreateReportJSONBody defines parameters for CreateReport.
 type CreateReportJSONBody Report
@@ -443,6 +485,9 @@ type CreateDossierJSONRequestBody CreateDossierJSONBody
 
 // CreateEpisodeJSONRequestBody defines body for CreateEpisode for application/json ContentType.
 type CreateEpisodeJSONRequestBody CreateEpisodeJSONBody
+
+// CreateCollaborationJSONRequestBody defines body for CreateCollaboration for application/json ContentType.
+type CreateCollaborationJSONRequestBody CreateCollaborationJSONBody
 
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody UpdatePatientJSONBody

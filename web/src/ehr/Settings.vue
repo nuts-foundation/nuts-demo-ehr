@@ -37,7 +37,6 @@ export default {
   created() {
     this.fetchData()
   },
-  emits: ['statusUpdate'],
   methods: {
     fetchData() {
       this.$api.getCustomer()

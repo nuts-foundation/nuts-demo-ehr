@@ -65,7 +65,6 @@ export default {
       }
     }
   },
-  emits: ["statusUpdate"],
   methods: {
     cancel() {
       this.$router.push({name: 'ehr.patients'})
@@ -96,7 +95,7 @@ export default {
 
       this.$api.newPatient({body: this.patient})
           .then(response => {
-            this.$emit("statusUpdate", "Patient added")
+            this.$store.commit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })
           .catch(error => this.$status.error(error))

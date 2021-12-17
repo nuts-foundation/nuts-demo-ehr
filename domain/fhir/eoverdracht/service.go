@@ -160,21 +160,24 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string, newStatus string) error {
 	// TODO: check for valid state changes
 	const updateErr = "could not update task state: %w"
-	task, err := s.GetTask(ctx, fhirTaskID)
-	if err != nil {
+
+	task := &resources.Task{}
+
+	if err := s.fhirClient.ReadOne(ctx, "Task/"+fhirTaskID, &task); err != nil {
+		return err
+	}
+
+	task.Status = fhir.ToCodePtr(newStatus)
+
+	if err := s.fhirClient.CreateOrUpdate(ctx, task); err != nil {
 		return fmt.Errorf(updateErr, err)
 	}
-	task.Status = newStatus
-	err = s.fhirClient.CreateOrUpdate(ctx, task)
-	if err != nil {
-		return fmt.Errorf(updateErr, err)
-	}
+
 	return nil
 }
 
 // GetAdvanceNotice converts a resolved composition into a AdvanceNotice
 func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionID string) (AdvanceNotice, error) {
-
 	composition, patient, err := s.ResolveComposition(ctx, "Composition/"+fhirCompositionID)
 	if err != nil {
 		return AdvanceNotice{}, fmt.Errorf("could not get nursing handoff composition: %w", err)
@@ -185,6 +188,9 @@ func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionID
 	}
 
 	carePlanCompositions, err := s.resolveCompositionSections(composition.Section, CarePlanConcept)
+	if err != nil {
+		return advanceNotice, err
+	}
 
 	for _, handoffComposition := range carePlanCompositions {
 		conditions, err := s.resolveCompositionEntry(ctx, handoffComposition, resources.Condition{})
@@ -209,7 +215,6 @@ func (s transferService) GetAdvanceNotice(ctx context.Context, fhirCompositionID
 
 // GetNursingHandoff converts a resolved composition into a NursingHandoff
 func (s transferService) GetNursingHandoff(ctx context.Context, fhirCompositionID string) (NursingHandoff, error) {
-
 	composition, patient, err := s.ResolveComposition(ctx, "Composition/"+fhirCompositionID)
 	if err != nil {
 		return NursingHandoff{}, fmt.Errorf("could not get nursing handoff composition: %w", err)

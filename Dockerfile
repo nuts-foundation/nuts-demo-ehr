@@ -12,14 +12,14 @@ RUN npm run build
 #
 # Build backend
 #
-FROM golang:1.16-alpine as backend-builder
+FROM golang:1.17-alpine as backend-builder
 
 ARG TARGETARCH
 ARG TARGETOS
 
 RUN apk update \
  && apk add --no-cache \
-            gcc=10.3.1_git20210424-r2 \
+            gcc \
             musl-dev
 
 ENV GO111MODULE on
@@ -38,7 +38,7 @@ RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o
 #
 # Runtime
 #
-FROM alpine:3.13
+FROM alpine:3.15.0
 RUN mkdir /app && cd /app
 WORKDIR /app
 COPY --from=backend-builder /app/nuts-demo-ehr .

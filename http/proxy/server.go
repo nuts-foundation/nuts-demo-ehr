@@ -236,6 +236,10 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse) ([]credential.NutsAuthorizationCredentialSubject, error) {
 	var subjects []credential.NutsAuthorizationCredentialSubject
 
+	if token.Vcs == nil {
+		return subjects, nil
+	}
+
 	for _, credentialID := range *token.Vcs {
 		// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
 		authCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)

@@ -14,6 +14,7 @@ import (
 )
 
 type Notification struct {
+	TaskID      string
 	SenderDID   string
 	CustomerDID string
 	CustomerID  int

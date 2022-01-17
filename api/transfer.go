@@ -231,6 +231,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
+		TaskID:      ctx.Param("task_id"),
 		SenderDID:   *senderDID,
 		CustomerDID: *customerDID,
 		CustomerID:  customer.Id,

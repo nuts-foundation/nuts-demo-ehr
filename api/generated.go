@@ -36,7 +36,7 @@ type ServerInterface interface {
 	ListCustomers(ctx echo.Context) error
 
 	// (POST /external/transfer/notify)
-	NotifyTransferUpdate(ctx echo.Context) error
+	NotifyTransferUpdate(ctx echo.Context, params NotifyTransferUpdateParams) error
 
 	// (PUT /internal/customer/{customerID}/task/{taskID})
 	TaskUpdate(ctx echo.Context, customerID int, taskID string) error
@@ -228,8 +228,17 @@ func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
 
 	ctx.Set(BearerAuthScopes, []string{""})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params NotifyTransferUpdateParams
+	// ------------- Required query parameter "task_id" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "task_id", ctx.QueryParams(), &params.TaskId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter task_id: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.NotifyTransferUpdate(ctx)
+	err = w.Handler.NotifyTransferUpdate(ctx, params)
 	return err
 }
 

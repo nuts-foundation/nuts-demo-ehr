@@ -667,6 +667,13 @@ paths:
         Call this endpoint to notify the app of an update for one of its customers, indicating that an eOverdracht FHIR task was update or created.
         The customer is identified by the access-token.
       operationId: notifyTransferUpdate
+      parameters:
+        - name: task_id
+          in: query
+          description: The task ID
+          required: true
+          schema:
+            type: string
       responses:
         204:
           description: Notification processed successfully.

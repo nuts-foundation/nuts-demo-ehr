@@ -166,10 +166,7 @@ function createApi(options) {
       };
       handleSecurity([{"bearerAuth":[]}]
           , headers, params, 'notifyTransferUpdate');
-      return fetch(endpoint + basePath + '/external/transfer/notify' + '?' + buildQuery({
-          'task_id': params['task_id'],
-        })
-
+      return fetch(endpoint + basePath + '/external/transfer/notify/' + params['taskID'] + ''
         , {
           method: 'POST',
           headers,

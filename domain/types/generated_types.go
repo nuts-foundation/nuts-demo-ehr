@@ -415,12 +415,6 @@ type SetCustomerJSONBody Customer
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
-// NotifyTransferUpdateParams defines parameters for NotifyTransferUpdate.
-type NotifyTransferUpdateParams struct {
-	// The task ID
-	TaskId string `json:"task_id"`
-}
-
 // CreateDossierJSONBody defines parameters for CreateDossier.
 type CreateDossierJSONBody CreateDossierRequest
 

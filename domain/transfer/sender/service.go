@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -226,7 +227,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return negotiation, commitErr
 		}
 
-		if err = s.sendNotification(ctx, customer, organizationDID); err != nil {
+		if err = s.sendNotification(ctx, customer, organizationDID, negotiation.TaskID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationDID, err)
 		}
@@ -389,7 +390,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		for _, n := range notifications {
-			_ = s.sendNotification(ctx, n.customer, n.organizationDID)
+			_ = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
 		}
 	}
 
@@ -413,7 +414,7 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, transfer
 		return nil, err
 	}
 
-	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID)
+	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID, negotiation.TaskID)
 }
 
 func (s service) UpdateTaskState(ctx context.Context, customer types.Customer, taskID string, newState string) error {
@@ -446,6 +447,7 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 	if _, err := s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), transfer.AcceptedState); err != nil {
 		return err
 	}
+
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
 	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
 	if err := fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.AcceptedState); err != nil {
@@ -464,7 +466,7 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 		return commitErr
 	}
 
-	_ = s.sendNotification(ctx, not.customer, not.organizationDID)
+	_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
 
 	return nil
 }
@@ -513,7 +515,7 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 			return commitErr
 		}
 
-		_ = s.sendNotification(ctx, not.customer, not.organizationDID)
+		_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
 	}
 
 	return err
@@ -553,7 +555,7 @@ func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiat
 	return negotiation, &notification{customer: customer, organizationDID: negotiation.OrganizationDID}, nil
 }
 
-func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationDID string) error {
+func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationDID string, fhirTaskID string) error {
 	notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
 	if err != nil {
 		return err
@@ -564,7 +566,15 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 		return err
 	}
 
-	return s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint)
+	endpoint := notificationEndpoint
+
+	if !strings.HasSuffix(endpoint, "/") {
+		endpoint += "/"
+	}
+
+	endpoint += fhirTaskID
+
+	return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
 }
 
 func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*types.Patient, error) {

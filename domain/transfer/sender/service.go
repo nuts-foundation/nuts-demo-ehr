@@ -4,21 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"strings"
+	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 type TransferService interface {
@@ -178,9 +180,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// Build the list of resources for the authorization credential:
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", transferTask.ID),
-				Operations:  []string{"read", "update"},
-				UserContext: true,
+				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
+				Operations: []string{"read", "update"},
 			},
 			{
 				Path:        compositionPath,
@@ -336,9 +337,8 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", negotiation.TaskID),
-				Operations:  []string{"read", "update"},
-				UserContext: true,
+				Path:       fmt.Sprintf("/Task/%s", negotiation.TaskID),
+				Operations: []string{"read", "update"},
 			},
 		}
 		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
@@ -574,7 +574,14 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 
 	endpoint += fhirTaskID
 
-	return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
+	return retry.Do(
+		func() error {
+			return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
+		},
+		retry.LastErrorOnly(true),
+		retry.Attempts(10),
+		retry.Delay(5*time.Second),
+	)
 }
 
 func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*types.Patient, error) {

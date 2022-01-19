@@ -162,6 +162,9 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 		SubjectID:    localRequesterDID,
 		ResourcePath: resource,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {

@@ -3,6 +3,7 @@ module github.com/nuts-foundation/nuts-demo-ehr
 go 1.16
 
 require (
+	github.com/avast/retry-go/v4 v4.0.2
 	github.com/deepmap/oapi-codegen v1.9.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible

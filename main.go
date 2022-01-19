@@ -217,7 +217,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferReceiverRepo:    transferReceiverRepo,
 		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry),
 		TenantInitializer:       tenantInitializer,
-		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry),
+		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
 	}
 
 	// JWT checking for correct claims

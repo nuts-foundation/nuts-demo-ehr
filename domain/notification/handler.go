@@ -63,6 +63,7 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 		ctx,
 		&registry.VCRSearchParams{
 			PurposeOfUse: transfer.SenderServiceName,
+			Issuer:       notification.SenderDID,
 			SubjectID:    notification.CustomerDID,
 			ResourcePath: taskPath,
 		},

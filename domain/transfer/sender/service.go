@@ -579,8 +579,8 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 			return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
 		},
 		retry.LastErrorOnly(true),
-		retry.Attempts(15),
-		retry.Delay(3*time.Second),
+		retry.Attempts(60),
+		retry.Delay(1*time.Second),
 		retry.DelayType(retry.FixedDelay),
 	)
 }

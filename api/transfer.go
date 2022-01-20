@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
@@ -222,12 +223,31 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 
 	customer, err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
-		return err
+		return ctx.JSON(http.StatusInternalServerError, &proxy.OperationOutcome{
+			Text: "an error occurred",
+			Issue: &proxy.Issue{
+				Code:     "error",
+				Severity: "error",
+				Details: &proxy.IssueDetails{
+					Text: err.Error(),
+				},
+			},
+		})
 	}
 
 	if customer == nil {
 		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
-		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
+
+		return ctx.JSON(http.StatusNotFound, &proxy.OperationOutcome{
+			Text: "taskOwner unknown on this server",
+			Issue: &proxy.Issue{
+				Code:     "invalid",
+				Severity: "error",
+				Details: &proxy.IssueDetails{
+					Text: fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", *senderDID),
+				},
+			},
+		})
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
@@ -239,7 +259,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 		return err
 	}
 
-	return ctx.NoContent(http.StatusNoContent)
+	return ctx.NoContent(http.StatusAccepted)
 }
 
 func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {

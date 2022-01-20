@@ -184,18 +184,6 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 		// task specific access
 		serverTaskPath := server.path + "/Task"
 
-		if route.path() == serverTaskPath {
-			// §6.2.1.1 retrieving tasks via a search operation
-			// validate GET [base]/Task?code=http://snomed.info/sct|308292007&_lastUpdated=[time of last request]
-			if route.operation != "read" {
-				return fmt.Errorf("incorrect operation %s on: %s, must be read", route.operation, serverTaskPath)
-			}
-
-			// query params(code and _lastUpdated) are optional
-			// ok for Task search
-			return nil
-		}
-
 		subjects, err := server.parseNutsAuthorizationCredentials(request.Context(), token)
 		if err != nil {
 			return err

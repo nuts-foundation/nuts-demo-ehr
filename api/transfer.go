@@ -198,7 +198,7 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	return ctx.JSON(http.StatusOK, negotiation)
 }
 
-func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
+func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
 	rawToken := ctx.Get(httpAuth.AccessToken)
 	if rawToken == nil {
@@ -231,6 +231,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
+		TaskID:      taskID,
 		SenderDID:   *senderDID,
 		CustomerDID: *customerDID,
 		CustomerID:  customer.Id,

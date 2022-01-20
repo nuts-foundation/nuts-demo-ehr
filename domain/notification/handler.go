@@ -2,18 +2,21 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"time"
 
 	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/go-did/vc"
+
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
 type Notification struct {
+	TaskID      string
 	SenderDID   string
 	CustomerDID string
 	CustomerID  int
@@ -28,74 +31,89 @@ type handler struct {
 	localFHIRClientFactory fhir.Factory
 	transferService        receiver.TransferService
 	registry               registry.OrganizationRegistry
+	vcr                    registry.VerifiableCredentialRegistry
 }
 
-func NewHandler(auth auth.Service, localFHIRClientFactory fhir.Factory, tranferReceiverService receiver.TransferService, registry registry.OrganizationRegistry) Handler {
+func NewHandler(
+	auth auth.Service,
+	localFHIRClientFactory fhir.Factory,
+	transferReceiverService receiver.TransferService,
+	registry registry.OrganizationRegistry,
+	vcr registry.VerifiableCredentialRegistry,
+) Handler {
 	return &handler{
 		auth:                   auth,
 		localFHIRClientFactory: localFHIRClientFactory,
-		transferService:        tranferReceiverService,
+		transferService:        transferReceiverService,
 		registry:               registry,
+		vcr:                    vcr,
 	}
 }
 
 // Handle handles an incoming notification about an updated Task for one of its customers.
 func (service *handler) Handle(ctx context.Context, notification Notification) error {
-	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, "eOverdracht-sender", "fhir")
+	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", notification.SenderDID, err)
 	}
 
-	accessToken, err := service.auth.RequestAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender", nil, nil)
+	taskPath := fmt.Sprintf("/Task/%s", notification.TaskID)
+
+	credentials, err := service.vcr.FindAuthorizationCredentials(
+		ctx,
+		&registry.VCRSearchParams{
+			PurposeOfUse: transfer.SenderServiceName,
+			Issuer:       notification.SenderDID,
+			SubjectID:    notification.CustomerDID,
+			ResourcePath: taskPath,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	var tasks []resources.Task
+	if len(credentials) == 0 {
+		return errors.New("no NutsAuthorizationCredential found to retrieve the Task resource")
+	}
 
+	accessToken, err := service.auth.RequestAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender", []vc.VerifiableCredential{credentials[0]}, nil)
+	if err != nil {
+		return err
+	}
+
+	task := &resources.Task{}
 	client := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))
 
 	// FIXME: add query params to filter on the owner so to only process the customer addressed in the notification
-	err = client().ReadMultiple(ctx, "/Task", map[string]string{
-		"code":         fmt.Sprintf("%s|%s", fhir.SnomedCodingSystem, eoverdracht.SnomedTransferCode), // filter on transfer tasks
-		"_lastUpdated": fmt.Sprintf("ge%sT00:00:00", time.Now().Format("2006-01-02")),                 // filter on date
-		"_count":       "80",                                                                          // prevent having to fetch multiple pages
-	}, &tasks)
+	err = client().ReadOne(ctx, taskPath, &task)
 	if err != nil {
 		return err
 	}
 
-	for _, task := range tasks {
-		// check if Task owner is set
-		owner := task.Owner
-		if owner == nil {
-			continue
-		}
-
-		// check if Task requester is set
-		requester := task.Requester
-		if requester == nil {
-			continue
-		}
-
-		requesterDID := fhir.FromStringPtr(requester.Agent.Identifier.Value)
-		ownerDID := fhir.FromStringPtr(owner.Identifier.Value)
-
-		// Check if the requester is the same as the sender of the notification
-		if requesterDID != notification.SenderDID {
-			continue
-		}
-
-		// Don't update tasks for other customers since we do not have this customers ID.
-		if ownerDID != notification.CustomerDID {
-			continue
-		}
-
-		err = service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
-		if err != nil {
-			return err
-		}
+	// check if Task owner is set
+	owner := task.Owner
+	if owner == nil {
+		return nil
 	}
 
-	return nil
+	// check if Task requester is set
+	requester := task.Requester
+	if requester == nil {
+		return nil
+	}
+
+	requesterDID := fhir.FromStringPtr(requester.Agent.Identifier.Value)
+	ownerDID := fhir.FromStringPtr(owner.Identifier.Value)
+
+	// Check if the requester is the same as the sender of the notification
+	if requesterDID != notification.SenderDID {
+		return nil
+	}
+
+	// Don't update tasks for other customers since we do not have this customers ID.
+	if ownerDID != notification.CustomerDID {
+		return nil
+	}
+
+	return service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, requesterDID, fhir.FromIDPtr(task.ID))
 }

@@ -14,6 +14,7 @@ import (
 type VCRSearchParams struct {
 	PurposeOfUse string
 	SubjectID    string
+	Issuer       string
 	Subject      string
 	ResourcePath string
 }
@@ -82,6 +83,10 @@ func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(c
 
 	if params.Subject != "" {
 		searchParams["credentialSubject.subject"] = params.Subject
+	}
+
+	if params.Issuer != "" {
+		searchParams["issuer"] = params.Issuer
 	}
 
 	credentials, err := registry.nutsClient.FindAuthorizationCredentials(ctx, searchParams)

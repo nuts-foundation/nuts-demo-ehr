@@ -12,7 +12,7 @@ require (
 	github.com/knadh/koanf v1.4.0
 	github.com/labstack/echo/v4 v4.6.3
 	github.com/labstack/gommon v0.3.1
-	github.com/lestrrat-go/jwx v1.2.17
+	github.com/lestrrat-go/jwx v1.2.18
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
 	github.com/nuts-foundation/go-did v0.1.1

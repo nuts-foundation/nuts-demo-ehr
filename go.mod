@@ -15,7 +15,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.17
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
-	github.com/nuts-foundation/go-did v0.1.1
+	github.com/nuts-foundation/go-did v0.2.0
 	github.com/nuts-foundation/nuts-node v0.0.0-20210820114829-0b83bdb3bea0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5

@@ -23,12 +23,12 @@
     "api-spec-converter": "^2.12.0",
     "autoprefixer": "^10.2.5",
     "css-loader": "^5.2.0",
-    "eslint": "^7.23.0",
+    "eslint": "^7.32.0",
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
-    "eslint-plugin-vue": "^7.8.0",
+    "eslint-plugin-vue": "^8.4.1",
     "fetch-openapi": "^9.1.0",
     "html-webpack-plugin": "^5.3.1",
     "postcss": "^8.2.10",
@@ -51,7 +51,7 @@
     "url": "^0.11.0",
     "util": "^0.12.4",
     "vue": "^3.0.11",
-    "vue-router": "^4.0.6",
+    "vue-router": "^4.0.12",
     "vuex": "^4.0.2",
     "yamljs": "^0.3.0"
   }

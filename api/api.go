@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -139,9 +138,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionBytes, _ := json.Marshal(sessionStatus)
-	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
-	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, *sessionStatus.VerifiablePresentation)
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
@@ -207,14 +204,7 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionBytes, err := json.Marshal(sessionResult.VerifiablePresentation)
-	if err != nil {
-		return err
-	}
-
-	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
-
-	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, *sessionResult.VerifiablePresentation)
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {

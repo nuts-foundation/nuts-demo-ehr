@@ -168,7 +168,6 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	if err != nil {
 		return nil, err
 	}
-	println(fmt.Sprintf("%v", searchParams))
 	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {
 		bytes, err := json.Marshal(c)

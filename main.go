@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"io/fs"
 	"log"
 	"net/http"
@@ -17,6 +16,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	log2 "github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
@@ -29,22 +36,13 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
-
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/jmoiron/sqlx"
-
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/sirupsen/logrus"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	log2 "github.com/labstack/gommon/log"
 )
 
 const assetPath = "web/dist"
@@ -206,6 +204,8 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	apiWrapper := api.Wrapper{
 		APIAuth:                 auth,
 		NutsAuth:                nodeClient,
+		VCRegistry:              vcRegistry,
+		IRMAEndpoint:            fmt.Sprintf("%s/public/auth/irmaclient", config.NutsNodeAddress),
 		CustomerRepository:      customerRepository,
 		PatientRepository:       patientRepository,
 		ReportRepository:        reportRepository,

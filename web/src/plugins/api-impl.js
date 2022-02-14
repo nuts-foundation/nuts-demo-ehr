@@ -100,6 +100,51 @@ function createApi(options) {
           mode,
         });
     },
+    getKVKDetails(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getKVKDetails');
+      return fetch(endpoint + basePath + '/auth/irma/kvk'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
+    signIRMAKVKAttributes(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'signIRMAKVKAttributes');
+      return fetch(endpoint + basePath + '/auth/irma/kvk/session'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
+    getIRMAKVKAttributesResult(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getIRMAKVKAttributesResult');
+      return fetch(endpoint + basePath + '/auth/irma/kvk/session/' + params['sessionToken'] + '/result'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     authenticateWithIRMA(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

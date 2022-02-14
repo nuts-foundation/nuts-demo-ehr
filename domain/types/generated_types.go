@@ -222,6 +222,13 @@ type Intervention struct {
 	Comment string `json:"comment"`
 }
 
+// KVKDetails defines model for KVKDetails.
+type KVKDetails struct {
+	LegalEntity   *string `json:"legalEntity,omitempty"`
+	OfficeAddress *string `json:"officeAddress,omitempty"`
+	Valid         bool    `json:"valid"`
+}
+
 // An internal object UUID which can be used as unique identifier for entities.
 type ObjectID string
 
@@ -412,6 +419,9 @@ type TransferRequest struct {
 // SetCustomerJSONBody defines parameters for SetCustomer.
 type SetCustomerJSONBody Customer
 
+// SignIRMAKVKAttributesJSONBody defines parameters for SignIRMAKVKAttributes.
+type SignIRMAKVKAttributesJSONBody map[string]interface{}
+
 // AuthenticateWithPasswordJSONBody defines parameters for AuthenticateWithPassword.
 type AuthenticateWithPasswordJSONBody PasswordAuthenticateRequest
 
@@ -480,6 +490,9 @@ type UpdateTransferNegotiationStatusJSONBody TransferNegotiationStatus
 
 // SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.
 type SetCustomerJSONRequestBody SetCustomerJSONBody
+
+// SignIRMAKVKAttributesJSONRequestBody defines body for SignIRMAKVKAttributes for application/json ContentType.
+type SignIRMAKVKAttributesJSONRequestBody SignIRMAKVKAttributesJSONBody
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody AuthenticateWithPasswordJSONBody

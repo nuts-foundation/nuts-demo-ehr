@@ -52,6 +52,9 @@ type IssueVCRequest struct {
 	// DID according to Nuts specification.
 	Issuer string `json:"issuer"`
 
+	// Embedded proof (optional)
+	Proof *[]interface{} `json:"proof,omitempty"`
+
 	// Type definition for the credential.
 	Type string `json:"type"`
 }

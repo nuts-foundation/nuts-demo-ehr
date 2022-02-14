@@ -40,6 +40,50 @@ paths:
           description: Authentication successful.
         '403':
           description: Invalid credentials
+  # IRMA KVK signature
+  /auth/irma/kvk:
+    get:
+      description: Verify the NustKVKCredential for the organization
+      operationId: getKVKDetails
+      responses:
+        '200':
+          description: The NustKVKCredential is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KVKDetails"
+  /auth/irma/kvk/session:
+    post:
+      description: Authenticate using IRMA KVK signature. If successful an authenticated session is created and returned.
+      operationId: signIRMAKVKAttributes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Signed successfully
+  /auth/irma/kvk/session/{sessionToken}/result:
+    parameters:
+      - name: sessionToken
+        in: path
+        description: IRMA session ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: |
+        After a successful IRMA signing session the resulting signature can be fetched using his endpoint.
+      operationId: getIRMAKVKAttributesResult
+      responses:
+        '200':
+          description: Session result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
   # IRMA authentication
   /auth/irma/session:
     post:
@@ -1155,6 +1199,17 @@ components:
         requiresAttention:
           description: If true, this inbox entry requires attention of an end user (e.g. data has been changed by a remote system).
           type: boolean
+    KVKDetails:
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+        legalEntity:
+          type: string
+        officeAddress:
+          type: string
+
 
   securitySchemes:
     bearerAuth:

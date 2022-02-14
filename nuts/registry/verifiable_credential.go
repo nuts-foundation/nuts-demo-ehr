@@ -35,6 +35,8 @@ func convertCredential(input *vcr.VerifiableCredential) (*vc.VerifiableCredentia
 }
 
 type VerifiableCredentialRegistry interface {
+	// CreateKVKCredential creates a new KVKCredential in the registry
+	CreateKVKCredential(ctx context.Context, issuer string, proof string) error
 	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
 	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
@@ -43,6 +45,8 @@ type VerifiableCredentialRegistry interface {
 	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
 	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
 	FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error)
+	// FindKVKCredential returns the KVKCredential for the given issuer
+	FindKVKCredential(ctx context.Context, issuer string) (*vc.VerifiableCredential, error)
 }
 
 type httpVerifiableCredentialRegistry struct {
@@ -53,6 +57,22 @@ func NewVerifiableCredentialRegistry(client nutsClient.VCRClient) VerifiableCred
 	return &httpVerifiableCredentialRegistry{
 		nutsClient: client,
 	}
+}
+
+func (registry *httpVerifiableCredentialRegistry) CreateKVKCredential(ctx context.Context, issuer, proof string) error {
+	return registry.nutsClient.CreateVC(ctx, "NutsKVKCredential", issuer, nil, nil, []interface{}{map[string]interface{}{
+		"type":       "IRMASignatureProof",
+		"proofValue": proof,
+	}})
+}
+
+func (registry *httpVerifiableCredentialRegistry) FindKVKCredential(ctx context.Context, issuer string) (*vc.VerifiableCredential, error) {
+	result, err := registry.nutsClient.FindKVKCredential(ctx, issuer)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertCredential(result)
 }
 
 func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error {
@@ -67,7 +87,7 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 		return fmt.Errorf("invalid subject: %w", err)
 	}
 
-	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
+	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil, nil)
 }
 
 func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error) {

@@ -12,6 +12,7 @@ import (
 
 type Auth interface {
 	CreateIrmaSession(customer types.Customer) ([]byte, error)
+	CreateIRMAKVKSession(customer types.Customer) ([]byte, error)
 	GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 
 	CreateDummySession(customer types.Customer) ([]byte, error)
@@ -43,6 +44,45 @@ func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignS
 
 func (c HTTPClient) CreateIrmaSession(customer types.Customer) ([]byte, error) {
 	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansIrma)
+}
+
+func (c HTTPClient) CreateIRMAKVKSession(customer types.Customer) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	le := nutsAuthClient.LegalEntity(*customer.Did)
+	t := time.Now().Format(time.RFC3339)
+	contractBody := nutsAuthClient.DrawUpContractJSONRequestBody{
+		Language:    "EN",
+		LegalEntity: le,
+		Type:        "IRMAKVKVerification",
+		ValidFrom:   &t,
+		Version:     "v3",
+	}
+	contractRespBody, err := c.auth().DrawUpContract(ctx, contractBody)
+	if err != nil {
+		return nil, err
+	}
+	contractResp, err := testAndReadResponse(http.StatusOK, contractRespBody)
+	if err != nil {
+		return nil, err
+	}
+	contract := nutsAuthClient.ContractResponse{}
+	err = json.Unmarshal(contractResp, &contract)
+	if err != nil {
+		return nil, err
+	}
+
+	body := nutsAuthClient.CreateSignSessionJSONRequestBody{
+		Means:   nutsAuthClient.SignSessionRequestMeansIrma,
+		Payload: contract.Message,
+	}
+
+	resp, err := c.auth().CreateSignSession(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return testAndReadResponse(http.StatusCreated, resp)
 }
 
 func (c HTTPClient) GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {

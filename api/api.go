@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/knadh/koanf/maps"
 	"net/http"
 	"strconv"
 
@@ -40,6 +42,7 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 type Wrapper struct {
 	APIAuth                 *Auth
 	NutsAuth                nutsClient.Auth
+	IRMAEndpoint            string
 	CustomerRepository      customers.Repository
 	PatientRepository       patients.Repository
 	ReportRepository        reports.Repository
@@ -52,6 +55,7 @@ type Wrapper struct {
 	EpisodeService          episode.Service
 	NotificationHandler     notification.Handler
 	TenantInitializer       func(tenant int) error
+	VCRegistry              registry.VerifiableCredentialRegistry
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -99,6 +103,91 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(200, types.SessionToken{Token: string(token)})
+}
+
+func (w Wrapper) SignIRMAKVKAttributes(ctx echo.Context) error {
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
+	}
+
+	bytes, err := w.NutsAuth.CreateIRMAKVKSession(*customer)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSONBlob(http.StatusOK, bytes)
+}
+
+func (w Wrapper) GetKVKDetails(ctx echo.Context) error {
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return err
+	}
+
+	credential, err := w.VCRegistry.FindKVKCredential(ctx.Request().Context(), *customer.Did)
+	if err == nil {
+		subject := credential.CredentialSubject[0].(map[string]interface{})
+		flat, _ := maps.Flatten(subject, []string{}, ".")
+		legalEntity := flat["irma-demo.kvk.official.legalEntity"].(string)
+		officeAddress := flat["irma-demo.kvk.official.officeAddress"].(string)
+
+		return ctx.JSON(http.StatusOK, types.KVKDetails{
+			LegalEntity:   &legalEntity,
+			OfficeAddress: &officeAddress,
+			Valid:         true,
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, types.KVKDetails{
+		Valid: false,
+	})
+}
+
+func (w Wrapper) GetIRMAKVKAttributesResult(ctx echo.Context, sessionToken string) error {
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return err
+	}
+
+	sessionStatus, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
+	if err != nil {
+		return err
+	}
+
+	if sessionStatus.Status != "DONE" {
+		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
+	}
+
+	item, ok := sessionStatus.VerifiablePresentation.Proof["proofValue"]
+	if !ok {
+		return errors.New("missing proofValue")
+	}
+
+	proofValue, ok := item.(string)
+	if !ok {
+		return errors.New("invalid type for proofValue")
+	}
+
+	if err := w.VCRegistry.CreateKVKCredential(ctx.Request().Context(), *customer.Did, proofValue); err != nil {
+		return err
+	}
+
+	return ctx.JSON(200, true)
 }
 
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,11 +13,12 @@ import (
 
 type VCRClient interface {
 	GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error)
-	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
+	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, proof []interface{}) error
 	FindAuthorizationCredentials(ctx context.Context, params map[string]string) ([]vcr.VerifiableCredential, error)
 	FindAuthorizationCredentialIDs(ctx context.Context, params map[string]string) ([]string, error)
 	RevokeCredential(ctx context.Context, credentialID string) error
 	ResolveVerifiableCredential(ctx context.Context, credentialID string, untrusted bool) (*vcr.VerifiableCredential, error)
+	FindKVKCredential(ctx context.Context, issuer string) (*vcr.VerifiableCredential, error)
 }
 
 func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string) ([]map[string]interface{}, error) {
@@ -25,7 +27,7 @@ func (c HTTPClient) GetOrganization(ctx context.Context, organizationDID string)
 	})
 }
 
-func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error {
+func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, proof []interface{}) error {
 	var exp *string
 
 	if expirationDate != nil {
@@ -33,11 +35,18 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 		exp = &formatted
 	}
 
+	var proofRef *[]interface{}
+
+	if proof != nil {
+		proofRef = &proof
+	}
+
 	response, err := c.vcr().Create(ctx, vcr.CreateJSONRequestBody{
 		Type:              typeName,
 		Issuer:            issuer,
 		CredentialSubject: credentialSubject,
 		ExpirationDate:    exp,
+		Proof:             proofRef,
 	})
 	if err != nil {
 		return err
@@ -52,6 +61,31 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 }
 
 var trueVal = true
+
+func (c HTTPClient) FindKVKCredential(ctx context.Context, issuer string) (*vcr.VerifiableCredential, error) {
+	response, err := c.vcr().Search(ctx, organizationConcept, &vcr.SearchParams{Untrusted: &trueVal}, vcr.SearchJSONRequestBody{Params: []vcr.KeyValuePair{
+		{Key: "issuer", Value: issuer},
+	}})
+	if err != nil {
+		return nil, err
+	}
+	// returns array of raw credentials
+	data, err := testAndReadResponse(http.StatusOK, response)
+	if err != nil {
+		return nil, err
+	}
+
+	var credentials []vcr.VerifiableCredential
+	if err = json.Unmarshal(data, &credentials); err != nil {
+		return nil, err
+	}
+
+	if len(credentials) == 0 {
+		return nil, errors.New("credential not found")
+	}
+
+	return &credentials[0], nil
+}
 
 func (c HTTPClient) FindAuthorizationCredentials(ctx context.Context, params map[string]string) ([]vcr.VerifiableCredential, error) {
 	var vcParams = make([]vcr.KeyValuePair, 0)

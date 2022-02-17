@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/knadh/koanf/maps"
 	"net/http"
 	"strconv"
 
@@ -134,16 +133,11 @@ func (w Wrapper) GetKVKDetails(ctx echo.Context) error {
 		return err
 	}
 
-	credential, err := w.VCRegistry.FindKVKCredential(ctx.Request().Context(), *customer.Did)
+	organization, err := w.OrganizationRegistry.GetWithCredentialType(ctx.Request().Context(), *customer.Did, "NutsKVKCredential")
 	if err == nil {
-		subject := credential.CredentialSubject[0].(map[string]interface{})
-		flat, _ := maps.Flatten(subject, []string{}, ".")
-		legalEntity := flat["irma-demo.kvk.official.legalEntity"].(string)
-		officeAddress := flat["irma-demo.kvk.official.officeAddress"].(string)
-
 		return ctx.JSON(http.StatusOK, types.KVKDetails{
-			LegalEntity:   &legalEntity,
-			OfficeAddress: &officeAddress,
+			LegalEntity:   &organization.Name,
+			OfficeAddress: &organization.City,
 			Valid:         true,
 		})
 	}

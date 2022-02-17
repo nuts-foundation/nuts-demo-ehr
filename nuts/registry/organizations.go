@@ -16,6 +16,7 @@ const cacheMaxAge = 10 * time.Second
 type OrganizationRegistry interface {
 	Search(ctx context.Context, query string, didServiceType *string) ([]types.Organization, error)
 	Get(ctx context.Context, organizationDID string) (*types.Organization, error)
+	GetWithCredentialType(ctx context.Context, organizationDID, credentialType string) (*types.Organization, error)
 	GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error)
 }
 
@@ -70,6 +71,19 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 	}
 	result := organizationConceptToDomain(raw[0])
 	r.toCache(result)
+	return &result, nil
+}
+
+func (r remoteOrganizationRegistry) GetWithCredentialType(ctx context.Context, organizationDID, credentialType string) (*types.Organization, error) {
+	raw, err := r.client.GetOrganizationWithCredentialType(ctx, organizationDID, credentialType)
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) == 0 {
+		return nil, errors.New("organization not found")
+	}
+
+	result := organizationConceptToDomain(raw[len(raw)-1])
 	return &result, nil
 }
 

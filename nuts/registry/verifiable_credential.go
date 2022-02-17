@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nuts-foundation/go-did/vc"
+	"time"
 
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
@@ -20,6 +21,11 @@ type VCRSearchParams struct {
 }
 
 func convertCredential(input *vcr.VerifiableCredential) (*vc.VerifiableCredential, error) {
+	// In the search API the issuance-date is missing which makes it unmarshal-able to `vc.VerifiableCredential`
+	if input.IssuanceDate == "" {
+		input.IssuanceDate = (&time.Time{}).Format(time.RFC3339)
+	}
+
 	result := &vc.VerifiableCredential{}
 
 	bytes, err := json.Marshal(input)
@@ -45,8 +51,6 @@ type VerifiableCredentialRegistry interface {
 	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
 	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
 	FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error)
-	// FindKVKCredential returns the KVKCredential for the given issuer
-	FindKVKCredential(ctx context.Context, issuer string) (*vc.VerifiableCredential, error)
 }
 
 type httpVerifiableCredentialRegistry struct {
@@ -61,18 +65,9 @@ func NewVerifiableCredentialRegistry(client nutsClient.VCRClient) VerifiableCred
 
 func (registry *httpVerifiableCredentialRegistry) CreateKVKCredential(ctx context.Context, issuer, proof string) error {
 	return registry.nutsClient.CreateVC(ctx, "NutsKVKCredential", issuer, nil, nil, []interface{}{map[string]interface{}{
-		"type":       "IRMASignatureProof",
+		"type":       "NutsIRMASignatureProof2022",
 		"proofValue": proof,
 	}})
-}
-
-func (registry *httpVerifiableCredentialRegistry) FindKVKCredential(ctx context.Context, issuer string) (*vc.VerifiableCredential, error) {
-	result, err := registry.nutsClient.FindKVKCredential(ctx, issuer)
-	if err != nil {
-		return nil, err
-	}
-
-	return convertCredential(result)
 }
 
 func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error {

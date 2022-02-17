@@ -27,6 +27,8 @@
       <div class="mt-8 w-full" v-if="kvkDetails === null || !kvkDetails.valid">
         <h3 class="font-semibold">IRMA verification</h3>
 
+        <p>Share the details of your business and sign it with IRMA to verify your organization.</p>
+
         <button @click="verify" class="btn btn-primary mt-3">Verify</button>
       </div>
     </div>

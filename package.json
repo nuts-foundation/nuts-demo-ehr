@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@privacybydesign/irma-client": "^0.3.3",
-    "@privacybydesign/irma-core": "^0.3.3",
+    "@privacybydesign/irma-core": "^0.4.3",
     "@privacybydesign/irma-frontend": "^0.3.3",
     "@privacybydesign/irma-web": "^0.3.3",
     "http": "^0.0.1-security",

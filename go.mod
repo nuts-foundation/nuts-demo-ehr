@@ -19,6 +19,6 @@ require (
 	github.com/nuts-foundation/nuts-node v0.0.0-20210820114829-0b83bdb3bea0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tidwall/gjson v1.14.0
 )

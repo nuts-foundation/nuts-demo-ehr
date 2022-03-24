@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
 
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
@@ -19,28 +19,13 @@ type VCRSearchParams struct {
 	ResourcePath string
 }
 
-func convertCredential(input *vcr.VerifiableCredential) (*vc.VerifiableCredential, error) {
-	result := &vc.VerifiableCredential{}
-
-	bytes, err := json.Marshal(input)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bytes, result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
 type VerifiableCredentialRegistry interface {
 	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
 	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
-	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
+	ResolveVerifiableCredential(ctx context.Context, credentialType ssi.URI, credentialID string) (*vc.VerifiableCredential, error)
 	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
 	FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error)
 }
@@ -71,51 +56,42 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 }
 
 func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error) {
+	query := nutsClient.GetNutsCredentialTemplate(*credential.NutsAuthorizationCredentialTypeURI)
+	credentialSubject := make(map[string]string, 0)
+	query.CredentialSubject = []interface{}{credentialSubject}
+
 	// may be extended by issuanceDate for even faster results.
-	searchParams := map[string]string{
-		"credentialSubject.purposeOfUse":     params.PurposeOfUse,
-		"credentialSubject.resources.#.path": params.ResourcePath,
-	}
+	credentialSubject["purposeOfUse"] = params.PurposeOfUse
+	credentialSubject["resources.#.path"] = params.ResourcePath
 
 	if params.SubjectID != "" {
-		searchParams["credentialSubject.id"] = params.SubjectID
+		credentialSubject["id"] = params.SubjectID
 	}
 
 	if params.Subject != "" {
-		searchParams["credentialSubject.subject"] = params.Subject
+		credentialSubject["subject"] = params.Subject
 	}
 
 	if params.Issuer != "" {
-		searchParams["issuer"] = params.Issuer
+		query.Issuer = ssi.MustParseURI(params.Issuer)
 	}
 
-	credentials, err := registry.nutsClient.FindAuthorizationCredentials(ctx, searchParams)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]vc.VerifiableCredential, len(credentials))
-
-	for i, authCredential := range credentials {
-		result, err := convertCredential(&authCredential) //nolint:gosec
-		if err != nil {
-			return nil, err
-		}
-
-		results[i] = *result
-	}
-
-	return results, nil
+	return registry.nutsClient.FindCredentials(ctx, query, false)
 }
 
 func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
 	// may be extended by issuanceDate for even faster results.
-	params := map[string]string{
-		"credentialSubject.id":               subjectID,
-		"credentialSubject.purposeOfUse":     purposeOfUse,
-		"credentialSubject.resources.#.path": resourcePath,
+	query := nutsClient.GetNutsCredentialTemplate(*credential.NutsAuthorizationCredentialTypeURI)
+	query.CredentialSubject = []interface{}{
+		map[string]interface{}{
+			"id":           subjectID,
+			"purposeOfUse": purposeOfUse,
+			"resources": map[string]interface{}{
+				"path": resourcePath,
+			},
+		},
 	}
-	credentialIDs, err := registry.nutsClient.FindAuthorizationCredentialIDs(ctx, params)
+	credentialIDs, err := registry.nutsClient.FindCredentialIDs(ctx, query, false)
 	if err != nil {
 		return err
 	}
@@ -128,11 +104,6 @@ func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(
 	return nil
 }
 
-func (registry *httpVerifiableCredentialRegistry) ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error) {
-	authCredential, err := registry.nutsClient.ResolveVerifiableCredential(ctx, credentialID, true)
-	if err != nil {
-		return nil, err
-	}
-
-	return convertCredential(authCredential)
+func (registry *httpVerifiableCredentialRegistry) ResolveVerifiableCredential(ctx context.Context, credentialType ssi.URI, credentialID string) (*vc.VerifiableCredential, error) {
+	return registry.nutsClient.ResolveCredential(ctx, credentialType, credentialID, true)
 }

@@ -148,7 +148,7 @@ func (service *service) GetCollaborations(ctx context.Context, customerDID, doss
 		collaborations = append(collaborations, types.Collaboration{
 			EpisodeID:        episodeID,
 			OrganizationDID:  subject.ID,
-			OrganizationName: org.Name,
+			OrganizationName: org.Details.Name,
 		})
 	}
 
@@ -216,7 +216,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 
 	for _, observation := range observations {
 		domainObservation := reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID))
-		domainObservation.Source = issuerOrg.Name
+		domainObservation.Source = issuerOrg.Details.Name
 		domainObservation.EpisodeName = &episode.Diagnosis
 		results = append(results, domainObservation)
 	}

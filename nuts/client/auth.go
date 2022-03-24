@@ -6,15 +6,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
 type Auth interface {
-	CreateIrmaSession(customer types.Customer) ([]byte, error)
+	CreateIrmaSession(customerDID string) ([]byte, error)
 	GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 
-	CreateDummySession(customer types.Customer) ([]byte, error)
+	CreateDummySession(customerDID string) ([]byte, error)
 	GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 }
 
@@ -41,27 +40,27 @@ func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignS
 	return sessionResponse, nil
 }
 
-func (c HTTPClient) CreateIrmaSession(customer types.Customer) ([]byte, error) {
-	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansIrma)
+func (c HTTPClient) CreateIrmaSession(customerDID string) ([]byte, error) {
+	return c.createSession(customerDID, nutsAuthClient.SignSessionRequestMeansIrma)
 }
 
 func (c HTTPClient) GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
 	return c.getSessionResult(sessionToken)
 }
 
-func (c HTTPClient) CreateDummySession(customer types.Customer) ([]byte, error) {
-	return c.createSession(customer, nutsAuthClient.SignSessionRequestMeansDummy)
+func (c HTTPClient) CreateDummySession(customerDID string) ([]byte, error) {
+	return c.createSession(customerDID, nutsAuthClient.SignSessionRequestMeansDummy)
 }
 
 func (c HTTPClient) GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
 	return c.getSessionResult(sessionToken)
 }
 
-func (c HTTPClient) createSession(customer types.Customer, means nutsAuthClient.SignSessionRequestMeans) ([]byte, error) {
+func (c HTTPClient) createSession(customerDID string, means nutsAuthClient.SignSessionRequestMeans) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	le := nutsAuthClient.LegalEntity(*customer.Did)
+	le := nutsAuthClient.LegalEntity(customerDID)
 	t := time.Now().Format(time.RFC3339)
 	contractBody := nutsAuthClient.DrawUpContractJSONRequestBody{
 		Language:    "NL",

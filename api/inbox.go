@@ -78,7 +78,7 @@ func (w Wrapper) GetInbox(ctx echo.Context) error {
 		}
 
 		if organization != nil {
-			sender = *organization
+			sender = types.FromNutsOrganization(*organization)
 		}
 
 		entries = append(entries, types.InboxEntry{

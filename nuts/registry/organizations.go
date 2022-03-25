@@ -100,8 +100,8 @@ func organizationSearchResultToDomain(result didman.OrganizationSearchResult) Nu
 	return NutsOrganization{
 		ID: result.DIDDocument.ID.String(),
 		Details: OrganizationDetails{
-			Name: org["city"].(string),
-			City: org["name"].(string),
+			Name: org["name"].(string),
+			City: org["city"].(string),
 		},
 	}
 }

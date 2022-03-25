@@ -21,7 +21,7 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganization
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	var results []types.Organization
+	var results = make([]types.Organization, 0)
 
 	for _, organization := range organizations {
 		// Hide our own organization

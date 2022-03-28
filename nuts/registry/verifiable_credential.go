@@ -25,7 +25,7 @@ type VerifiableCredentialRegistry interface {
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
-	ResolveVerifiableCredential(ctx context.Context, credentialType ssi.URI, credentialID string) (*vc.VerifiableCredential, error)
+	ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
 	// FindAuthorizationCredentials returns the NutsAuthorizationCredential for the given params
 	FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error)
 }
@@ -52,17 +52,17 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 		return fmt.Errorf("invalid subject: %w", err)
 	}
 
-	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil)
+	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil, false)
 }
 
 func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error) {
 	query := nutsClient.GetNutsCredentialTemplate(*credential.NutsAuthorizationCredentialTypeURI)
-	credentialSubject := make(map[string]string, 0)
+	credentialSubject := make(map[string]interface{}, 0)
 	query.CredentialSubject = []interface{}{credentialSubject}
 
 	// may be extended by issuanceDate for even faster results.
 	credentialSubject["purposeOfUse"] = params.PurposeOfUse
-	credentialSubject["resources.#.path"] = params.ResourcePath
+	credentialSubject["resources"] = map[string]string{"path": params.ResourcePath}
 
 	if params.SubjectID != "" {
 		credentialSubject["id"] = params.SubjectID
@@ -104,6 +104,6 @@ func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(
 	return nil
 }
 
-func (registry *httpVerifiableCredentialRegistry) ResolveVerifiableCredential(ctx context.Context, credentialType ssi.URI, credentialID string) (*vc.VerifiableCredential, error) {
-	return registry.nutsClient.ResolveCredential(ctx, credentialType, credentialID, true)
+func (registry *httpVerifiableCredentialRegistry) ResolveVerifiableCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error) {
+	return registry.nutsClient.ResolveCredential(ctx, credentialID)
 }

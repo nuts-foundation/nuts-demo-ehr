@@ -230,7 +230,7 @@ func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, tok
 
 	for _, credentialID := range *token.Vcs {
 		// resolve credential. NutsAuthCredential must be resolved with the untrusted flag
-		authCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, *credential.NutsAuthorizationCredentialTypeURI, credentialID)
+		authCredential, err := server.vcRegistry.ResolveVerifiableCredential(ctx, credentialID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid credential: %w", err)
 		}

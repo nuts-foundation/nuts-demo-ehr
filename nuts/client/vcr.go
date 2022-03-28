@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
@@ -15,14 +14,14 @@ import (
 )
 
 type VCRClient interface {
-	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error
+	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, publishPublic bool) error
 	FindCredentials(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]vc.VerifiableCredential, error)
 	FindCredentialIDs(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]string, error)
 	RevokeCredential(ctx context.Context, credentialID string) error
-	ResolveCredential(ctx context.Context, credentialType ssi.URI, credentialID string, untrusted bool) (*vc.VerifiableCredential, error)
+	ResolveCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
 }
 
-func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time) error {
+func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, publishPublic bool) error {
 	var exp *string
 
 	if expirationDate != nil {
@@ -30,11 +29,18 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 		exp = &formatted
 	}
 
+	var visibility vcr.IssueVCRequestVisibility
+	if publishPublic {
+		visibility = vcr.IssueVCRequestVisibilityPublic
+	} else {
+		visibility = vcr.IssueVCRequestVisibilityPrivate
+	}
 	response, err := c.vcr().IssueVC(ctx, vcr.IssueVCJSONRequestBody{
 		Type:              typeName,
 		Issuer:            issuer,
 		CredentialSubject: credentialSubject,
 		ExpirationDate:    exp,
+		Visibility:        &visibility,
 	})
 	if err != nil {
 		return err
@@ -77,26 +83,26 @@ func (c HTTPClient) RevokeCredential(ctx context.Context, credentialID string) e
 	return err
 }
 
-func (c HTTPClient) ResolveCredential(ctx context.Context, credentialType ssi.URI, credentialID string, untrusted bool) (*vc.VerifiableCredential, error) {
-	query := GetNutsCredentialTemplate(credentialType)
-	query.ID, _ = ssi.ParseURI(credentialID)
-	result, err := c.search(ctx, query, untrusted)
+func (c HTTPClient) ResolveCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error) {
+	response, err := c.vcr().ResolveVC(ctx, credentialID)
 	if err != nil {
 		return nil, err
 	}
-	if len(result) == 0 {
-		return nil, fmt.Errorf("credential not found with ID: %s", credentialID)
+	data, err := testAndReadResponse(http.StatusOK, response)
+	if err != nil {
+		return nil, err
 	}
-	if len(result) > 1 {
-		return nil, fmt.Errorf("multiple credentials found with ID: %s", credentialID)
+	var result vc.VerifiableCredential
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
 	}
-	return &result[0], nil
+	return &result, nil
 }
 
 func GetNutsCredentialTemplate(credentialType ssi.URI) vc.VerifiableCredential {
 	return vc.VerifiableCredential{
-		Context:           []ssi.URI{holder.VerifiableCredentialLDContextV1, *credential.NutsContextURI},
-		Type:              []ssi.URI{vc.VerifiableCredentialTypeV1URI(), credentialType},
+		Context: []ssi.URI{holder.VerifiableCredentialLDContextV1, *credential.NutsContextURI},
+		Type:    []ssi.URI{vc.VerifiableCredentialTypeV1URI(), credentialType},
 	}
 }
 

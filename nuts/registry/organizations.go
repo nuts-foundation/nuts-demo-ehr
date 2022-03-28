@@ -70,7 +70,11 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 	}
 
 	query := client.GetNutsCredentialTemplate(*credential.NutsOrganizationCredentialTypeURI)
-	query.CredentialSubject = []interface{}{}
+	query.CredentialSubject = []interface{}{
+		map[string]string{
+			"id": organizationDID,
+		},
+	}
 	credentials, err := r.client.FindCredentials(ctx, query, false)
 	if err != nil {
 		return nil, err
@@ -82,11 +86,15 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
-	var result NutsOrganization
-	err = credentials[0].UnmarshalCredentialSubject(&result)
+	var results []NutsOrganization
+	err = credentials[0].UnmarshalCredentialSubject(&results)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal NutsOrganizationCredential subject: %w", err)
 	}
+	if len(results) != 1 {
+		return nil, errors.New("expected exactly 1 subject in NutsOrganizationCredential")
+	}
+	result := results[0]
 	r.toCache(result)
 	return &result, nil
 }

@@ -111,7 +111,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	}
 
 	// forward to node
-	bytes, err := w.NutsAuth.CreateIrmaSession(*customer)
+	bytes, err := w.NutsAuth.CreateIrmaSession(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 
-	bytes, err := w.NutsAuth.CreateDummySession(*customer)
+	bytes, err := w.NutsAuth.CreateDummySession(*customer.Did)
 	if err != nil {
 		return err
 	}

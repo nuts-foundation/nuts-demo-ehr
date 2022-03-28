@@ -168,7 +168,7 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationDID, err)
 			continue
 		}
-		negotiations[i].Organization = *organization
+		negotiations[i].Organization = types.FromNutsOrganization(*organization)
 	}
 	return ctx.JSON(http.StatusOK, negotiations)
 }

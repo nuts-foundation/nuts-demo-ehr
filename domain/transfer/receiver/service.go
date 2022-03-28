@@ -131,7 +131,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	}
 
 	transferRequest := types.TransferRequest{
-		Sender:        *organization,
+		Sender:        types.FromNutsOrganization(*organization),
 		AdvanceNotice: domainAdvanceNotice,
 		Status:        task.Status,
 	}

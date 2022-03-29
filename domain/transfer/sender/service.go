@@ -193,6 +193,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// A list to store all the paths to FHIR resources associated with this advance notice
 		// These paths must be included in the authorization credential
 		resourcePaths := resourcePathsFromSection(composition.Section, []string{})
+		// Include subject reference (patient)
+		resourcePaths = append(resourcePaths, fhir.FromStringPtr(composition.Subject.Reference))
 		for _, path := range resourcePaths {
 			authorizedResources = append(authorizedResources, credential.Resource{
 				Path:        path,

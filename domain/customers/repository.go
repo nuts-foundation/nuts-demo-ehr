@@ -3,6 +3,7 @@ package customers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/gommon/log"
 	"os"
 	"sort"
 	"sync"
@@ -27,17 +28,15 @@ func NewJsonFileRepository(filepath string) *jsonFileRepo {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
 	defer f.Close()
 	if err != nil {
-		panic(err)
+		log.Warnf("Could not open cusomers file (path=%s), it still needs to be created: %s", filepath, err)
+		// But allow to proceed, since it is shared with nuts-registry-admin-demo, which creates it.
+		// In Docker environments, it might not be there yet if demo-ehr starts first.
 	}
 
 	repo := jsonFileRepo{
 		filepath: filepath,
 		mutex:    sync.Mutex{},
 		records:  make(map[string]types.Customer, 0),
-	}
-
-	if err := repo.readAll(); err != nil {
-		panic(err)
 	}
 
 	return &repo
@@ -80,7 +79,6 @@ func (db *jsonFileRepo) FindByDID(did string) (*types.Customer, error) {
 }
 
 func (db *jsonFileRepo) readAll() error {
-	//log.Debug("Reading full customer list from file")
 	bytes, err := os.ReadFile(db.filepath)
 	if err != nil {
 		return fmt.Errorf("unable to read db from file: %w", err)

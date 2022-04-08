@@ -51,9 +51,10 @@
           <td v-if="!!requestedOrganization" class="space-x-2">
             <button class="btn btn-sm btn-primary" @click="assignOrganization"
                     :class="{'btn-loading': state === 'assigning'}"><span>Assign<span style="font-family: monospace;" v-if="state === 'assigning'"> {{'.'.repeat(waitCount) + '&nbsp;'.repeat(3-waitCount)}}</span></span></button>
-            <button class="btn btn-sm btn-primary" @click="startNegotiation"
-                    :class="{'btn-loading': state === 'requesting'}">Request
-            </button>
+<!-- Not supported for now -->
+<!--            <button class="btn btn-sm btn-primary" @click="startNegotiation"-->
+<!--                    :class="{'btn-loading': state === 'requesting'}">Request-->
+<!--            </button>-->
             <button class="btn btn-sm btn-secondary" @click="cancelOrganization">Cancel</button>
           </td>
         </tr>

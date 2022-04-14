@@ -6,9 +6,10 @@ import (
 	"crypto/sha1"
 	"embed"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
@@ -121,6 +124,7 @@ func createServer() *echo.Echo {
 			ctx.Echo().Logger.Error(err)
 		}
 	}
+	server.Binder = &fhirBinder{}
 	server.HTTPErrorHandler = httpErrorHandler
 	return server
 }
@@ -349,4 +353,27 @@ func authMiddleware(authService httpAuth.Service) echo.MiddlewareFunc {
 		},
 	}
 	return httpAuth.SecurityFilter{Auth: authService}.AuthWithConfig(config)
+}
+
+type fhirBinder struct{}
+
+func (cb *fhirBinder) Bind(i interface{}, c echo.Context) (err error) {
+	// You may use default binder
+	db := new(echo.DefaultBinder)
+	if err := db.Bind(i, c); err != echo.ErrUnsupportedMediaType {
+		return
+	}
+
+	if c.Request().Header.Get("Content-Type") == "application/fhir+json" {
+		var bytes = make([]byte, 0)
+		if bytes, err = io.ReadAll(c.Request().Body); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal(bytes, i); err != nil {
+			return
+		}
+	}
+
+	return
 }

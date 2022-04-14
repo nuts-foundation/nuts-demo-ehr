@@ -4,20 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/avast/retry-go/v4"
+	"strings"
+	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 type TransferService interface {
@@ -177,9 +180,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// Build the list of resources for the authorization credential:
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", transferTask.ID),
-				Operations:  []string{"read", "update"},
-				UserContext: true,
+				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
+				Operations: []string{"read", "update"},
 			},
 			{
 				Path:        compositionPath,
@@ -191,6 +193,8 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// A list to store all the paths to FHIR resources associated with this advance notice
 		// These paths must be included in the authorization credential
 		resourcePaths := resourcePathsFromSection(composition.Section, []string{})
+		// Include subject reference (patient)
+		resourcePaths = append(resourcePaths, fhir.FromStringPtr(composition.Subject.Reference))
 		for _, path := range resourcePaths {
 			authorizedResources = append(authorizedResources, credential.Resource{
 				Path:        path,
@@ -226,7 +230,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			return negotiation, commitErr
 		}
 
-		if err = s.sendNotification(ctx, customer, organizationDID); err != nil {
+		if err = s.sendNotification(ctx, customer, organizationDID, negotiation.TaskID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
 			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationDID, err)
 		}
@@ -335,9 +339,8 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		authorizedResources := []credential.Resource{
 			{
-				Path:        fmt.Sprintf("/Task/%s", negotiation.TaskID),
-				Operations:  []string{"read", "update"},
-				UserContext: true,
+				Path:       fmt.Sprintf("/Task/%s", negotiation.TaskID),
+				Operations: []string{"read", "update"},
 			},
 		}
 		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
@@ -389,7 +392,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		for _, n := range notifications {
-			_ = s.sendNotification(ctx, n.customer, n.organizationDID)
+			_ = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
 		}
 	}
 
@@ -413,7 +416,7 @@ func (s service) CancelNegotiation(ctx context.Context, customerID int, transfer
 		return nil, err
 	}
 
-	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID)
+	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID, negotiation.TaskID)
 }
 
 func (s service) UpdateTaskState(ctx context.Context, customer types.Customer, taskID string, newState string) error {
@@ -446,6 +449,7 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 	if _, err := s.transferRepo.UpdateNegotiationState(ctx, customer.Id, string(negotiation.Id), transfer.AcceptedState); err != nil {
 		return err
 	}
+
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
 	fhirService := eoverdracht.NewFHIRTransferService(fhirClient)
 	if err := fhirService.UpdateTaskStatus(ctx, negotiation.TaskID, transfer.AcceptedState); err != nil {
@@ -464,7 +468,7 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 		return commitErr
 	}
 
-	_ = s.sendNotification(ctx, not.customer, not.organizationDID)
+	_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
 
 	return nil
 }
@@ -513,7 +517,7 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 			return commitErr
 		}
 
-		_ = s.sendNotification(ctx, not.customer, not.organizationDID)
+		_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
 	}
 
 	return err
@@ -553,7 +557,7 @@ func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiat
 	return negotiation, &notification{customer: customer, organizationDID: negotiation.OrganizationDID}, nil
 }
 
-func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationDID string) error {
+func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationDID string, fhirTaskID string) error {
 	notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
 	if err != nil {
 		return err
@@ -564,7 +568,23 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 		return err
 	}
 
-	return s.notifier.Notify(tokenResponse.AccessToken, notificationEndpoint)
+	endpoint := notificationEndpoint
+
+	if !strings.HasSuffix(endpoint, "/") {
+		endpoint += "/"
+	}
+
+	endpoint += fhirTaskID
+
+	return retry.Do(
+		func() error {
+			return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
+		},
+		retry.LastErrorOnly(true),
+		retry.Attempts(60),
+		retry.Delay(1*time.Second),
+		retry.DelayType(retry.FixedDelay),
+	)
 }
 
 func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*types.Patient, error) {

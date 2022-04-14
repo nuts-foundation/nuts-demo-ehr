@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -112,7 +111,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	}
 
 	// forward to node
-	bytes, err := w.NutsAuth.CreateIrmaSession(*customer)
+	bytes, err := w.NutsAuth.CreateIrmaSession(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -139,9 +138,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionBytes, _ := json.Marshal(sessionStatus)
-	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
-	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, *sessionStatus.VerifiablePresentation)
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
@@ -167,7 +164,7 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 
-	bytes, err := w.NutsAuth.CreateDummySession(*customer)
+	bytes, err := w.NutsAuth.CreateDummySession(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -207,14 +204,7 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionBytes, err := json.Marshal(sessionResult.VerifiablePresentation)
-	if err != nil {
-		return err
-	}
-
-	base64String := base64.StdEncoding.EncodeToString(sessionBytes)
-
-	sessionID := w.APIAuth.StoreVP(customerID, base64String)
+	sessionID := w.APIAuth.StoreVP(customerID, *sessionResult.VerifiablePresentation)
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {

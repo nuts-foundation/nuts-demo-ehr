@@ -25,9 +25,9 @@
             <transfer-status :status="{status: negotiation.status}"/>
           </td>
           <td class="space-x-2">
-          <span v-if="negotiation.status === 'accepted' && negotiation.status !== 'completed'"
-                @click="assignNegotiation(negotiation)" class="hover:underline cursor-pointer"
-                :class="{'btn-loading': state === 'assigning'}">assign</span>
+            <span v-if="negotiation.status === 'accepted' && negotiation.status !== 'completed'"
+                  @click="assignNegotiation(negotiation)" class="hover:underline cursor-pointer"
+                  :class="{'btn-loading': state === 'assigning'}">assign</span>
             <span v-if="negotiation.status !== 'cancelled' && negotiation.status !== 'completed'"
                   @click="cancelNegotiation(negotiation)" class="hover:underline cursor-pointer"
                   :class="{'btn-loading': state === 'cancelling'}">cancel</span>
@@ -50,11 +50,11 @@
           </td>
           <td v-if="!!requestedOrganization" class="space-x-2">
             <button class="btn btn-sm btn-primary" @click="assignOrganization"
-                    :class="{'btn-loading': state === 'assigning'}">Assign
-            </button>
-            <button class="btn btn-sm btn-primary" @click="startNegotiation"
-                    :class="{'btn-loading': state === 'requesting'}">Request
-            </button>
+                    :class="{'btn-loading': state === 'assigning'}"><span>Assign<span style="font-family: monospace;" v-if="state === 'assigning'"> {{'.'.repeat(waitCount) + '&nbsp;'.repeat(3-waitCount)}}</span></span></button>
+<!-- Not supported for now -->
+<!--            <button class="btn btn-sm btn-primary" @click="startNegotiation"-->
+<!--                    :class="{'btn-loading': state === 'requesting'}">Request-->
+<!--            </button>-->
             <button class="btn btn-sm btn-secondary" @click="cancelOrganization">Cancel</button>
           </td>
         </tr>
@@ -113,6 +113,7 @@ export default {
       state: 'init',
       transfer: null,
       negotiations: [],
+      waitCount: 1,
       messages: [
         {title: "Aanmeldbericht", contents: "Some content"},
         {title: "Overdrachtsbericht", contents: "Some content 2"},
@@ -162,6 +163,16 @@ export default {
     },
     assignOrganization() {
       this.state = 'assigning';
+      this.waitCount = 1;
+
+      let timer = setInterval(() => {
+        if (this.waitCount === 3) {
+          this.waitCount = 1;
+          return;
+        }
+
+        this.waitCount++
+      }, 1000);
 
       const negotiation = {
         transferID: this.transfer.id,
@@ -175,7 +186,10 @@ export default {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
           })
-          .finally(() => this.state = 'done')
+          .finally(() => {
+            clearInterval(timer)
+            this.state = 'done'
+          })
     },
     startNegotiation() {
       this.state = 'requesting';

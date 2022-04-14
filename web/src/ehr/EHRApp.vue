@@ -116,16 +116,18 @@
         <div>
           <status-reporter type="error" :message="errorMessage.value"></status-reporter>
           <status-reporter type="info" :message="statusMessage.value"></status-reporter>
-          <router-view @statusUpdate="updateStatus"></router-view>
+          <router-view/>
         </div>
 
-        <status-bar :statusMessage="eventMessage"></status-bar>
+        <status-bar :statusMessage="statusMessage"></status-bar>
       </div>
     </main>
   </div>
 </template>
 
 <script>
+import {mapState} from "vuex";
+
 import StatusBar from "../components/StatusBar.vue"
 import StatusReporter from "../components/StatusReporter.vue"
 import InboxBadge from "../components/InboxBadge.vue"
@@ -135,13 +137,9 @@ export default {
   data() {
     return {
       inboxInfo: null,
-      eventMessage: '',
     }
   },
   methods: {
-    updateStatus(status) {
-      this.eventMessage = status
-    },
     fetchData() {
       this.$api.getInboxInfo()
           .then((response) => this.inboxInfo = response)
@@ -169,7 +167,8 @@ export default {
       const payload = JSON.parse(atob(rawPayload));
 
       return payload.sub;
-    }
+    },
+    ...mapState(["statusMessage"])
   },
   beforeRouteUpdate(to, from, next) {
     this.$status.clearError()

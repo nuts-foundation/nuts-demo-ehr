@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
@@ -167,7 +168,7 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationDID, err)
 			continue
 		}
-		negotiations[i].Organization = *organization
+		negotiations[i].Organization = types.FromNutsOrganization(*organization)
 	}
 	return ctx.JSON(http.StatusOK, negotiations)
 }
@@ -198,7 +199,7 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 	return ctx.JSON(http.StatusOK, negotiation)
 }
 
-func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
+func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
 	rawToken := ctx.Get(httpAuth.AccessToken)
 	if rawToken == nil {
@@ -222,15 +223,35 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 
 	customer, err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
-		return err
+		return ctx.JSON(http.StatusInternalServerError, &proxy.OperationOutcome{
+			Text: "an error occurred",
+			Issue: &proxy.Issue{
+				Code:     "error",
+				Severity: "error",
+				Details: &proxy.IssueDetails{
+					Text: err.Error(),
+				},
+			},
+		})
 	}
 
 	if customer == nil {
 		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
-		return echo.NewHTTPError(http.StatusNotFound, "taskOwner unknown on this server")
+
+		return ctx.JSON(http.StatusNotFound, &proxy.OperationOutcome{
+			Text: "taskOwner unknown on this server",
+			Issue: &proxy.Issue{
+				Code:     "invalid",
+				Severity: "error",
+				Details: &proxy.IssueDetails{
+					Text: fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", *senderDID),
+				},
+			},
+		})
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
+		TaskID:      taskID,
 		SenderDID:   *senderDID,
 		CustomerDID: *customerDID,
 		CustomerID:  customer.Id,
@@ -238,7 +259,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.NoContent(http.StatusNoContent)
+	return ctx.NoContent(http.StatusAccepted)
 }
 
 func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {

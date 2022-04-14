@@ -25,10 +25,6 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 			continue
 		}
 
-		if _, ok := session.Credential.(string); !ok {
-			continue
-		}
-
 		sessionWithUserContext = &session
 		break
 	}
@@ -41,7 +37,7 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 		ctx.Request().Context(),
 		cid,
 		requestorDID,
-		sessionWithUserContext.Credential.(string),
+		sessionWithUserContext.Credential,
 		fhirTaskID,
 	)
 	if err != nil {
@@ -82,7 +78,7 @@ func (w Wrapper) GetInbox(ctx echo.Context) error {
 		}
 
 		if organization != nil {
-			sender = *organization
+			sender = types.FromNutsOrganization(*organization)
 		}
 
 		entries = append(entries, types.InboxEntry{

@@ -117,13 +117,12 @@ type CreateJwtGrantRequest struct {
 	Authorizer  string                 `json:"authorizer"`
 	Credentials []VerifiableCredential `json:"credentials"`
 
-	// Base64 encoded IRMA contract conaining the identity of the performer
-	Identity  string `json:"identity"`
-	Requester string `json:"requester"`
+	// If the signature session is completed, this property contains the signature embedded in an w3c verifiable presentation.
+	Identity  *VerifiablePresentation `json:"identity,omitempty"`
+	Requester string                  `json:"requester"`
 
 	// The service for which this access-token can be used. The right oauth endpoint is selected based on the service.
-	Service string  `json:"service"`
-	Subject *string `json:"subject,omitempty"`
+	Service string `json:"service"`
 }
 
 // Subject of a Verifiable Credential identifying the holder and expressing claims.
@@ -168,13 +167,12 @@ type RequestAccessTokenRequest struct {
 	Authorizer  string                 `json:"authorizer"`
 	Credentials []VerifiableCredential `json:"credentials"`
 
-	// Base64 encoded IRMA contract conaining the identity of the performer
-	Identity  string `json:"identity"`
-	Requester string `json:"requester"`
+	// If the signature session is completed, this property contains the signature embedded in an w3c verifiable presentation.
+	Identity  *VerifiablePresentation `json:"identity,omitempty"`
+	Requester string                  `json:"requester"`
 
 	// The service for which this access-token can be used. The right oauth endpoint is selected based on the service.
-	Service string  `json:"service"`
-	Subject *string `json:"subject,omitempty"`
+	Service string `json:"service"`
 }
 
 // SignSessionRequest defines model for SignSessionRequest.
@@ -268,9 +266,6 @@ type TokenIntrospectionResponse struct {
 	// Surname prefix
 	Prefix  *string `json:"prefix,omitempty"`
 	Service *string `json:"service,omitempty"`
-
-	// The Nuts subject id, patient identifier in the form of an oid encoded BSN.
-	Sid *string `json:"sid,omitempty"`
 
 	// The subject is always the acting party, thus the care organization requesting access to data.
 	Sub *string   `json:"sub,omitempty"`

@@ -13,6 +13,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
+	auth2 "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
@@ -20,7 +21,7 @@ type TransferService interface {
 	// CreateOrUpdate creates or updates an incoming transfer record in the local storage
 	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
 	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
-	GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error)
+	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, identity auth2.VerifiablePresentation, fhirTaskID string) (*types.TransferRequest, error)
 }
 
 type service struct {
@@ -90,7 +91,7 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	return fmt.Errorf("invalid state change from %s to %s", task.Status, newState)
 }
 
-func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID, identity, fhirTaskID string) (*types.TransferRequest, error) {
+func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, identity auth2.VerifiablePresentation, fhirTaskID string) (*types.TransferRequest, error) {
 	const getTransferRequestErr = "unable to get transferRequest: %w"
 
 	customer, err := s.customerRepo.FindByID(customerID)
@@ -130,7 +131,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	}
 
 	transferRequest := types.TransferRequest{
-		Sender:        *organization,
+		Sender:        types.FromNutsOrganization(*organization),
 		AdvanceNotice: domainAdvanceNotice,
 		Status:        task.Status,
 	}
@@ -151,18 +152,22 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	return &transferRequest, nil
 }
 
-func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string, identity *string) (fhir.Client, error) {
+func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, resource string, identity *auth2.VerifiablePresentation) (fhir.Client, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
 	}
 
-	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, &registry.VCRSearchParams{
+	searchParams := registry.VCRSearchParams{
 		PurposeOfUse: transfer.SenderServiceName,
 		SubjectID:    localRequesterDID,
 		ResourcePath: resource,
-	})
+	}
 
+	credentials, err := s.vcr.FindAuthorizationCredentials(ctx, &searchParams)
+	if err != nil {
+		return nil, err
+	}
 	var transformed = make([]vc.VerifiableCredential, len(credentials))
 	for i, c := range credentials {
 		bytes, err := json.Marshal(c)
@@ -177,6 +182,7 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	}
 
 	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed, identity)
+
 	if err != nil {
 		return nil, err
 	}

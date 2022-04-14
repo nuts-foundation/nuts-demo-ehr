@@ -2,20 +2,17 @@ package episode
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/go-did/vc"
-	reports "github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/zorginzage"
+	reports "github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
@@ -32,17 +29,7 @@ func ssnURN(ssn string) string {
 	return fmt.Sprintf("urn:oid:2.16.840.1.113883.2.4.6.3:%s", ssn)
 }
 
-func parseAuthCredentialSubject(credentialResponse vcr.VerifiableCredential) (*credential.NutsAuthorizationCredentialSubject, error) {
-	bytes, err := json.Marshal(credentialResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	authCredential := vc.VerifiableCredential{}
-	if err = json.Unmarshal(bytes, &authCredential); err != nil {
-		return nil, err
-	}
-
+func parseAuthCredentialSubject(authCredential vc.VerifiableCredential) (*credential.NutsAuthorizationCredentialSubject, error) {
 	subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
 
 	if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
@@ -63,7 +50,7 @@ func NewService(factory fhir.Factory, auth auth.Service, registry registry.Organ
 	return &service{factory: factory, auth: auth, registry: registry, vcr: vcr}
 }
 
-func parseEpisodeOfCareID(authCredential vcr.VerifiableCredential) (string, error) {
+func parseEpisodeOfCareID(authCredential vc.VerifiableCredential) (string, error) {
 	subject, err := parseAuthCredentialSubject(authCredential)
 	if err != nil {
 		return "", err
@@ -159,9 +146,9 @@ func (service *service) GetCollaborations(ctx context.Context, customerDID, doss
 			return nil, err
 		}
 		collaborations = append(collaborations, types.Collaboration{
-			EpisodeID:       episodeID,
-			OrganizationDID: subject.ID,
-			OrganizationName: org.Name,
+			EpisodeID:        episodeID,
+			OrganizationDID:  subject.ID,
+			OrganizationName: org.Details.Name,
 		})
 	}
 
@@ -186,7 +173,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	}
 
 	// TODO: loop over all credentials
-	issuer := string(credentials[0].Issuer)
+	issuer := credentials[0].Issuer.String()
 
 	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, issuer, zorginzage.ServiceName, "fhir")
 	if err != nil {
@@ -198,18 +185,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, fmt.Errorf("error while searching organization :%w", err)
 	}
 
-	bytes, err := json.Marshal(credentials[0])
-	if err != nil {
-		return nil, err
-	}
-
-	authCredential := &vc.VerifiableCredential{}
-
-	if err := json.Unmarshal(bytes, authCredential); err != nil {
-		return nil, err
-	}
-
-	accessToken, err := service.auth.RequestAccessToken(ctx, customerDID, issuer, zorginzage.ServiceName, []vc.VerifiableCredential{*authCredential}, nil)
+	accessToken, err := service.auth.RequestAccessToken(ctx, customerDID, issuer, zorginzage.ServiceName, []vc.VerifiableCredential{credentials[0]}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +198,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 	fhirClient := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))()
 
 	fhirEpisode := &fhir.EpisodeOfCare{}
-	err = fhirClient.ReadOne(ctx, "/EpisodeOfCare/" + episodeOfCareID, fhirEpisode)
+	err = fhirClient.ReadOne(ctx, "/EpisodeOfCare/"+episodeOfCareID, fhirEpisode)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve episode of care: %w", err)
 	}
@@ -240,7 +216,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 
 	for _, observation := range observations {
 		domainObservation := reports.ConvertToDomain(&observation, fhir.FromStringPtr(observation.Subject.ID))
-		domainObservation.Source = issuerOrg.Name
+		domainObservation.Source = issuerOrg.Details.Name
 		domainObservation.EpisodeName = &episode.Diagnosis
 		results = append(results, domainObservation)
 	}

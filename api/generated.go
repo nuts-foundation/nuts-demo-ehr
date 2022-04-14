@@ -35,8 +35,8 @@ type ServerInterface interface {
 	// (GET /customers)
 	ListCustomers(ctx echo.Context) error
 
-	// (POST /external/transfer/notify)
-	NotifyTransferUpdate(ctx echo.Context) error
+	// (POST /external/transfer/notify/{taskID})
+	NotifyTransferUpdate(ctx echo.Context, taskID string) error
 
 	// (PUT /internal/customer/{customerID}/task/{taskID})
 	TaskUpdate(ctx echo.Context, customerID int, taskID string) error
@@ -225,11 +225,18 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 // NotifyTransferUpdate converts echo context to params.
 func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	var err error
+	// ------------- Path parameter "taskID" -------------
+	var taskID string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "taskID", runtime.ParamLocationPath, ctx.Param("taskID"), &taskID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter taskID: %s", err))
+	}
 
 	ctx.Set(BearerAuthScopes, []string{""})
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.NotifyTransferUpdate(ctx)
+	err = w.Handler.NotifyTransferUpdate(ctx, taskID)
 	return err
 }
 
@@ -788,7 +795,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
-	router.POST(baseURL+"/external/transfer/notify", wrapper.NotifyTransferUpdate)
+	router.POST(baseURL+"/external/transfer/notify/:taskID", wrapper.NotifyTransferUpdate)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)

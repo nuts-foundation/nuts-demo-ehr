@@ -7,9 +7,6 @@ import (
 	nutsDIDManClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/didman"
 )
 
-const organizationConcept = "organization"
-const authorizationConcept = "authorization"
-
 type DIDManClient interface {
 	SearchOrganizations(ctx context.Context, query string, didServiceType *string) ([]nutsDIDManClient.OrganizationSearchResult, error)
 	GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error)

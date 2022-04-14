@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
 const MaxSessionAge = time.Hour
@@ -25,7 +27,7 @@ const SessionID = "sid"
 const Elevated = "elv"
 
 type Auth struct {
-	// sessions maps session identifiers to base64 encoded VPs
+	// sessions maps session identifiers to VPs
 	sessions map[string]Session
 	// mux is used to secure access to internal state of this struct to prevent racy behaviour
 	mux        sync.RWMutex
@@ -35,7 +37,7 @@ type Auth struct {
 }
 
 type Session struct {
-	Credential  interface{}
+	Credential  auth.VerifiablePresentation
 	CustomerID  int
 	StartTime   time.Time
 	UserContext bool
@@ -106,7 +108,7 @@ func (auth *Auth) CreateSessionJWT(subject string, customerId int, session strin
 }
 
 // StoreVP stores the given VP under a new identifier or existing identifier
-func (auth *Auth) StoreVP(customerID int, VP string) string {
+func (auth *Auth) StoreVP(customerID int, VP auth.VerifiablePresentation) string {
 	return auth.createSession(customerID, VP, true)
 }
 
@@ -138,6 +140,14 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+func createPasswordVP(customerID int, password string) auth.VerifiablePresentation {
+	return auth.VerifiablePresentation{
+		Proof: map[string]interface{}{
+			"identity": fmt.Sprintf("%d%s", customerID, password),
+		},
+	}
+}
+
 func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, error) {
 	_, err := auth.customers.FindByID(customerID)
 	if err != nil {
@@ -146,16 +156,16 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	if auth.password != password {
 		return "", errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, fmt.Sprintf("%d%s", customerID, password), false)
+	token := auth.createSession(customerID, createPasswordVP(customerID, password), false)
 	return token, nil
 }
 
-func (auth *Auth) createSession(customerID int, credential interface{}, userContext bool) string {
+func (auth *Auth) createSession(customerID int, credential auth.VerifiablePresentation, userContext bool) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 
 	for k, v := range auth.sessions {
-		if v.Credential == credential {
+		if reflect.DeepEqual(v.Credential, credential) {
 			return k
 		}
 	}

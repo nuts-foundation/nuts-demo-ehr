@@ -1,6 +1,8 @@
 import {createApp} from 'vue'
 import {createRouter, createWebHashHistory} from 'vue-router'
+
 import './style.css'
+import store from "./ehr/store"
 import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
@@ -25,6 +27,7 @@ import Inbox from "./ehr/inbox/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 import Elevation from "./components/auth/SessionElevation.vue"
+import NewReport from "./ehr/patient/dossier/NewReport.vue"
 
 const routes = [
   {path: '/', component: Login},
@@ -174,4 +177,5 @@ router.beforeEach((to, from, next) => {
 app.use(router)
 app.use(StatusReporter)
 app.use(Api, {forbiddenRoute: {name: 'logout'}})
+app.use(store)
 app.mount('#app')

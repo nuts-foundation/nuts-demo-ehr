@@ -12,7 +12,8 @@
     <transfer-form :transfer="transfer"></transfer-form>
 
     <div class="mt-6">
-      <button type="submit"
+      <button id="create-transfer-button"
+              type="submit"
               class="btn btn-primary mr-4"
               :class="{'btn-loading': loading}">
         Create Transfer

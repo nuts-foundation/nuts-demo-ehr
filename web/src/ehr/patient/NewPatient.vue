@@ -28,6 +28,7 @@
 
       <div class="mt-5">
         <button type="submit"
+                id="add-patient-button"
                 class="btn btn-primary mr-4"
                 :class="{'btn-loading': loading}"
         >Add Patient

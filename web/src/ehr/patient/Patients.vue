@@ -18,6 +18,7 @@
       <h1>Patients</h1>
 
       <button
+          id="new-patient-button"
           @click="$router.push({name: 'ehr.patients.new'})"
           class="float-right inline-flex items-center bg-nuts w-10 h-10 rounded-lg justify-center shadow-md"
       >
@@ -31,7 +32,8 @@
 
   <div class="px-12">
     <div class="grid gap-5 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
-      <div class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg opacity-0 transition-opacity"
+      <div :data-patient-ssn="patient.ssn"
+           class="bg-white p-6 shadow-md rounded cursor-pointer hover:shadow-lg opacity-0 transition-opacity"
            :class="{'opacity-100': state === 'done'}"
            v-for="(patient, i) in patients"
            @click="$router.push({name: 'ehr.patient', params: {id: patient.ObjectID}})"

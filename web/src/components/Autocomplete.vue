@@ -7,7 +7,8 @@ https://www.w3.org/TR/wai-aria-practices-1.2/examples/combobox/combobox-autocomp
        role="combobox"
   >
     <div class="group custom-select">
-      <input type="text"
+      <input id="transfer-receiver-input"
+             type="text"
              class="cb_edit px-4 py-2"
              @input="updateSearch($event.target.value)"
              :aria-expanded="expanded"

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
+	v2 "github.com/nuts-foundation/nuts-node/vcr/api/v2"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/nuts-foundation/nuts-node/vcr/holder"
 	"net/http"
@@ -15,8 +16,8 @@ import (
 
 type VCRClient interface {
 	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, publishPublic bool) error
-	FindCredentials(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]vc.VerifiableCredential, error)
-	FindCredentialIDs(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]string, error)
+	FindCredentials(ctx context.Context, credential v2.SearchVCQuery, untrusted bool) ([]vc.VerifiableCredential, error)
+	FindCredentialIDs(ctx context.Context, credential v2.SearchVCQuery, untrusted bool) ([]string, error)
 	RevokeCredential(ctx context.Context, credentialID string) error
 	ResolveCredential(ctx context.Context, credentialID string) (*vc.VerifiableCredential, error)
 }
@@ -54,11 +55,11 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 	return nil
 }
 
-func (c HTTPClient) FindCredentials(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]vc.VerifiableCredential, error) {
+func (c HTTPClient) FindCredentials(ctx context.Context, credential v2.SearchVCQuery, untrusted bool) ([]vc.VerifiableCredential, error) {
 	return c.search(ctx, credential, untrusted)
 }
 
-func (c HTTPClient) FindCredentialIDs(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]string, error) {
+func (c HTTPClient) FindCredentialIDs(ctx context.Context, credential v2.SearchVCQuery, untrusted bool) ([]string, error) {
 	credentials, err := c.search(ctx, credential, untrusted)
 	if err != nil {
 		return nil, err
@@ -99,15 +100,15 @@ func (c HTTPClient) ResolveCredential(ctx context.Context, credentialID string) 
 	return &result, nil
 }
 
-func GetNutsCredentialTemplate(credentialType ssi.URI) vc.VerifiableCredential {
-	return vc.VerifiableCredential{
+func GetNutsCredentialTemplate(credentialType ssi.URI) v2.SearchVCQuery {
+	return v2.SearchVCQuery{
 		Context: []ssi.URI{holder.VerifiableCredentialLDContextV1, *credential.NutsContextURI},
 		Type:    []ssi.URI{vc.VerifiableCredentialTypeV1URI(), credentialType},
 	}
 }
 
-func (c HTTPClient) search(ctx context.Context, credential vc.VerifiableCredential, untrusted bool) ([]vc.VerifiableCredential, error) {
-	response, err := c.vcr().SearchVCs(ctx, vcr.SearchVCsJSONRequestBody{Query: credential, SearchOptions: &vcr.SearchOptions{
+func (c HTTPClient) search(ctx context.Context, credential v2.SearchVCQuery, untrusted bool) ([]vc.VerifiableCredential, error) {
+	response, err := c.vcr().SearchVCs(ctx, vcr.SearchVCsJSONRequestBody{Query: credential, SearchOptions: &v2.SearchOptions{
 		AllowUntrustedIssuer: &untrusted,
 	}})
 	if err != nil {
@@ -117,10 +118,16 @@ func (c HTTPClient) search(ctx context.Context, credential vc.VerifiableCredenti
 	if err != nil {
 		return nil, err
 	}
-	var result []vc.VerifiableCredential
-	if err := json.Unmarshal(data, &result); err != nil {
+	searchResult := v2.SearchVCResults{}
+	if err := json.Unmarshal(data, &searchResult); err != nil {
 		return nil, err
 	}
+
+	result := []vc.VerifiableCredential{}
+	for _, vc := range searchResult.VerifiableCredentials {
+		result = append(result, vc.VerifiableCredential)
+	}
+
 	return result, nil
 }
 

@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 )
@@ -37,7 +36,7 @@ type CreateVPRequest struct {
 	Domain *string `json:"domain,omitempty"`
 
 	// Date and time at which proof will expire. If omitted, the proof does not have an end date.
-	Expires *time.Time `json:"expires,omitempty"`
+	Expires *string `json:"expires,omitempty"`
 
 	// The specific intent for the proof, the reason why an entity created it. Acts as a safeguard to prevent the
 	// proof from being misused for a purpose other than the one it was intended for.
@@ -74,7 +73,7 @@ type EmbeddedProof struct {
 	Challenge *string `json:"challenge,omitempty"`
 
 	// Date and time at which proof has been created.
-	Created time.Time `json:"created"`
+	Created string `json:"created"`
 
 	// A string value that specifies the operational domain of a digital proof. This could be an Internet domain
 	// name like example.com, an ad-hoc value such as mycorp-level3-access, or a very specific transaction value
@@ -198,7 +197,7 @@ type VCVerificationResult struct {
 // VPVerificationRequest defines model for VPVerificationRequest.
 type VPVerificationRequest struct {
 	// Date and time at which the VP should be valid. If not supplied, the current date/time is used.
-	ValidAt *time.Time `json:"validAt,omitempty"`
+	ValidAt *string `json:"validAt,omitempty"`
 
 	// Verifiable Presentation
 	VerifiablePresentation VerifiablePresentation `json:"verifiablePresentation"`
@@ -242,8 +241,8 @@ type VerifiableCredential struct {
 	// one or multiple cryptographic proofs
 	Proof map[string]interface{} `json:"proof"`
 
-	// List of type definitions for the credential.
-	Type []string `json:"type"`
+	// A single string or array of strings. The value(s) indicate the type of credential. It should contain `VerifiableCredential`. Each type should be defined in the @context.
+	Type map[string]interface{} `json:"type"`
 }
 
 // Verifiable Presentation
@@ -263,8 +262,8 @@ type VerifiablePresentation struct {
 	// the data, such as a Linked Data Signature.
 	Proof *EmbeddedProof `json:"proof,omitempty"`
 
-	// Type of the object or the datatype of the typed value.
-	Type []string `json:"type"`
+	// A single string or array of strings. Values indicate the type of object. It should contain `VerifiablePresentation`. Each type must be defined in the @context.
+	Type map[string]interface{} `json:"type"`
 
 	// VerifiableCredential is composed of a list containing one or more verifiable credentials, in a
 	// cryptographically verifiable format.

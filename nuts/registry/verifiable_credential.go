@@ -73,7 +73,8 @@ func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(c
 	}
 
 	if params.Issuer != "" {
-		query.Issuer = ssi.MustParseURI(params.Issuer)
+		issuer := ssi.MustParseURI(params.Issuer)
+		query.Issuer = &issuer
 	}
 
 	return registry.nutsClient.FindCredentials(ctx, query, false)

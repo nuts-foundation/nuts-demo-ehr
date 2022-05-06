@@ -47,20 +47,29 @@ type DIDCreateRequest struct {
 
 // A DID document according to the W3C spec following the Nuts Method rules as defined in [Nuts RFC006]
 type DIDDocument struct {
+	// The JSON-LD contexts that define the types used in this document. Can be a single string, or a list of strings.
+	Context interface{} `json:"@context"`
+
 	// List of KIDs that may sign JWTs, JWSs and VCs
 	AssertionMethod *[]string `json:"assertionMethod,omitempty"`
 
 	// List of KIDs that may alter DID documents that they control
 	Authentication *[]string `json:"authentication,omitempty"`
 
-	// List of URIs
-	Context *[]string `json:"context,omitempty"`
+	// List of KIDs that can be used to delegate capabilities that can be invoked using the DID document.
+	CapabilityDelegation *[]string `json:"capabilityDelegation,omitempty"`
+
+	// List of KIDs that can be used for signing
+	CapabilityInvocation *[]string `json:"capabilityInvocation,omitempty"`
 
 	// Single DID (as string) or List of DIDs that have control over the DID document
 	Controller *interface{} `json:"controller,omitempty"`
 
 	// DID according to Nuts specification
 	Id string `json:"id"`
+
+	// List of KIDs that can be used for encryption
+	KeyAgreement *[]string `json:"keyAgreement,omitempty"`
 
 	// List of supported services by the DID subject
 	Service *[]Service `json:"service,omitempty"`
@@ -115,7 +124,7 @@ type Service struct {
 	Id string `json:"id"`
 
 	// Either a URI or a complex object.
-	ServiceEndpoint map[string]interface{} `json:"serviceEndpoint"`
+	ServiceEndpoint interface{} `json:"serviceEndpoint"`
 
 	// The type of the endpoint.
 	Type string `json:"type"`

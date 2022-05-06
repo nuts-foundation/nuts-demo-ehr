@@ -10,8 +10,8 @@
           <div>
             <label for="customer_select">Choose your organization</label>
             <div class="custom-select">
-              <select id="customer_select" v-model="selectedCustomer">
-                <option v-for="c in customers" v-bind:value="c">
+              <select id="customer_select" v-model="selectedCustomerID">
+                <option v-for="c in customers" v-bind:value="c.id">
                   {{ c.name }}
                 </option>
               </select>
@@ -39,7 +39,7 @@
               </span>
               </button>
 
-              <button class="btn btn-primary block w-full" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
+              <button id="password-button" class="btn btn-primary block w-full" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
                 Password
               </button>
             </div>
@@ -66,6 +66,7 @@ export default {
     return {
       loginError: "",
       customers: [],
+      selectedCustomerID: null,
       selectedCustomer: null,
       irmaLogo: irmaLogo,
     }
@@ -75,11 +76,13 @@ export default {
   },
   watch: {
     // changes to selected customer
-    'selectedCustomer'() {
+    'selectedCustomerID'() {
       localStorage.removeItem("session")
-      this.$api.setCustomer({body: this.selectedCustomer})
+      const customer = this.customers.find(c => c.id === this.selectedCustomerID)
+      this.$api.setCustomer({body: customer})
           .then(responseData => {
             localStorage.setItem("session", responseData.token)
+            this.selectedCustomer = customer
             this.loginError = ''
           })
           .catch(reason => {

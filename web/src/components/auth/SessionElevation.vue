@@ -9,7 +9,7 @@
       <h2 class="mb-4">Choose a method</h2>
 
       <div class="grid grid-cols-3 gap-4">
-        <button class="btn btn-secondary" @click="elevateWithIRMA">
+        <button class="btn btn-secondary" @click="elevateWithIRMA" id="elevate-irma-button">
         <span class="w-10 mr-4">
           <img class="max-w-full" alt="IRMA logo" v-bind:src="irmaLogo">
         </span>
@@ -17,11 +17,11 @@
           <span class="text-lg font-semibold">IRMA</span>
         </button>
 
-        <button class="btn btn-secondary" @click="elevateWithBONO">
+        <button class="btn btn-secondary" @click="elevateWithBONO" id="elevate-bono-button">
           <span class="text-lg font-semibold">Bono</span>
         </button>
 
-        <button class="btn btn-secondary" @click="elevateWithDummy">
+        <button class="btn btn-secondary" @click="elevateWithDummy" id="elevate-dummy-button">
           <span class="text-lg font-semibold">Dummy <small>(for easy testing)</small></span>
         </button>
       </div>

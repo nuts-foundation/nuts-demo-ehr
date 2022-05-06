@@ -8,7 +8,7 @@
       </svg>
     </div>
 
-    <span class="count" v-if="!!inbox && inbox.messageCount > 0">{{ inbox.messageCount }}</span>
+    <span class="count" v-if="!!inbox && inbox.messageCount > 0" :data-inbox-message-count="inbox.messageCount">{{ inbox.messageCount }}</span>
   </div>
 </template>
 

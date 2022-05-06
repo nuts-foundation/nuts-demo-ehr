@@ -184,6 +184,7 @@ export default {
       this.$api.assignTransferDirect(negotiation)
           .then(() => {
             this.requestedOrganization = null
+            this.$store.commit("statusUpdate", "Patient transfer assigned")
             this.fetchTransfer(this.transfer.id)
           })
           .catch(error => this.$status.error(error))

@@ -26,6 +26,7 @@
         <div class="px-3 mt-6">
           <div class="grid grid-cols-1">
             <router-link
+                id="patients-menu-link"
                 :to="{name: 'ehr.patients'}"
                 class="menu-link"
                 :class="{'menu-link-active': $route.name.indexOf('ehr.patient.') > -1}"
@@ -42,6 +43,7 @@
             </router-link>
 
             <router-link
+                id="inbox-menu-link"
                 :to="{name: 'ehr.inbox'}"
                 class="menu-link"
                 :class="{'menu-link-active': $route.name === 'ehr.transferRequest.show'}"
@@ -72,6 +74,7 @@
       <div class="px-3 py-4">
         <div class="grid grid-cols-1">
           <router-link
+              id="logout-menu-link"
               to="/logout"
               active-class="menu-link-active"
               class="menu-link">
@@ -105,7 +108,7 @@
             </svg>
           </div>
 
-          <div class="grid grid-cols-1 text-gray-800 text-sm font-semibold">
+          <div class="grid grid-cols-1 text-gray-800 text-sm font-semibold" id="current-organization-name">
             {{ org }}
           </div>
         </div>

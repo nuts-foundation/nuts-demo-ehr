@@ -49,7 +49,7 @@
             {{ requestedOrganization.name }}
           </td>
           <td v-if="!!requestedOrganization" class="space-x-2">
-            <button class="btn btn-sm btn-primary" @click="assignOrganization"
+            <button class="btn btn-sm btn-primary" @click="assignOrganization" id="transfer-assign-button"
                     :class="{'btn-loading': state === 'assigning'}"><span>Assign<span style="font-family: monospace;" v-if="state === 'assigning'"> {{'.'.repeat(waitCount) + '&nbsp;'.repeat(3-waitCount)}}</span></span></button>
 <!-- Not supported for now -->
 <!--            <button class="btn btn-sm btn-primary" @click="startNegotiation"-->
@@ -186,6 +186,7 @@ export default {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
           })
+          .catch(error => this.$status.error(error))
           .finally(() => {
             clearInterval(timer)
             this.state = 'done'
@@ -206,6 +207,7 @@ export default {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
           })
+          .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
     },
     assignNegotiation(negotiation) {
@@ -216,6 +218,7 @@ export default {
         body: {status: 'in-progress'}
       })
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
+          .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
     },
     cancelNegotiation(negotiation) {
@@ -227,6 +230,7 @@ export default {
         body: {status: 'cancelled'}
       })
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
+          .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
     },
     updateNegotiation(negotiation) {

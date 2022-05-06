@@ -9,9 +9,9 @@
           <div class="text-sm font-medium text-gray-700">Organization: {{ customer.name }}</div>
 
           <div>
-            <label for="password_input" class="block text-sm font-medium text-gray-700">Password</label>
+            <label for="password-input" class="block text-sm font-medium text-gray-700">Password</label>
             <input
-                id="password_input"
+                id="password-input"
                 v-model="credentials.password"
                 type="password"
                 placeholder="Password"
@@ -20,7 +20,7 @@
           </div>
 
           <p v-if="!!loginError" class="p-2 text-center bg-red-100 rounded-md">{{ loginError }}</p>
-          <button class="w-full btn btn-primary text-center">Login</button>
+          <button id="login-button" class="w-full btn btn-primary text-center">Login</button>
         </div>
       </form>
     </div>

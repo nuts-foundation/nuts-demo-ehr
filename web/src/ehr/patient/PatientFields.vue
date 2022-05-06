@@ -1,26 +1,26 @@
 <template>
   <div class="space-y-5">
     <div>
-      <label for="ssn">SSN</label>
-      <input id="ssn" :disabled="mode === 'edit'" type="text" v-model="value.ssn">
+      <label for="ssn-input">SSN</label>
+      <input id="ssn-input" :disabled="mode === 'edit'" type="text" v-model="value.ssn">
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label for="firstname">First name</label>
-        <input id="firstname" type="text" v-model="value.firstName">
+        <label for="firstname-input">First name</label>
+        <input id="firstname-input" type="text" v-model="value.firstName">
       </div>
 
       <div>
-        <label for="surname">Surname</label>
-        <input id="surname" type="text" v-model="value.surname">
+        <label for="surname-input">Surname</label>
+        <input id="surname-input" type="text" v-model="value.surname">
       </div>
     </div>
 
     <div>
-      <label for="gender">Gender</label>
+      <label for="gender-select">Gender</label>
       <div class="custom-select">
-        <select id="gender" name="" v-model="value.gender">
+        <select id="gender-select" name="" v-model="value.gender">
           <option value="unknown" selected>Unknown</option>
           <option value="male">Male</option>
           <option value="female">Female</option>
@@ -35,18 +35,18 @@
     </div>
 
     <div>
-      <label for="dob">Date of birth</label>
-      <input id="dob" type="date" :max="new Date().toISOString().split('T')[0]" v-model="value.dob">
+      <label for="dob-input">Date of birth</label>
+      <input id="dob-input" type="date" :max="new Date().toISOString().split('T')[0]" v-model="value.dob">
     </div>
 
     <div>
-      <label for="zipcode">Zipcode</label>
-      <input id="zipcode" type="text" v-model="value.zipcode">
+      <label for="zipcode-input">Zipcode</label>
+      <input id="zipcode-input" type="text" v-model="value.zipcode">
     </div>
 
     <div>
-      <label for="email">Email</label>
-      <input id="email" type="email" v-model="value.email">
+      <label for="email-input">Email</label>
+      <input id="email-input" type="email" v-model="value.email">
     </div>
   </div>
 </template>

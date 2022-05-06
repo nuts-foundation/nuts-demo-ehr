@@ -4,7 +4,7 @@
       <label>Transfer date</label>
 
       <div class="bg-white p-5 shadow-sm rounded-lg mb-3">
-        <input :disabled="mode!=='new'" type="date" v-model="transfer.transferDate" :min="new Date().toISOString().split('T')[0]" required>
+        <input id="transfer-date-input" :disabled="mode!=='new'" type="date" v-model="transfer.transferDate" :min="new Date().toISOString().split('T')[0]" required>
       </div>
     </div>
 
@@ -28,6 +28,7 @@
 
       <div>
         <textarea
+            id="transfer-problem-input"
             :disabled="mode !=='new'"
             placeholder="The problem.."
             v-model="patientProblem.problem.name"
@@ -41,6 +42,7 @@
           </label>
 
           <textarea
+              id="transfer-intervention-input"
               :disabled="mode !== 'new'"
               placeholder="The intervention.."
               @input="e => addOrRemoveIntervention(e, patientProblem)" v-model="intervention.comment"

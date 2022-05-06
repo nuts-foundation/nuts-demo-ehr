@@ -9,6 +9,7 @@
       You can make a set of predetermined ZIBs available to 1 specific care organization.
 
       <button
+          id="new-transfer-dossier-button"
           @click.prevent="() => $router.push({name: 'ehr.patient.transfer.new', params: {id: this.$route.params.id}})"
           class="btn btn-primary block mt-2">
         New transfer

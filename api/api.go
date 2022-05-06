@@ -58,24 +58,6 @@ func (w Wrapper) CheckSession(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (w Wrapper) SetCustomer(ctx echo.Context) error {
-	customer := types.Customer{}
-	if err := ctx.Bind(&customer); err != nil {
-		return err
-	}
-
-	token, err := w.APIAuth.CreateCustomerJWT(customer.Id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
-	}
-
-	if err := w.TenantInitializer(customer.Id); err != nil {
-		return fmt.Errorf("unable to initialize tenant: %w", err)
-	}
-
-	return ctx.JSON(200, types.SessionToken{Token: string(token)})
-}
-
 func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	req := types.PasswordAuthenticateRequest{}
 	if err := ctx.Bind(&req); err != nil {
@@ -90,6 +72,10 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
 	if err != nil {
 		return err
+	}
+
+	if err := w.TenantInitializer(customer.Id); err != nil {
+		return fmt.Errorf("unable to initialize tenant: %w", err)
 	}
 
 	token, err := w.APIAuth.CreateSessionJWT(customer.Name, req.CustomerID, sessionId, false)

@@ -58,16 +58,6 @@ func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd strin
 	}
 }
 
-// CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
-func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
-	t := openid.New()
-	t.Set(jwt.IssuedAtKey, time.Now())
-	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
-	t.Set(CustomerID, customerId)
-
-	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
-}
-
 func (auth *Auth) GetSessions() map[string]Session {
 	auth.mux.RLock()
 	defer auth.mux.RUnlock()

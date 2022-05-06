@@ -4,26 +4,6 @@ info:
   version: "1.0.0"
 
 paths:
-  /auth:
-    post:
-      operationId: setCustomer
-      description: sets the current customer ID in the JWT
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Customer"
-      responses:
-        '200':
-          description: A session was succesfully created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SessionToken"
-        '403':
-          description: Invalid credentials
-
   # Password authentication
   /auth/passwd:
     post:

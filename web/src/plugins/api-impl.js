@@ -55,23 +55,6 @@ function createApi(options) {
       }).join('&');
     };
   return {
-    setCustomer(parameters) {
-      const params = typeof parameters === 'undefined' ? {} : parameters;
-      let headers = {
-        'content-type': 'application/json',
-
-      };
-      handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'setCustomer');
-      return fetch(endpoint + basePath + '/auth'
-        , {
-          method: 'POST',
-          headers,
-          mode,
-          body: JSON.stringify(params['body']),
-
-        });
-    },
     authenticateWithDummy(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

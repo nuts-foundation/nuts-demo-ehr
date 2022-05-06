@@ -114,20 +114,19 @@ func (c HTTPClient) search(ctx context.Context, credential v2.SearchVCQuery, unt
 	if err != nil {
 		return nil, err
 	}
-	data, err := testAndReadResponse(http.StatusOK, response)
+	if err := testResponseCode(http.StatusOK, response); err != nil {
+		return nil, err
+	}
+	searchResponse, err := vcr.ParseSearchVCsResponse(response)
 	if err != nil {
 		return nil, err
 	}
-	searchResult := v2.SearchVCResults{}
-	if err := json.Unmarshal(data, &searchResult); err != nil {
-		return nil, err
+	var result []vc.VerifiableCredential
+	for _, curr := range searchResponse.JSON200.VerifiableCredentials {
+		if curr.Revocation == nil {
+			result = append(result, curr.VerifiableCredential)
+		}
 	}
-
-	result := []vc.VerifiableCredential{}
-	for _, vc := range searchResult.VerifiableCredentials {
-		result = append(result, vc.VerifiableCredential)
-	}
-
 	return result, nil
 }
 

@@ -96,6 +96,10 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 
+	if err := w.TenantInitializer(customer.Id); err != nil {
+		return fmt.Errorf("unable to initialize tenant: %w", err)
+	}
+
 	// forward to node
 	bytes, err := w.NutsAuth.CreateIrmaSession(*customer.Did)
 	if err != nil {

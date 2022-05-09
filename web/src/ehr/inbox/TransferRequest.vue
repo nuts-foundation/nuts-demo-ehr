@@ -21,12 +21,12 @@
             <div>
               <h2 class="mb-1">Requesting Care Organization</h2>
 
-              <div class="text-gray-700">
+              <div class="text-gray-700" id="requesting-care-organization-info">
                 {{ transferRequest.sender.name }} in {{ transferRequest.sender.city }}
               </div>
             </div>
 
-            <div>
+            <div id="transfer-request-status-info">
               <transfer-status :status="{status: transferRequest.status}"/>
             </div>
           </div>
@@ -36,7 +36,7 @@
           <div v-if="transferRequest.advanceNotice">
             <div>
               <label>Transfer date</label>
-              <div>
+              <div id="transfer-request-date-info">
                 {{ transferRequest.advanceNotice.transferDate }}
               </div>
             </div>
@@ -48,14 +48,14 @@
                 <li v-for="patientProblem in transferRequest.advanceNotice.carePlan.patientProblems">
                   <h3 class="font-semibold text-sm">Problem</h3>
 
-                  <p> {{ patientProblem.problem.name }} </p>
+                  <p data-problem-detail="name"> {{ patientProblem.problem.name }} </p>
 
                   <div class="mt-2">
                     <h3 class="font-semibold text-sm">Interventions</h3>
 
                     <ul>
                       <li v-for="intervention in patientProblem.interventions">
-                        - &nbsp;{{ intervention.comment }}
+                        - &nbsp;<span data-problem-detail="intervention">{{ intervention.comment }}</span>
                       </li>
                     </ul>
                   </div>
@@ -72,7 +72,7 @@
         <div v-if="!transferRequest.nursingHandoff">
           <label>Zipcode</label>
 
-          <div>{{ transferRequest.advanceNotice.patient.zipcode }}</div>
+          <div id="patient-zipcode-label">{{ transferRequest.advanceNotice.patient.zipcode }}</div>
         </div>
 
         <div v-if="transferRequest.nursingHandoff">

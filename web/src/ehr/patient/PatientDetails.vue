@@ -14,7 +14,7 @@
         >
           {{ patient.firstName }} {{ patient.surname }}
         </router-link>
-        <p class="text-2xl mb-2 mr-4" v-else-if="!editable && (patient.surname || patient.firstName)">
+        <p class="text-2xl mb-2 mr-4" v-else-if="!editable && (patient.surname || patient.firstName)"  id="patient-name-label">
           {{ patient.firstName }} {{ patient.surname }}
         </p>
         <div v-else-if="Object.keys(patient).length === 0">...</div>
@@ -36,27 +36,27 @@
       <div class="grid grid-cols-5 gap-x-6">
         <div v-if="patient.ssn">
           <div class="text-sm font-semibold">SSN</div>
-          {{ patient.ssn }}
+          <span id="patient-ssn-label">{{ patient.ssn }}</span>
         </div>
 
         <div>
           <div class="text-sm font-semibold">Gender</div>
-          {{ patient.gender ? patient.gender : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
+          <span id="patient-gender-label">{{ patient.gender ? patient.gender : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}</span>
         </div>
 
         <div>
           <div class="text-sm font-semibold">Birth date</div>
-          {{ patient.dob ? patient.dob : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}
+          <span id="patient-dob-label">{{ patient.dob ? patient.dob : (Object.keys(patient).length === 0 ? '...' : 'Unknown') }}</span>
         </div>
 
         <div v-if="patient.email">
           <div class="text-sm font-semibold">E-mail</div>
-          {{ patient.email }}
+          <span id="patient-email-label">{{ patient.email }}</span>
         </div>
 
         <div v-if="patient.zipcode">
           <div class="text-sm font-semibold">Zipcode</div>
-          {{ patient.zipcode }}
+          <span id="patient-zipcode-label">{{ patient.zipcode }}</span>
         </div>
       </div>
     </div>

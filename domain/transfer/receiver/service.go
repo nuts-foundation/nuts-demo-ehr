@@ -34,7 +34,7 @@ type service struct {
 	vcr                    registry.VerifiableCredentialRegistry
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) TransferService {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
 		auth:                   authService,
 		localFHIRClientFactory: localFHIRClientFactory,
@@ -42,7 +42,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 		customerRepo:           customerRepository,
 		registry:               organizationRegistry,
 		vcr:                    vcr,
-		notifier:               transfer.FireAndForgetNotifier{},
+		notifier:               notifier,
 	}
 }
 

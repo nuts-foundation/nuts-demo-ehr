@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -58,6 +59,7 @@ func defaultConfig() Config {
 
 type Config struct {
 	Credentials     Credentials `koanf:"credentials"`
+	TLS             TLSConfig   `koanf:"tls"`
 	Verbosity       string      `koanf:"verbosity"`
 	HTTPPort        int         `koanf:"port"`
 	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
@@ -96,6 +98,32 @@ type FHIRProxy struct {
 
 type Credentials struct {
 	Password string `koanf:"password" json:"-"` // json omit tag to avoid having it printed in server log
+}
+
+type TLSConfig struct {
+	Client TLSClientConfig `koanf:"client"`
+}
+
+type TLSClientConfig struct {
+	CertificateFile string `koanf:"certificate"`
+	KeyFile         string `koanf:"key"`
+}
+
+func (c TLSClientConfig) IsConfigured() bool {
+	return len(c.CertificateFile) > 0 && len(c.KeyFile) > 0
+}
+
+func (c TLSClientConfig) Load() (*tls.Config, error) {
+	clientCertificate, err := tls.LoadX509KeyPair(c.CertificateFile, c.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{clientCertificate},
+		// If you copy this code, do NOT copy the line below, because it effectively disables checking the
+		// trustworthiness of the server certificate. But it allows Demo EHR to have less config.
+		InsecureSkipVerify: true,
+	}, err
 }
 
 type Branding struct {

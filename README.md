@@ -60,6 +60,14 @@ docker run -p 1304:1304 nutsfoundation/nuts-demo-ehr:main
 #### Configuration
 When running in Docker without a config file mounted at `/app/server.config.yaml` it will use the default configuration.
 
+#### TLS
+
+To allow Demo EHR to query FHIR servers and eOverdracht notification endpoints which require a client certificate (required according to the Bolt),
+you need to configure `tls.client.certificate` and `tls.client.key` to point to the respective files.
+Use the same certificate you're using for your Nuts node.
+
+There's no need to configure the truststore: Demo EHR skips verification of the server certificate (it's a demo application after all).
+
 ### Starting the HAPI FHIR server backend
 
 The simplest way of starting up an out of the box FHIR backend is using the HAPI FHIR server by running the following docker command:

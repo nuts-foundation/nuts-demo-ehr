@@ -57,7 +57,7 @@ type service struct {
 	notifier               transfer.Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) TransferService {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
 		auth:                   authService,
 		localFHIRClientFactory: localFHIRClientFactory,
@@ -67,7 +67,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 		patientRepo:            patientRepo,
 		registry:               organizationRegistry,
 		vcr:                    vcr,
-		notifier:               transfer.FireAndForgetNotifier{},
+		notifier:               notifier,
 	}
 }
 

@@ -33,8 +33,10 @@ func (f FireAndForgetNotifier) Notify(token, endpoint string) error {
 
 	if !response.IsSuccess() {
 		log.Warnf("Server response: %s", response.String())
-		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (url=%s,status-code=%d)", endpoint, response.StatusCode())
+		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 	}
+
+	log.Debugf("eOverdracht notification successful sent (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 
 	return nil
 }

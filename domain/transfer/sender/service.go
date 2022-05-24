@@ -391,8 +391,15 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return negotiation, commitErr
 		}
 
+		var errs []string
 		for _, n := range notifications {
-			_ = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
+			err = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("sending to %s: %w", n.organizationDID, err).Error())
+			}
+		}
+		if len(errs) > 0 {
+			return nil, fmt.Errorf("one or more eOverdracht notifications failed: %s", strings.Join(errs, ", "))
 		}
 	}
 

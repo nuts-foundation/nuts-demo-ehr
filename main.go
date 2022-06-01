@@ -364,7 +364,7 @@ func (cb *fhirBinder) Bind(i interface{}, c echo.Context) (err error) {
 		return
 	}
 
-	if c.Request().Header.Get("Content-Type") == "application/fhir+json" {
+	if strings.Contains(c.Request().Header.Get("Content-Type"), "application/fhir+json") {
 		var bytes = make([]byte, 0)
 		if bytes, err = io.ReadAll(c.Request().Body); err != nil {
 			return

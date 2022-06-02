@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"sync"
 	"time"
+
+	"github.com/nuts-foundation/nuts-node/vcr/credential"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/didman"
@@ -82,6 +83,23 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 	if len(credentials) == 0 {
 		return nil, errors.New("organization not found")
 	}
+	// filter on credentialType. With JSONLD, the NutsOrganizationCredential only adds context but does not "select" anything.
+	// This will break when multiple types of credentials can be used!
+	j := 0
+	for _, cred := range credentials {
+		found := false
+		for _, t := range cred.Type {
+			if t.String() == "NutsOrganizationCredential" {
+				found = true
+			}
+		}
+		if found {
+			credentials[j] = cred
+			j++
+		}
+	}
+	credentials = credentials[:j]
+
 	if len(credentials) > 1 {
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")

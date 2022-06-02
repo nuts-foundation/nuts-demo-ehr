@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
 
@@ -77,7 +78,7 @@ func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(c
 		query.Issuer = &issuer
 	}
 
-	return registry.nutsClient.FindCredentials(ctx, query, false)
+	return registry.nutsClient.FindCredentials(ctx, query, true)
 }
 
 func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {

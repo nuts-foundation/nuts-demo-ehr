@@ -3,7 +3,6 @@ package receiver
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/nuts-foundation/go-did/vc"
@@ -112,31 +111,29 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, fmt.Errorf(getTransferRequestErr, err)
 	}
 
-	if task.AdvanceNoticeID == nil {
-		return nil, fmt.Errorf(getTransferRequestErr, errors.New("invalid task, expected an advanceNotice composition"))
-	}
-
-	advanceNotice, err := fhirReceiverService.GetAdvanceNotice(ctx, *task.AdvanceNoticeID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get advance notice: %w", err)
-	}
-	domainAdvanceNotice, err := eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
-	if err != nil {
-		return nil, err
-	}
-
 	organization, err := s.registry.Get(ctx, requesterDID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get organization from registry: %w", err)
 	}
 
 	transferRequest := types.TransferRequest{
-		Sender:        types.FromNutsOrganization(*organization),
-		AdvanceNotice: domainAdvanceNotice,
-		Status:        task.Status,
+		Sender: types.FromNutsOrganization(*organization),
+		Status: task.Status,
 	}
 
-	// If the task input contains the nursing handoff, add that one too.
+	// if it contains an AdvanceNotice
+	if task.AdvanceNoticeID != nil {
+		advanceNotice, err := fhirReceiverService.GetAdvanceNotice(ctx, *task.AdvanceNoticeID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get advance notice: %w", err)
+		}
+		transferRequest.AdvanceNotice, err = eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// If the task input contains the nursing handoff
 	if task.NursingHandoffID != nil {
 		nursingHandoff, err := fhirReceiverService.GetNursingHandoff(ctx, *task.NursingHandoffID)
 		if err != nil {

@@ -9,7 +9,6 @@ import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 )
 
 type TransferService interface {
@@ -38,7 +37,7 @@ func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask
 	transferTask := s.resourceBuilder.BuildTask(fhir.TaskProperties{
 		RequesterID: domainTask.SenderDID,
 		OwnerID:     domainTask.ReceiverDID,
-		Status:      transfer.RequestedState,
+		Status:      domainTask.Status,
 	})
 
 	if domainTask.AdvanceNoticeID != nil {
@@ -74,7 +73,7 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 		ID:          &domainTask.ID,
 		RequesterID: domainTask.SenderDID,
 		OwnerID:     domainTask.ReceiverDID,
-		Status:      transfer.RequestedState,
+		Status:      domainTask.Status,
 	})
 
 	if domainTask.AdvanceNoticeID != nil {

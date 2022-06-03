@@ -33,7 +33,37 @@
         </div>
 
         <div class="p-5">
-          <div v-if="transferRequest.advanceNotice">
+          <div v-if="transferRequest.nursingHandoff">
+            <div>
+              <label>Transfer date</label>
+              <div id="transfer-request-date-info">
+                {{ transferRequest.nursingHandoff.transferDate }}
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label>Problems</label>
+
+              <ul>
+                <li v-for="patientProblem in transferRequest.nursingHandoff.carePlan.patientProblems">
+                  <h3 class="font-semibold text-sm">Problem</h3>
+
+                  <p data-problem-detail="name"> {{ patientProblem.problem.name }} </p>
+
+                  <div class="mt-2">
+                    <h3 class="font-semibold text-sm">Interventions</h3>
+
+                    <ul>
+                      <li v-for="intervention in patientProblem.interventions">
+                        - &nbsp;<span data-problem-detail="intervention">{{ intervention.comment }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else-if="transferRequest.advanceNotice">
             <div>
               <label>Transfer date</label>
               <div id="transfer-request-date-info">

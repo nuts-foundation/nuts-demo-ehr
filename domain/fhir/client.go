@@ -2,6 +2,7 @@ package fhir
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -27,6 +28,12 @@ func WithURL(serverURL string) ClientOpt {
 func WithMultiTenancyEnabled(enabled bool) ClientOpt {
 	return func(client *httpClient) {
 		client.multiTenancyEnabled = enabled
+	}
+}
+
+func WithTLS(tlsConfig *tls.Config) ClientOpt {
+	return func(client *httpClient) {
+		client.restClient.SetTLSClientConfig(tlsConfig)
 	}
 }
 
@@ -65,6 +72,7 @@ type httpClient struct {
 	url                 string
 	tenant              int
 	multiTenancyEnabled bool
+	tlsConfig           *tls.Config
 }
 
 func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {

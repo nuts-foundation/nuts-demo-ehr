@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/elliptic"
 	"crypto/sha1"
+	"crypto/tls"
 	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"io"
 	"io/fs"
 	"log"
@@ -19,10 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -175,15 +177,29 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		log.Fatal(err)
 	}
 
-	fhirClientFactory := fhir.NewFactory(fhir.WithURL(config.FHIR.Server.Address), fhir.WithMultiTenancyEnabled(config.FHIR.Server.SupportsMultiTenancy()))
+	fhirNotifier := transfer.FireAndForgetNotifier{}
+	var tlsClientConfig *tls.Config
+	if config.TLS.Client.IsConfigured() {
+		log.Println("Configuring TLS client certificate for calls to remote Nuts Nodes and FHIR servers.")
+		if tlsClientConfig, err = config.TLS.Client.Load(); err != nil {
+			log.Fatal(err)
+		}
+		fhirNotifier.TLSConfig = tlsClientConfig
+	}
+
+	fhirClientFactory := fhir.NewFactory(
+		fhir.WithURL(config.FHIR.Server.Address),
+		fhir.WithMultiTenancyEnabled(config.FHIR.Server.SupportsMultiTenancy()),
+		fhir.WithTLS(tlsClientConfig),
+	)
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
 	reportRepository := reports.NewFHIRRepository(fhirClientFactory)
 	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferSenderRepo := sender.NewTransferRepository(sqlDB)
 	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)
-	transferSenderService := sender.NewTransferService(authService, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry)
-	transferReceiverService := receiver.NewTransferService(authService, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry)
+	transferSenderService := sender.NewTransferService(authService, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry, fhirNotifier)
+	transferReceiverService := receiver.NewTransferService(authService, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry, fhirNotifier)
 	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil

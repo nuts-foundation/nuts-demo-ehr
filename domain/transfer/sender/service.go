@@ -57,7 +57,7 @@ type service struct {
 	notifier               transfer.Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) TransferService {
+func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
 		auth:                   authService,
 		localFHIRClientFactory: localFHIRClientFactory,
@@ -67,7 +67,7 @@ func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Fa
 		patientRepo:            patientRepo,
 		registry:               organizationRegistry,
 		vcr:                    vcr,
-		notifier:               transfer.FireAndForgetNotifier{},
+		notifier:               notifier,
 	}
 }
 
@@ -391,8 +391,15 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return negotiation, commitErr
 		}
 
+		var errs []string
 		for _, n := range notifications {
-			_ = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
+			err = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("sending to %s: %w", n.organizationDID, err).Error())
+			}
+		}
+		if len(errs) > 0 {
+			return nil, fmt.Errorf("one or more eOverdracht notifications failed: %s", strings.Join(errs, ", "))
 		}
 	}
 

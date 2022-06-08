@@ -1,6 +1,7 @@
 package transfer
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
@@ -16,10 +17,12 @@ type Notifier interface {
 // FireAndForgetNotifier is a notifier that is optimistic about the receiver's availability.
 // It just sends the notification and assumes the receiver is available.
 type FireAndForgetNotifier struct {
+	TLSConfig *tls.Config
 }
 
 func (f FireAndForgetNotifier) Notify(token, endpoint string) error {
 	response, err := resty.New().
+		SetTLSClientConfig(f.TLSConfig).
 		R().
 		SetBody([]byte{}).
 		SetAuthToken(token).
@@ -30,8 +33,10 @@ func (f FireAndForgetNotifier) Notify(token, endpoint string) error {
 
 	if !response.IsSuccess() {
 		log.Warnf("Server response: %s", response.String())
-		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (url=%s,status-code=%d)", endpoint, response.StatusCode())
+		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 	}
+
+	log.Debugf("eOverdracht notification successful sent (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 
 	return nil
 }

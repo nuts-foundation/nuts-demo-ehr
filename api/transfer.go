@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	"net/http"
+
+	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
@@ -141,11 +142,7 @@ func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
-	if err != nil {
-		return err
-	}
-	negotiation, err = w.TransferSenderService.ConfirmNegotiation(ctx.Request().Context(), cid, transferID, string(negotiation.Id))
+	_, err = w.TransferSenderService.AssignTransfer(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
 	if err != nil {
 		return err
 	}

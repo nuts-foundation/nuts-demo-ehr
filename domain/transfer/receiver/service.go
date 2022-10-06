@@ -158,6 +158,7 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	searchParams := registry.VCRSearchParams{
 		PurposeOfUse: transfer.SenderServiceName,
 		SubjectID:    localRequesterDID,
+		Issuer:       authorizerDID,
 		ResourcePath: resource,
 	}
 

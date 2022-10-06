@@ -2,10 +2,8 @@ package receiver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"github.com/nuts-foundation/go-did/vc"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
@@ -166,20 +164,11 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	if err != nil {
 		return nil, err
 	}
-	var transformed = make([]vc.VerifiableCredential, len(credentials))
-	for i, c := range credentials {
-		bytes, err := json.Marshal(c)
-		if err != nil {
-			return nil, err
-		}
-		tCred := vc.VerifiableCredential{}
-		if err = json.Unmarshal(bytes, &tCred); err != nil {
-			return nil, err
-		}
-		transformed[i] = tCred
+	if len(credentials) == 0 {
+		return nil, fmt.Errorf("no credentials found")
 	}
 
-	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed, identity)
+	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, credentials, identity)
 
 	if err != nil {
 		return nil, err

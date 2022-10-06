@@ -34,13 +34,13 @@ func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	p := gjson.ParseBytes(asJSON)
 
 	dob, _ := time.Parse(types.DobFormat, p.Get("birthDate").String())
-	gender := types.PatientPropertiesGenderUnknown
+	gender := types.Unknown
 	fhirGender := p.Get("gender").String()
 	switch fhirGender {
-	case string(types.PatientPropertiesGenderMale):
-		gender = types.PatientPropertiesGenderMale
-	case string(types.PatientPropertiesGenderFemale):
-		gender = types.PatientPropertiesGenderFemale
+	case string(types.Male):
+		gender = types.Male
+	case string(types.Female):
+		gender = types.Female
 	}
 	ssn := p.Get(fmt.Sprintf(`identifier.#(system==%s).value`, types.BsnSystem)).String()
 	avatar := p.Get(`photo.0.url`).String()

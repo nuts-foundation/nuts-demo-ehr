@@ -1,0 +1,5 @@
+package: types
+generate:
+  models: true
+compatibility:
+  old-merge-schemas: true

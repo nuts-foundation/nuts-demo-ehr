@@ -8,6 +8,7 @@ import (
 	v2 "github.com/nuts-foundation/nuts-node/vcr/api/v2"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/nuts-foundation/nuts-node/vcr/holder"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -32,9 +33,9 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 
 	var visibility vcr.IssueVCRequestVisibility
 	if publishPublic {
-		visibility = vcr.IssueVCRequestVisibilityPublic
+		visibility = vcr.Public
 	} else {
-		visibility = vcr.IssueVCRequestVisibilityPrivate
+		visibility = vcr.Private
 	}
 	response, err := c.vcr().IssueVC(ctx, vcr.IssueVCJSONRequestBody{
 		Type:              typeName,
@@ -47,10 +48,11 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 		return err
 	}
 
-	_, err = testAndReadResponse(http.StatusOK, response)
+	body, err := testAndReadResponse(http.StatusOK, response)
 	if err != nil {
 		return err
 	}
+	logrus.Debugf("VC created, reponse: %s", body)
 
 	return nil
 }
@@ -102,7 +104,7 @@ func (c HTTPClient) ResolveCredential(ctx context.Context, credentialID string) 
 
 func GetNutsCredentialTemplate(credentialType ssi.URI) v2.SearchVCQuery {
 	return v2.SearchVCQuery{
-		Context: []ssi.URI{holder.VerifiableCredentialLDContextV1, *credential.NutsContextURI},
+		Context: []ssi.URI{holder.VerifiableCredentialLDContextV1, credential.NutsV1ContextURI},
 		Type:    []ssi.URI{vc.VerifiableCredentialTypeV1URI(), credentialType},
 	}
 }
@@ -114,18 +116,21 @@ func (c HTTPClient) search(ctx context.Context, credential v2.SearchVCQuery, unt
 	if err != nil {
 		return nil, err
 	}
-	data, err := testAndReadResponse(http.StatusOK, response)
-	if err != nil {
-		return nil, err
-	}
-	searchResult := v2.SearchVCResults{}
-	if err := json.Unmarshal(data, &searchResult); err != nil {
+
+	if err := testResponseCode(http.StatusOK, response); err != nil {
 		return nil, err
 	}
 
-	result := []vc.VerifiableCredential{}
-	for _, vc := range searchResult.VerifiableCredentials {
-		result = append(result, vc.VerifiableCredential)
+	searchResponse, err := vcr.ParseSearchVCsResponse(response)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []vc.VerifiableCredential
+	for _, curr := range searchResponse.JSON200.VerifiableCredentials {
+		if curr.Revocation == nil {
+			result = append(result, curr.VerifiableCredential)
+		}
 	}
 
 	return result, nil

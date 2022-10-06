@@ -232,7 +232,7 @@ func (b FHIRBuilder) BuildNursingHandoffComposition(patient *types.Patient, adva
 		//return eoverdracht.Composition{}, err
 	}
 
-	fhirPatient := resources.Patient{Domain: resources.Domain{Base: resources.Base{ID: fhir.ToIDPtr(string(patient.ObjectID))}}}
+	fhirPatient := resources.Patient{Domain: resources.Domain{Base: resources.Base{ID: fhir.ToIDPtr(patient.ObjectID)}}}
 
 	return b.buildNursingHandoffComposition(administrativeData, careplan, fhirPatient), nil
 }

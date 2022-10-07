@@ -32,7 +32,7 @@
           </div>
         </div>
 
-        <div class="p-5">
+        <div class="p-5" v-if="transferRequest.status != 'completed'">
           <div v-if="transferRequest.nursingHandoff">
             <div>
               <label>Transfer date</label>
@@ -63,7 +63,7 @@
               </ul>
             </div>
           </div>
-          <div v-else-if="transferRequest.advanceNotice">
+          <div v-else-if="transferRequest.advanceNotice && transferRequest.status != 'completed'">
             <div>
               <label>Transfer date</label>
               <div id="transfer-request-date-info">
@@ -96,31 +96,34 @@
         </div>
       </div>
 
-      <h2 class="mt-10 mb-3">Patient</h2>
+      <div v-if="transferRequest.status != 'completed'">
 
-      <div class="bg-white rounded-lg shadow-lg p-5">
-        <div v-if="!transferRequest.nursingHandoff">
-          <label>Zipcode</label>
+        <h2 class="mt-10 mb-3" v-if="transferRequest">Patient</h2>
 
-          <div id="patient-zipcode-label">{{ transferRequest.advanceNotice.patient.zipcode }}</div>
+        <div class="bg-white rounded-lg shadow-lg p-5">
+          <div v-if="!transferRequest.nursingHandoff">
+            <label>Zipcode</label>
+
+            <div id="patient-zipcode-label">{{ transferRequest.advanceNotice.patient.zipcode }}</div>
+          </div>
+
+          <div v-if="transferRequest.nursingHandoff">
+            <patient-details :patient="transferRequest.nursingHandoff.patient"/>
+          </div>
         </div>
 
-        <div v-if="transferRequest.nursingHandoff">
-          <patient-details :patient="transferRequest.nursingHandoff.patient"/>
+        <div class="mt-10">
+          <button class="btn btn-primary" @click="complete" :class="{'btn-loading': state === 'completing'}"
+                  v-show="transferRequest.status === 'in-progress'">
+            Finish Transfer
+          </button>
+
+          <button class="btn btn-primary m-1" @click="accept" :class="{'btn-loading': state === 'accepting'}"
+                  v-show="transferRequest.status === 'requested'">Accept
+          </button>
+          <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status === 'requested'">Reject
+          </button>
         </div>
-      </div>
-
-      <div class="mt-10">
-        <button class="btn btn-primary" @click="complete" :class="{'btn-loading': state === 'completing'}"
-                v-show="transferRequest.status === 'in-progress'">
-          Complete
-        </button>
-
-        <button class="btn btn-primary m-1" @click="accept" :class="{'btn-loading': state === 'accepting'}"
-                v-show="transferRequest.status === 'requested'">Accept
-        </button>
-        <button class="btn btn-secondary m-1" @click="reject" v-show="transferRequest.status === 'requested'">Reject
-        </button>
       </div>
     </div>
   </div>

@@ -678,16 +678,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 			return nil, fmt.Errorf("could not create FHIR task: %w", err)
 		}
 
-		// Build the list of resources for the authorization credential:
-		authorizedResources := s.resourcesForNursingHandoff(transferTask.ID, nursingHandoffComposition)
-		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
-			ID: organizationDID,
-			LegalBase: credential.LegalBase{
-				ConsentType: "implied",
-			},
-			PurposeOfUse: transfer.SenderServiceName,
-			Resources:    authorizedResources,
-		}); err != nil {
+		if err := s.createAuthCredentials(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
 			return nil, err
 		}
 
@@ -695,7 +686,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.transferRepo.UpdateNegotiationState(ctx, customerID, string(negotiation.Id), transfer.InProgressState)
+		_, err = s.transferRepo.UpdateNegotiationState(ctx, customerID, negotiation.Id, transfer.InProgressState)
 		if err != nil {
 			return nil, err
 		}
@@ -718,6 +709,37 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 	return negotiation, err
 }
 
+// createAuthCredentials creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
+func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string) error {
+	// Create an Auth Credential for the Task
+	authorizedTask := s.taskForNursingHandoff(transferTask.ID)
+	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
+		ID: organizationDID,
+		LegalBase: credential.LegalBase{
+			ConsentType: "implied",
+		},
+		PurposeOfUse: transfer.SenderServiceName,
+		Resources:    authorizedTask,
+	}); err != nil {
+		return err
+	}
+
+	// Build the list of resources for the authorization credential:
+	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
+
+	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
+		ID: organizationDID,
+		LegalBase: credential.LegalBase{
+			ConsentType: "implied",
+		},
+		PurposeOfUse: transfer.SenderServiceName,
+		Resources:    authorizedResources,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID int, dbTransfer *types.Transfer) (*fhir.Composition, error) {
 	patient, err := s.findPatientByDossierID(ctx, customerID, string(dbTransfer.DossierID))
 	if err != nil {
@@ -737,12 +759,17 @@ func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID i
 	return &nursingHandoffComposition, err
 }
 
-func (s service) resourcesForNursingHandoff(taskID string, nursingHandoffComposition *fhir.Composition) []credential.Resource {
-	authorizedResources := []credential.Resource{
+func (s service) taskForNursingHandoff(taskID string) []credential.Resource {
+	return []credential.Resource{
 		{
 			Path:       fmt.Sprintf("/Task/%s", taskID),
 			Operations: []string{"read", "update"},
 		},
+	}
+}
+
+func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []credential.Resource {
+	authorizedResources := []credential.Resource{
 		{
 			Path:       fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
 			Operations: []string{"read", "document"},

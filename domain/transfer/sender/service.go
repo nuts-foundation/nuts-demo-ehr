@@ -209,9 +209,10 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 
 		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
 			ID: organizationDID,
-			LegalBase: credential.LegalBase{
-				ConsentType: "implied",
-			},
+			// Not allowed in v1 NutsAuthorizationCredential, allowed again in v2
+			//LegalBase: credential.LegalBase{
+			//	ConsentType: "implied",
+			//},
 			PurposeOfUse: transfer.SenderServiceName,
 			Resources:    authorizedResources,
 		}); err != nil {
@@ -372,9 +373,10 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
 		if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
 			ID: negotiation.OrganizationDID,
-			LegalBase: credential.LegalBase{
-				ConsentType: "implied",
-			},
+			// Not allowed in v1 NutsAuthorizationCredential, allowed again in v2
+			//LegalBase: credential.LegalBase{
+			//	ConsentType: "implied",
+			//},
 			PurposeOfUse: transfer.SenderServiceName,
 			Resources:    authorizedResources,
 		}); err != nil {
@@ -682,9 +684,10 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 		authorizedResources := s.resourcesForNursingHandoff(transferTask.ID, nursingHandoffComposition)
 		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
 			ID: organizationDID,
-			LegalBase: credential.LegalBase{
-				ConsentType: "implied",
-			},
+			// Not allowed in v1 NutsAuthorizationCredential, allowed again in v2
+			//LegalBase: credential.LegalBase{
+			//	ConsentType: "implied",
+			//},
 			PurposeOfUse: transfer.SenderServiceName,
 			Resources:    authorizedResources,
 		}); err != nil {

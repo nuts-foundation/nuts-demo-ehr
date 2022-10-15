@@ -93,9 +93,10 @@ func (service *service) CreateCollaboration(ctx context.Context, customerDID, do
 	return service.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
 		ID:      senderDID,
 		Subject: &subject,
-		LegalBase: credential.LegalBase{
-			ConsentType: "implied",
-		},
+		// Not allowed in v1 NutsAuthorizationCredential, allowed again in v2
+		//LegalBase: credential.LegalBase{
+		//	ConsentType: "implied",
+		//},
 		PurposeOfUse: zorginzage.ServiceName,
 		Resources: []credential.Resource{
 			{

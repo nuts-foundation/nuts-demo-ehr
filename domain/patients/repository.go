@@ -29,10 +29,10 @@ type Factory struct{}
 // NewUUIDPatient creates a new patient from a list of properties. It generates a new UUID for the patientID.
 func (f Factory) NewUUIDPatient(patientProperties types.PatientProperties) (*types.Patient, error) {
 	if patientProperties.Gender == "" {
-		patientProperties.Gender = types.PatientPropertiesGenderUnknown
+		patientProperties.Gender = types.Unknown
 	}
 	return &types.Patient{
-		ObjectID:          types.ObjectID(uuid.NewString()),
+		ObjectID:          uuid.NewString(),
 		PatientProperties: patientProperties,
 	}, nil
 }
@@ -54,9 +54,9 @@ func (f Factory) NewPatientWithAvatar(properties types.PatientProperties) (*type
 
 	var gender string
 	switch patient.Gender {
-	case types.PatientPropertiesGenderMale:
+	case types.Male:
 		gender = "male"
-	case types.PatientPropertiesGenderFemale:
+	case types.Female:
 		gender = "female"
 	default:
 		// For "other" and "unknown" we take a random gender

@@ -142,9 +142,9 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 
 func createPasswordVP(customerID int, password string) auth.VerifiablePresentation {
 	return auth.VerifiablePresentation{
-		Proof: map[string]interface{}{
+		Proof: []interface{}{map[string]interface{}{
 			"identity": fmt.Sprintf("%d%s", customerID, password),
-		},
+		}},
 	}
 }
 

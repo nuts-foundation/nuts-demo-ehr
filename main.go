@@ -271,7 +271,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(1980, 10, 10, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Henk",
 			Surname:   "de Vries",
-			Gender:    types.PatientPropertiesGenderMale,
+			Gender:    types.Male,
 			Zipcode:   "6825AX",
 		},
 		{
@@ -279,7 +279,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(1939, 1, 5, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Grepelsteeltje",
 			Surname:   "Grouw",
-			Gender:    types.PatientPropertiesGenderFemale,
+			Gender:    types.Female,
 			Zipcode:   "9999AA",
 		},
 		{
@@ -287,7 +287,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(1972, 1, 10, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Dibbes",
 			Surname:   "Bouwman",
-			Gender:    types.PatientPropertiesGenderMale,
+			Gender:    types.Male,
 			Zipcode:   "1234ZZ",
 		},
 		{
@@ -295,7 +295,7 @@ func registerPatients(repository patients.Repository, db *sqlx.DB, customerID in
 			Dob:       pdate(time.Date(2001, 2, 27, 0, 0, 0, 0, time.UTC)),
 			FirstName: "Anne",
 			Surname:   "von Oben",
-			Gender:    types.PatientPropertiesGenderOther,
+			Gender:    types.Other,
 			Zipcode:   "7777AX",
 		},
 	}

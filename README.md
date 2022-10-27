@@ -44,12 +44,12 @@ The API and domain types are generated from the `api/api.yaml`.
 ```shell
 npm run gen-api
 
-oapi-codegen -generate server -package api api/api.yaml > api/generated.go
-oapi-codegen -generate types -package types -o domain/types/generated_types.go api/api.yaml
-oapi-codegen -generate client,types -package auth -exclude-schemas VerifiableCredential -o nuts/client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
-oapi-codegen -generate client,types -package vcr -exclude-schemas SearchVCRequest -o nuts/client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/v2.yaml
-oapi-codegen -generate client,types -package didman -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
-oapi-codegen -generate client,types -package vdr -o nuts/client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
+oapi-codegen oapi-codegen --config codegen/configs/api.yaml api/api.yaml | gofmt > domain/types/generated_types.go
+oapi-codegen -old-config-style -generate types -package types -o domain/types/generated_types.go api/api.yaml
+oapi-codegen -old-config-style -generate client,types -package auth -exclude-schemas VerifiableCredential,VerifiablePresentation -o nuts/client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
+oapi-codegen -old-config-style -generate client,types -package vcr -exclude-schemas SearchVCRequest,VerifiableCredential,VerifiablePresentation,CredentialSubject,DID -o nuts/client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/v2.yaml
+oapi-codegen -old-config-style -generate client,types -package didman -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
+oapi-codegen -old-config-style -generate client,types -package vdr -o nuts/client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
 ```
 
 ### Docker

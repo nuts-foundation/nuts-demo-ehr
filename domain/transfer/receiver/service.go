@@ -2,10 +2,8 @@ package receiver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"github.com/nuts-foundation/go-did/vc"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/eoverdracht"
@@ -98,15 +96,14 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		return nil, fmt.Errorf("unable to find customer: %w", err)
 	}
 
+	// First get the task, this uses a separate task auth credential
 	taskPath := fmt.Sprintf("/Task/%s", fhirTaskID)
-	fhirClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, &identity)
+	fhirTaskClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, taskPath, &identity)
 	if err != nil {
 		return nil, err
 	}
-
-	fhirReceiverService := eoverdracht.NewFHIRTransferService(fhirClient)
-
-	task, err := fhirReceiverService.GetTask(ctx, fhirTaskID)
+	fhirTaskReceiverService := eoverdracht.NewFHIRTransferService(fhirTaskClient)
+	task, err := fhirTaskReceiverService.GetTask(ctx, fhirTaskID)
 	if err != nil {
 		return nil, fmt.Errorf(getTransferRequestErr, err)
 	}
@@ -121,9 +118,20 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 		Status: task.Status,
 	}
 
-	// if it contains an AdvanceNotice
+	if task.Status == transfer.CompletedState || task.Status == transfer.CancelledState {
+		return &transferRequest, nil
+	}
+
 	if task.AdvanceNoticeID != nil {
-		advanceNotice, err := fhirReceiverService.GetAdvanceNotice(ctx, *task.AdvanceNoticeID)
+		compositionPath := fmt.Sprintf("/Composition/%s", *task.AdvanceNoticeID)
+		fhirCompositionClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, compositionPath, &identity)
+		if err != nil {
+			return nil, err
+		}
+		fhirCompositionService := eoverdracht.NewFHIRTransferService(fhirCompositionClient)
+
+		// if it contains an AdvanceNotice
+		advanceNotice, err := fhirCompositionService.GetAdvanceNotice(ctx, *task.AdvanceNoticeID)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get advance notice: %w", err)
 		}
@@ -135,7 +143,13 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 
 	// If the task input contains the nursing handoff
 	if task.NursingHandoffID != nil {
-		nursingHandoff, err := fhirReceiverService.GetNursingHandoff(ctx, *task.NursingHandoffID)
+		compositionPath := fmt.Sprintf("/Composition/%s", *task.NursingHandoffID)
+		fhirCompositionClient, err := s.getRemoteFHIRClient(ctx, requesterDID, *customer.Did, compositionPath, &identity)
+		if err != nil {
+			return nil, err
+		}
+		fhirCompositionService := eoverdracht.NewFHIRTransferService(fhirCompositionClient)
+		nursingHandoff, err := fhirCompositionService.GetNursingHandoff(ctx, *task.NursingHandoffID)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get nursing handoff: %w", err)
 		}
@@ -166,20 +180,11 @@ func (s service) getRemoteFHIRClient(ctx context.Context, authorizerDID string, 
 	if err != nil {
 		return nil, err
 	}
-	var transformed = make([]vc.VerifiableCredential, len(credentials))
-	for i, c := range credentials {
-		bytes, err := json.Marshal(c)
-		if err != nil {
-			return nil, err
-		}
-		tCred := vc.VerifiableCredential{}
-		if err = json.Unmarshal(bytes, &tCred); err != nil {
-			return nil, err
-		}
-		transformed[i] = tCred
+	if len(credentials) == 0 {
+		return nil, fmt.Errorf("no credentials found")
 	}
 
-	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, transformed, identity)
+	accessToken, err := s.auth.RequestAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName, credentials, identity)
 
 	if err != nil {
 		return nil, err

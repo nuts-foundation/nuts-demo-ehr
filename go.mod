@@ -9,8 +9,8 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/knadh/koanf v1.4.3
-	github.com/labstack/echo/v4 v4.9.0
+	github.com/knadh/koanf v1.4.4
+	github.com/labstack/echo/v4 v4.9.1
 	github.com/labstack/gommon v0.4.0
 	github.com/lestrrat-go/jwx v1.2.25
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
@@ -19,7 +19,7 @@ require (
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20221006133950-1d35e5fa8757
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/tidwall/gjson v1.14.3
 )
 

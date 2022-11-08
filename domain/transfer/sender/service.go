@@ -708,11 +708,7 @@ func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverd
 	// Create an Auth Credential for the Task
 	authorizedTask := s.taskForNursingHandoff(transferTask.ID)
 	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
-		ID: organizationDID,
-		// Not allowed in v1 NutsAuthorizationCredential, allowed again in v2
-		//LegalBase: credential.LegalBase{
-		//	ConsentType: "implied",
-		//},
+		ID:           organizationDID,
 		PurposeOfUse: transfer.SenderServiceName,
 		Resources:    authorizedTask,
 	}); err != nil {
@@ -723,10 +719,7 @@ func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverd
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
 
 	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
-		ID: organizationDID,
-		LegalBase: credential.LegalBase{
-			ConsentType: "implied",
-		},
+		ID:           organizationDID,
 		PurposeOfUse: transfer.SenderServiceName,
 		Resources:    authorizedResources,
 	}); err != nil {

@@ -36,6 +36,7 @@ const defaultLogLevel = "info"
 // defaultHAPIFHIRServer configures usage of the HAPI FHIR Server (https://hapifhir.io/)
 var defaultHAPIFHIRServer = FHIRServer{
 	Address: "http://localhost:8080/fhir",
+	Type:    "hapi",
 }
 
 func defaultConfig() Config {

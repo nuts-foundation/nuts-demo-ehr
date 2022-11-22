@@ -40,5 +40,5 @@ func (w Wrapper) TaskUpdate(ctx echo.Context, customerID int, taskID string) err
 		return err
 	}
 
-	return ctx.NoContent(http.StatusAccepted)
+	return ctx.JSON(http.StatusOK, task)
 }

@@ -235,6 +235,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferSenderService:   transferSenderService,
 		TransferReceiverService: transferReceiverService,
 		TransferReceiverRepo:    transferReceiverRepo,
+		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
 		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry),
 		TenantInitializer:       tenantInitializer,
 		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),

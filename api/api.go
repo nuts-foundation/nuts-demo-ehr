@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
 	"strconv"
 
@@ -48,6 +49,7 @@ type Wrapper struct {
 	TransferSenderService   sender.TransferService
 	TransferReceiverService receiver.TransferService
 	TransferReceiverRepo    receiver.TransferRepository
+	FHIRService             fhir.Service
 	EpisodeService          episode.Service
 	NotificationHandler     notification.Handler
 	TenantInitializer       func(tenant int) error

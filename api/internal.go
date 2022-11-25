@@ -40,5 +40,10 @@ func (w Wrapper) TaskUpdate(ctx echo.Context, customerID int, taskID string) err
 		return err
 	}
 
-	return ctx.NoContent(http.StatusAccepted)
+	updatedTask, err := w.FHIRService.GetTask(ctx.Request().Context(), customerID, taskID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "error retrieving FHIR task: "+err.Error())
+	}
+
+	return ctx.JSON(http.StatusOK, updatedTask)
 }

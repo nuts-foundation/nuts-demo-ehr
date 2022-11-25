@@ -698,8 +698,8 @@ paths:
         After updating, a notification has to be send. If the status == "completed" then also the NutsAuthorizationCredential needs to be revoked.
       operationId: taskUpdate
       responses:
-        202:
-          description: Task updated successfully.
+        200:
+          description: Task updated successfully. It returns the task as it was submitted.
 
 components:
   schemas:

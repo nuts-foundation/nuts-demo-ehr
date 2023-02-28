@@ -96,7 +96,16 @@ func (c HTTPClient) createSession(customerDID string, means nutsAuthClient.SignS
 }
 
 func (c HTTPClient) auth() nutsAuthClient.ClientInterface {
-	response, err := nutsAuthClient.NewClientWithResponses(c.getNodeURL())
+        var response nutsAuthClient.ClientInterface
+        var err error
+                
+        if c.Authorizer != nil {
+                requestEditorFn := nutsAuthClient.RequestEditorFn(c.Authorizer.RequestEditorFn())
+                response, err = nutsAuthClient.NewClientWithResponses(c.getNodeURL(), nutsAuthClient.WithRequestEditorFn(requestEditorFn))
+        } else {
+                response, err = nutsAuthClient.NewClientWithResponses(c.getNodeURL())
+        }
+
 	if err != nil {
 		panic(err)
 	}

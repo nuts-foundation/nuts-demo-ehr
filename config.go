@@ -55,6 +55,7 @@ func defaultConfig() Config {
 		Credentials:        Credentials{Password: "demo"},
 		DBConnectionString: "demo-ehr.db?cache=shared",
 		LoadTestPatients:   false,
+		NutsNodeKeyPath: "",
 	}
 }
 
@@ -76,6 +77,10 @@ type Config struct {
 	// Developer tip: set the sessionPemKey so the session keeps valid after a server reboot.
 	SessionPemKey string `koanf:"sessionPemKey"`
 	sessionKey    *ecdsa.PrivateKey
+
+	// NutsNodeKeyPath sets the path for the private key file used to sign JWTs and enable
+	// access to a protected nuts node endpoint. This value is ignored when set empty.
+	NutsNodeKeyPath string
 }
 
 type FHIR struct {

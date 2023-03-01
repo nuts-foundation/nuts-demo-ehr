@@ -19,7 +19,7 @@ require (
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20221107114949-2531aeb2af67
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/tidwall/gjson v1.14.4
 )
 

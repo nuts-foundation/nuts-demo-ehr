@@ -36,11 +36,12 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
-	"github.com/nuts-foundation/nuts-demo-ehr/keyring"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
+
+	"github.com/nuts-foundation/keyring"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"

@@ -49,7 +49,16 @@ func (c HTTPClient) GetCompoundServiceEndpoint(ctx context.Context, organization
 }
 
 func (c HTTPClient) didman() nutsDIDManClient.ClientInterface {
-	response, err := nutsDIDManClient.NewClientWithResponses(c.getNodeURL())
+	var response nutsDIDManClient.ClientInterface
+	var err error
+
+	if c.Authorizer != nil {
+		requestEditorFn := nutsDIDManClient.RequestEditorFn(c.Authorizer.RequestEditorFn())
+		response, err = nutsDIDManClient.NewClientWithResponses(c.getNodeURL(), nutsDIDManClient.WithRequestEditorFn(requestEditorFn))
+	} else {
+		response, err = nutsDIDManClient.NewClientWithResponses(c.getNodeURL())
+	}
+
 	if err != nil {
 		panic(err)
 	}

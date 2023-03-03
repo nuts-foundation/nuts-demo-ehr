@@ -41,6 +41,8 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
+	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
+
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
 
@@ -88,14 +90,25 @@ func main() {
 		logrus.Fatal("Invalid FHIR server type, valid options are: 'hapi-multi-tenant', 'hapi' or 'other'")
 	}
 
+	// Read the authentication key
+	var authorizer *nutsClient.Authorizer
+	if keyPath := config.NutsNodeKeyPath; keyPath != "" {
+		key, err := keyring.Open(keyPath)
+		if err != nil {
+			logrus.Fatalf("Failed to open nuts-node key: %v", err)
+		}
+
+		authorizer = &nutsClient.Authorizer{Key: key}
+	}
+
 	// init node API nutsClient
-	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
+	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress, Authorizer: authorizer}
 	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 
 	server := createServer()
 
-	registerEHR(server, config, customerRepository, vcRegistry)
+	registerEHR(server, config, customerRepository, vcRegistry, &nodeClient)
 
 	if config.FHIR.Proxy.Enable {
 		registerFHIRProxy(server, config, customerRepository, vcRegistry)
@@ -156,10 +169,7 @@ func registerFHIRProxy(server *echo.Echo, config Config, customerRepository cust
 	}, proxyServer.Handler)
 }
 
-func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry) {
-	// init node API nutsClient
-	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress}
-
+func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry, nodeClient *nutsClient.HTTPClient) {
 	var passwd string
 	if config.Credentials.Empty() {
 		passwd = generateAuthenticationPassword(config)
@@ -194,7 +204,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	)
 	patientRepository := patients.NewFHIRPatientRepository(patients.Factory{}, fhirClientFactory)
 	reportRepository := reports.NewFHIRRepository(fhirClientFactory)
-	orgRegistry := registry.NewOrganizationRegistry(&nodeClient)
+	orgRegistry := registry.NewOrganizationRegistry(nodeClient)
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferSenderRepo := sender.NewTransferRepository(sqlDB)
 	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)

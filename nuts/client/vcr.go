@@ -137,7 +137,16 @@ func (c HTTPClient) search(ctx context.Context, credential v2.SearchVCQuery, unt
 }
 
 func (c HTTPClient) vcr() vcr.ClientInterface {
-	response, err := vcr.NewClientWithResponses(c.getNodeURL())
+	var response vcr.ClientInterface
+	var err error
+
+	if c.Authorizer != nil {
+		requestEditorFn := vcr.RequestEditorFn(c.Authorizer.RequestEditorFn())
+		response, err = vcr.NewClientWithResponses(c.getNodeURL(), vcr.WithRequestEditorFn(requestEditorFn))
+	} else {
+		response, err = vcr.NewClientWithResponses(c.getNodeURL())
+	}
+
 	if err != nil {
 		panic(err)
 	}

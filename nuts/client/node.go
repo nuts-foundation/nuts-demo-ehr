@@ -10,7 +10,7 @@ import (
 
 type HTTPClient struct {
 	NutsNodeAddress string
-	Authorizer	*Authorizer
+	Authorizer      *Authorizer
 }
 
 func (c HTTPClient) getNodeURL() string {

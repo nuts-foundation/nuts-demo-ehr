@@ -8,7 +8,7 @@ import (
 
 	"github.com/nuts-foundation/keyring"
 
-        "github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 
 	"github.com/google/uuid"
 )

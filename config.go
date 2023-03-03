@@ -55,7 +55,7 @@ func defaultConfig() Config {
 		Credentials:        Credentials{Password: "demo"},
 		DBConnectionString: "demo-ehr.db?cache=shared",
 		LoadTestPatients:   false,
-		NutsNodeKeyPath: "",
+		NutsNodeKeyPath:    "",
 	}
 }
 

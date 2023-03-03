@@ -1,7 +1,5 @@
 module github.com/nuts-foundation/nuts-demo-ehr
 
-replace github.com/nuts-foundation/keyring => /home/beardedfoo/keyring
-
 go 1.19
 
 require (
@@ -88,7 +86,6 @@ require (
 	github.com/nuts-foundation/crypto-ecies v0.0.0-20211207143025-5b84f9efce2b // indirect
 	github.com/nuts-foundation/go-leia/v3 v3.3.0 // indirect
 	github.com/nuts-foundation/go-stoabs v1.3.0 // indirect
-	github.com/nuts-foundation/keyring v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ockam-network/did v0.1.4-0.20210103172416-02ae01ce06d8 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect

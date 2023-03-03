@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nuts-foundation/keyring"
+	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
 
 	"github.com/lestrrat-go/jwx/v2/jwt"
 

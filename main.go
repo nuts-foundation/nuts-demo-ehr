@@ -41,7 +41,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
-	"github.com/nuts-foundation/keyring"
+	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
 
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"

@@ -27,5 +27,5 @@ type SearchVCQuery struct {
 	// Issuer refers to the party that issued the credential
 	Issuer *ssi.URI `json:"issuer,omitempty"`
 	// CredentialSubject holds the actual data for the credential. It must be extracted using the UnmarshalCredentialSubject method and a custom type.
-	CredentialSubject []interface{} `json:"credentialSubject,omitempty"`
+	CredentialSubject interface{} `json:"credentialSubject,omitempty"`
 }

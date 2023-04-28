@@ -86,7 +86,7 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id st
 }
 
 func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties types.PatientProperties) (*types.Patient, error) {
-	patient, err := r.factory.NewPatientWithAvatar(patientProperties)
+	patient, err := r.factory.NewPatient(patientProperties)
 	if err != nil {
 		return nil, err
 	}

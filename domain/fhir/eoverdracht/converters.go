@@ -45,7 +45,9 @@ func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	ssn := p.Get(fmt.Sprintf(`identifier.#(system==%s).value`, types.BsnSystem)).String()
 	avatar := p.Get(`photo.0.url`).String()
 	return types.Patient{
-		ObjectID: types.ObjectID(p.Get("id").String()),
+		BaseProps: types.BaseProps{
+			ObjectID: p.Get("id").String(),
+		},
 		PatientProperties: types.PatientProperties{
 			Dob:       &types2.Date{Time: dob},
 			Email:     nil,
@@ -54,8 +56,8 @@ func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 			Ssn:       &ssn,
 			Surname:   p.Get(`name.0.family`).String(),
 			Zipcode:   p.Get(`address.0.postalCode`).String(),
+			AvatarUrl: &avatar,
 		},
-		AvatarUrl: &avatar,
 	}
 }
 

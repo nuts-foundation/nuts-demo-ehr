@@ -66,14 +66,14 @@ type sqlTransfer struct {
 
 func (transfer sqlTransfer) marshalToDomain() types.IncomingTransfer {
 	return types.IncomingTransfer{
-		Id:         types.ObjectID(transfer.ID),
+		Id:         transfer.ID,
 		FhirTaskID: transfer.TaskID,
 		// @TODO: should we resolve organization details here?
 		Sender: types.Organization{
 			Did: transfer.SenderDID,
 		},
 		CreatedAt: transfer.CreatedAt,
-		Status:    types.TransferNegotiationStatus{Status: types.TransferNegotiationStatusStatus(transfer.Status)},
+		Status:    types.TransferNegotiationStatus{Status: types.FHIRTaskStatus(transfer.Status)},
 	}
 }
 

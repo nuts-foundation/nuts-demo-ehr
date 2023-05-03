@@ -17,7 +17,7 @@ function wrapClientCall(client, functionName, apiOptions, router) {
                 }).catch(reason => {
                     // Handle 404 since it does not have content and the response.json() will fail.
                     if (response.status === 404) {
-                        return Promise.reject(response.statusText)
+                        return Promise.reject(reason)
                     }
                     // Handle 204 since it does not have content and the response.json() will fail.
                     if (response.status === 204) {

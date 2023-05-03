@@ -17,8 +17,8 @@
           <span class="text-lg font-semibold">IRMA</span>
         </button>
 
-        <button class="btn btn-secondary" @click="elevateWithBONO" id="elevate-bono-button">
-          <span class="text-lg font-semibold">Bono</span>
+        <button class="btn btn-secondary" @click="elevateWithSelfSigned" id="elevate-selfsigned-button">
+          <span class="text-lg font-semibold">Self-Signed</span>
         </button>
 
         <button class="btn btn-secondary" @click="elevateWithDummy" id="elevate-dummy-button">
@@ -26,13 +26,11 @@
         </button>
       </div>
     </div>
-    <button v-else @click="means = ''">back</button>
-
-
-    <iframe v-if="means === 'bono'" width="560" height="315" src="https://www.youtube-nocookie.com/embed/19KstSgU-c0"
-            title="YouTube video player" frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen></iframe>
+    <div v-if="selfSignedSessionURL !== null" class="px-12 py-8">
+      <h1 class="mb-6 mt-12">Self-Signed Identity</h1>
+      <iframe :src="selfSignedSessionURL" title="Self-Signed Authentication"
+              width="560" height="650"></iframe>
+    </div>
 
     <irma-login v-if="means === 'irma'"
                 @success="onElevationSuccess"
@@ -51,7 +49,9 @@ export default {
   data() {
     return {
       means: null,
-      irmaLogo: irmaLogo
+      irmaLogo: irmaLogo,
+      selfSignedSessionURL: null,
+      selfSignedResultPoller: null,
     }
   },
   methods: {
@@ -63,8 +63,45 @@ export default {
     elevateWithIRMA() {
       this.means = "irma"
     },
-    elevateWithBONO() {
-      this.means = "bono"
+    elevateWithSelfSigned() {
+      this.means = "selfsigned"
+      // Elevation with self-signed means starting a self-signed means authentication session (providing the current auth session token),
+      // showing the user the returned URL (which is the consent page) in an IFrame,
+      // then polling the server for the result of the authentication session.
+      this.$api.authenticateWithSelfSigned()
+          .then(session => {
+            if (!session.sessionPtr.url) {
+              throw "No URL returned by server";
+            }
+            this.selfSignedSessionURL = session.sessionPtr.url;
+            this.selfSignedResultPoller = setInterval(() => {
+              this.$api.getSelfSignedAuthenticationResult({sessionToken: session.sessionID})
+                  .then((sessionResult) => {
+                    clearInterval(this.selfSignedResultPoller);
+                    if (sessionResult.token) {
+                      // Wait for 3 seconds, so the user can see the result of the authentication session.
+                      setTimeout(() => this.onElevationSuccess(sessionResult.token), 3000);
+                    }
+                  })
+                  .catch(err => {
+                    switch(err) {
+                      case "created":
+                      case "in-progress":
+                        // Normal operation, user still has to choose to accept/reject
+                        break;
+                      default:
+                        // All other cases are errors, unless the user rejected
+                        clearInterval(this.selfSignedResultPoller);
+                        if (err === "cancelled") {
+                          console.log('User has rejected self-signed auth');
+                        } else {
+                          console.error('Self-signed authentication error: ' + err)
+                        }
+                    }
+                  })
+            }, 2000)
+          })
+          .catch(err => console.log(err))
     },
     elevateWithDummy() {
       console.log("elevate with Dummy")
@@ -79,6 +116,11 @@ export default {
           })
           .catch(err => console.log(err))
 
+    }
+  },
+  beforeUnmount() {
+    if (this.selfSignedResultPoller) {
+      clearInterval(this.selfSignedResultPoller);
     }
   }
 }

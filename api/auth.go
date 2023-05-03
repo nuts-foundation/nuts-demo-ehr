@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	ssi "github.com/nuts-foundation/go-did"
+	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
 	"reflect"
 	"strings"
@@ -68,6 +70,19 @@ func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
+func (auth *Auth) GetSession(id string) *Session {
+	auth.mux.RLock()
+	defer auth.mux.RUnlock()
+
+	for t, session := range auth.sessions {
+		if t == id {
+			return &session
+		}
+	}
+
+	return nil
+}
+
 func (auth *Auth) GetSessions() map[string]Session {
 	auth.mux.RLock()
 	defer auth.mux.RUnlock()
@@ -95,9 +110,10 @@ func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(subject string, customerId int, session string, elevated bool) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId int, session string, elevated bool) ([]byte, error) {
 	t := openid.New()
-	t.Set(jwt.SubjectKey, subject)
+	t.Set(jwt.SubjectKey, organizationName)
+	t.Set("usi", userName)
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
@@ -117,6 +133,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
+			"/web/auth/selfsigned/session", // self-signed auth means require authenticated session for employee info
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {
@@ -125,8 +142,10 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 					ctx.Echo().Logger.Error(err)
 					return echo.NewHTTPError(http.StatusUnauthorized, err)
 				}
-				if _, ok := token.Get(SessionID); !ok {
+				if sessionID, ok := token.Get(SessionID); !ok {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get sessionID from token")
+				} else {
+					ctx.Set(SessionID, fmt.Sprintf("%s", sessionID))
 				}
 
 				customerId, ok := customerIDFromToken(token)
@@ -140,23 +159,41 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func createPasswordVP(customerID int, password string) auth.VerifiablePresentation {
+func createPasswordVP(customerDID string) auth.VerifiablePresentation {
+	const identifier = "t.tester@example.com"
 	return auth.VerifiablePresentation{
+		VerifiableCredential: []vc.VerifiableCredential{
+			{
+				Type:   []ssi.URI{ssi.MustParseURI("EmployeeCredential")},
+				Issuer: ssi.MustParseURI(customerDID),
+				CredentialSubject: []interface{}{
+					map[string]interface{}{
+						"employer": customerDID,
+						"employee": map[string]interface{}{
+							"identifier": identifier,
+							"roleName":   "Verpleegkundige niveau 2",
+							"initials":   "T",
+							"familyName": "Tester",
+						},
+					},
+				},
+			},
+		},
 		Proof: []interface{}{map[string]interface{}{
-			"identity": fmt.Sprintf("%d%s", customerID, password),
+			"identity": fmt.Sprintf("%s/%s", customerDID, identifier),
 		}},
 	}
 }
 
 func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, error) {
-	_, err := auth.customers.FindByID(customerID)
+	customer, err := auth.customers.FindByID(customerID)
 	if err != nil {
 		return "", errors.New("invalid customer ID")
 	}
 	if auth.password != password {
 		return "", errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, createPasswordVP(customerID, password), false)
+	token := auth.createSession(customerID, createPasswordVP(*customer.Did), false)
 	return token, nil
 }
 

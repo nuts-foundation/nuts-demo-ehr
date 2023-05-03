@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
 	"strconv"
@@ -94,7 +96,13 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 		return err
 	}
 
-	token, err := w.APIAuth.CreateSessionJWT(customer.Name, req.CustomerID, sessionId, false)
+	session := w.APIAuth.GetSession(sessionId)
+	employeeIdentifier, err := extractEmployeeIdentifier(session.Credential)
+	if err != nil {
+		return err
+	}
+
+	token, err := w.APIAuth.CreateSessionJWT(customer.Name, employeeIdentifier, req.CustomerID, sessionId, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -147,7 +155,82 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return err
 	}
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
+	employeeIdentifier, err := extractEmployeeIdentifier(*sessionStatus.VerifiablePresentation)
+	if err != nil {
+		return err
+	}
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, employeeIdentifier, customerID, sessionID, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, types.SessionToken{Token: string(newToken)})
+}
+
+func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
+	// The method is called "Authenticate" but it is actually elevation,
+	// since it requires an existing session from with employee info.
+	var sessionID string
+	if sid, ok := ctx.Get(SessionID).(string); ok {
+		sessionID = sid
+	} else {
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (missing token)")
+	}
+
+	session := w.APIAuth.GetSession(sessionID)
+	if session == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (unknown session)")
+	}
+	params, err := extractEmployeeCredentialSubject(session.Credential)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := w.NutsAuth.CreateSelfSignedSession(params)
+	if err != nil {
+		return err
+	}
+
+	// convert to map so echo rendering doesn't escape double quotes
+	j := map[string]interface{}{}
+
+	if err := json.Unmarshal(bytes, &j); err != nil {
+		return err
+	}
+
+	return ctx.JSON(http.StatusOK, j)
+}
+
+func (w Wrapper) GetSelfSignedAuthenticationResult(ctx echo.Context, sessionToken string) error {
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+
+	// forward to node
+	sessionStatus, err := w.NutsAuth.GetSelfSignedSessionResult(sessionToken)
+	if err != nil {
+		return err
+	}
+
+	if sessionStatus.Status != "completed" {
+		return echo.NewHTTPError(http.StatusNotFound, sessionStatus.Status)
+	}
+
+	sessionID := w.APIAuth.StoreVP(customerID, *sessionStatus.VerifiablePresentation)
+
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return err
+	}
+
+	userIdentifier, err := extractEmployeeIdentifier(*sessionStatus.VerifiablePresentation)
+	if err != nil {
+		return err
+	}
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, userIdentifier, customerID, sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -213,7 +296,8 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return err
 	}
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
+	// TODO: Extract user name from Dummy VP
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, "(dummy)", customerID, sessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -237,6 +321,38 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 	return ctx.JSON(http.StatusOK, customers)
+}
+
+func extractEmployeeCredentialSubject(presentation nutsAuth.VerifiablePresentation) (map[string]interface{}, error) {
+	// TODO: Support IRMA VP
+	// EmployeeCredential is created by password authentication
+	// NutsEmployeeCredential is created by Nuts SelfSigned auth means
+	// They share (almost?) the same credential subject structure (maybe we should make them the same credential)
+	for _, credential := range presentation.VerifiableCredential {
+		if credential.IsType(ssi.MustParseURI("EmployeeCredential")) ||
+			credential.IsType(ssi.MustParseURI("NutsEmployeeCredential")) {
+			return credential.CredentialSubject[0].(map[string]interface{}), nil
+		}
+	}
+
+	return nil, errors.New("no EmployeeCredential found in VP")
+}
+
+func extractEmployeeIdentifier(presentation nutsAuth.VerifiablePresentation) (string, error) {
+	for _, credential := range presentation.VerifiableCredential {
+		if credential.IsType(ssi.MustParseURI("EmployeeCredential")) {
+			subject := credential.CredentialSubject[0].(map[string]interface{})
+			employee := subject["employee"].(map[string]interface{})
+			return employee["identifier"].(string), nil
+		}
+		if credential.IsType(ssi.MustParseURI("NutsEmployeeCredential")) {
+			subject := credential.CredentialSubject[0].(map[string]interface{})
+			member := subject["member"].(map[string]interface{})
+			return member["identifier"].(string), nil
+		}
+	}
+
+	return "", errors.New("no EmployeeCredential or NutsEmployeeCredential found in VP")
 }
 
 // customerIDFromToken gets the customerID from the jwt

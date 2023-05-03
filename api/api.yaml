@@ -790,10 +790,7 @@ components:
           type: string
           example: van der Moolen
         gender:
-          description: Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
-          type: string
-          enum: [ male, female, other, unknown ]
-          default: unknown
+          $ref: "#/components/schemas/Gender"
         dob:
           description: Date of birth.
           type: string
@@ -809,6 +806,11 @@ components:
           format: email
         avatar_url:
           type: string
+    Gender:
+      description: Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
+      type: string
+      enum: [ male, female, other, unknown ]
+      default: unknown
     SessionToken:
       type: object
       description: Result of a signing session.

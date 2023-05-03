@@ -39,12 +39,12 @@ type sqlNegotiation struct {
 
 func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*types.TransferNegotiation, error) {
 	return &types.TransferNegotiation{
-		Id:                        types.ObjectID(dbNegotiation.ID),
-		OrganizationDID:           dbNegotiation.OrganizationDID,
-		TransferNegotiationStatus: types.TransferNegotiationStatus{Status: types.FHIRTaskStatus(dbNegotiation.Status)},
-		TransferDate:              openapi_types.Date{Time: dbNegotiation.Date},
-		TransferID:                dbNegotiation.TransferID,
-		TaskID:                    dbNegotiation.TaskID,
+		Id:              dbNegotiation.ID,
+		OrganizationDID: dbNegotiation.OrganizationDID,
+		Status:          types.FHIRTaskStatus(dbNegotiation.Status),
+		TransferDate:    openapi_types.Date{Time: dbNegotiation.Date},
+		TransferID:      dbNegotiation.TransferID,
+		TaskID:          dbNegotiation.TaskID,
 	}, nil
 }
 
@@ -97,12 +97,10 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*types.Transfer, error)
 	}
 
 	return &types.Transfer{
-		Id:        dbTransfer.ID,
-		DossierID: dbTransfer.DossierID,
-		Status:    status,
-		TransferProperties: types.TransferProperties{
-			TransferDate: transferTime,
-		},
+		Id:                            dbTransfer.ID,
+		DossierID:                     dbTransfer.DossierID,
+		Status:                        status,
+		TransferDate:                  transferTime,
 		FhirAdvanceNoticeComposition:  dbTransfer.FHIRAdvanceNoticeComposition,
 		FhirNursingHandoffComposition: fromNullString(dbTransfer.FHIRNursingHandoffComposition),
 	}, nil
@@ -291,9 +289,7 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		DossierID:                    dossierID,
 		Status:                       types.Created,
 		FhirAdvanceNoticeComposition: fhirAdvanceNoticeCompositionID,
-		TransferProperties: types.TransferProperties{
-			TransferDate: openapi_types.Date{Time: date},
-		},
+		TransferDate:                 openapi_types.Date{Time: date},
 	}
 	dbTransfer := sqlTransfer{}
 	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, *transfer); err != nil {

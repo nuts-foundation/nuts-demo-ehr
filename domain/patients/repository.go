@@ -21,9 +21,14 @@ func (f Factory) NewPatient(properties types.PatientProperties) (*types.Patient,
 		properties.Gender = types.Unknown
 	}
 	return &types.Patient{
-		BaseProps: types.BaseProps{
-			ObjectID: uuid.NewString(),
-		},
-		PatientProperties: properties,
+		ObjectID:  uuid.NewString(),
+		FirstName: properties.FirstName,
+		Surname:   properties.Surname,
+		Ssn:       properties.Ssn,
+		Dob:       properties.Dob,
+		Zipcode:   properties.Zipcode,
+		Gender:    properties.Gender,
+		Email:     properties.Email,
+		AvatarUrl: properties.AvatarUrl,
 	}, nil
 }

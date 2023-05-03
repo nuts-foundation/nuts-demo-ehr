@@ -122,7 +122,9 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	}
 
 	return types.Transfer{
-		TransferProperties:            domainTransfer,
+		CarePlan:                      domainTransfer.CarePlan,
+		TransferDate:                  domainTransfer.TransferDate,
+		Patient:                       domainTransfer.Patient,
 		DossierID:                     dbTransfer.DossierID,
 		FhirAdvanceNoticeComposition:  dbTransfer.FhirAdvanceNoticeComposition,
 		FhirNursingHandoffComposition: dbTransfer.FhirNursingHandoffComposition,

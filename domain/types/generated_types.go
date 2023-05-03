@@ -32,17 +32,17 @@ const (
 	FHIRTaskStatusRequested  FHIRTaskStatus = "requested"
 )
 
+// Defines values for Gender.
+const (
+	Female  Gender = "female"
+	Male    Gender = "male"
+	Other   Gender = "other"
+	Unknown Gender = "unknown"
+)
+
 // Defines values for InboxEntryType.
 const (
 	InboxEntryTypeTransferRequest InboxEntryType = "transferRequest"
-)
-
-// Defines values for PatientPropertiesGender.
-const (
-	Female  PatientPropertiesGender = "female"
-	Male    PatientPropertiesGender = "male"
-	Other   PatientPropertiesGender = "other"
-	Unknown PatientPropertiesGender = "unknown"
 )
 
 // Defines values for ProblemStatus.
@@ -119,11 +119,15 @@ type CreateTransferNegotiationRequest struct {
 
 // CreateTransferRequest defines model for CreateTransferRequest.
 type CreateTransferRequest struct {
-	// Embedded struct due to allOf(#/components/schemas/TransferProperties)
-	TransferProperties `yaml:",inline"`
-	// Embedded fields due to inline allOf schema
+	// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+	CarePlan CarePlan `json:"carePlan"`
+
 	// DossierID An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
+	Patient   Patient  `json:"patient"`
+
+	// TransferDate Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
+	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
 // Customer A customer object.
@@ -172,6 +176,9 @@ type EpisodeStatus string
 
 // FHIRTaskStatus Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
 type FHIRTaskStatus string
+
+// Gender Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
+type Gender string
 
 // InboxEntry defines model for InboxEntry.
 type InboxEntry struct {
@@ -235,10 +242,29 @@ type PasswordAuthenticateRequest struct {
 
 // Patient defines model for Patient.
 type Patient struct {
-	// Embedded struct due to allOf(#/components/schemas/BaseProps)
-	BaseProps `yaml:",inline"`
-	// Embedded struct due to allOf(#/components/schemas/PatientProperties)
-	PatientProperties `yaml:",inline"`
+	ObjectID  string  `json:"ObjectID"`
+	AvatarUrl *string `json:"avatar_url,omitempty"`
+
+	// Dob Date of birth.
+	Dob *openapi_types.Date `json:"dob,omitempty"`
+
+	// Email Primary email address.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// FirstName Given name
+	FirstName string `json:"firstName"`
+
+	// Gender Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
+	Gender Gender `json:"gender"`
+
+	// Ssn Social security number
+	Ssn *string `json:"ssn,omitempty"`
+
+	// Surname Family name. Must include prefixes like "van der".
+	Surname string `json:"surname"`
+
+	// Zipcode The zipcode formatted in dutch form. Can be used to find local care providers.
+	Zipcode string `json:"zipcode"`
 }
 
 // PatientProblem A problem as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.531_20210126000000
@@ -261,7 +287,7 @@ type PatientProperties struct {
 	FirstName string `json:"firstName"`
 
 	// Gender Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
-	Gender PatientPropertiesGender `json:"gender"`
+	Gender Gender `json:"gender"`
 
 	// Ssn Social security number
 	Ssn *string `json:"ssn,omitempty"`
@@ -272,9 +298,6 @@ type PatientProperties struct {
 	// Zipcode The zipcode formatted in dutch form. Can be used to find local care providers.
 	Zipcode string `json:"zipcode"`
 }
-
-// PatientPropertiesGender Gender of the person according to https://www.hl7.org/fhir/valueset-administrative-gender.html.
-type PatientPropertiesGender string
 
 // Period defines model for Period.
 type Period struct {
@@ -315,9 +338,9 @@ type SessionToken struct {
 
 // Transfer defines model for Transfer.
 type Transfer struct {
-	// Embedded struct due to allOf(#/components/schemas/TransferProperties)
-	TransferProperties `yaml:",inline"`
-	// Embedded fields due to inline allOf schema
+	// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+	CarePlan CarePlan `json:"carePlan"`
+
 	// DossierID An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
 
@@ -328,10 +351,14 @@ type Transfer struct {
 	FhirNursingHandoffComposition *string `json:"fhirNursingHandoffComposition,omitempty"`
 
 	// Id An internal object UUID which can be used as unique identifier for entities.
-	Id ObjectID `json:"id"`
+	Id      ObjectID `json:"id"`
+	Patient Patient  `json:"patient"`
 
 	// Status Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
 	Status TransferStatus `json:"status"`
+
+	// TransferDate Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
+	TransferDate openapi_types.Date `json:"transferDate"`
 }
 
 // TransferStatus Status of the transfer. If the state is "completed" or "cancelled" the transfer dossier becomes read-only. In that case no additional negotiations can be sent (for this transfer) or accepted. Possible values: - Created: the new transfer dossier is created, but no requests were sent (to receiving care organizations) yet. - Requested: one or more requests were sent to care organizations - Assigned: The transfer is assigned to one the receiving care organizations thet accepted the transfer. - Completed: the patient transfer is completed and marked as such by the receiving care organization. - Cancelled: the transfer is cancelled by the sending care organization.
@@ -339,9 +366,6 @@ type TransferStatus string
 
 // TransferNegotiation defines model for TransferNegotiation.
 type TransferNegotiation struct {
-	// Embedded struct due to allOf(#/components/schemas/TransferNegotiationStatus)
-	TransferNegotiationStatus `yaml:",inline"`
-	// Embedded fields due to inline allOf schema
 	// Id An internal object UUID which can be used as unique identifier for entities.
 	Id ObjectID `json:"id"`
 
@@ -350,6 +374,9 @@ type TransferNegotiation struct {
 
 	// OrganizationDID Decentralized Identifier of the organization to which transfer of a patient is requested.
 	OrganizationDID string `json:"organizationDID"`
+
+	// Status Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
+	Status FHIRTaskStatus `json:"status"`
 
 	// TaskID The id of the FHIR Task resource which tracks this negotiation.
 	TaskID string `json:"taskID"`

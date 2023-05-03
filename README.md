@@ -45,19 +45,19 @@ The API and domain types are generated from the `api/api.yaml`.
 npm run gen-api
 
 oapi-codegen --config codegen/configs/api.yaml api/api.yaml | gofmt > domain/types/generated_types.go
-oapi-codegen -old-config-style -generate types -package types -o domain/types/generated_types.go api/api.yaml
-oapi-codegen -old-config-style -generate client,types -package auth \
+oapi-codegen -generate types -package types -o domain/types/generated_types.go api/api.yaml
+oapi-codegen -generate client,types -package auth \
   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
   -o nuts/client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
-oapi-codegen -old-config-style -generate client,types -package common -exclude-schemas VerifiableCredential,VerifiablePresentation,DID,DIDDocument -generate types,skip-prune -o nuts/client/common/generated.go https://nuts-node.readthedocs.io/en/latest/_static/common/ssi_types.yaml
-oapi-codegen -old-config-style -generate client,types -package vcr \
+oapi-codegen -generate client,types -package common -exclude-schemas VerifiableCredential,VerifiablePresentation,DID,DIDDocument -generate types,skip-prune -o nuts/client/common/generated.go https://nuts-node.readthedocs.io/en/latest/_static/common/ssi_types.yaml
+oapi-codegen -generate client,types -package vcr \
    -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
    -exclude-schemas SearchVCRequest,CredentialSubject \
    -o nuts/client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/v2.yaml
-oapi-codegen -old-config-style -generate client,types -package didman \
+oapi-codegen -generate client,types -package didman \
   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
   -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
-oapi-codegen -old-config-style -generate client,types -package vdr \
+oapi-codegen -generate client,types -package vdr \
   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
   -o nuts/client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
 ```

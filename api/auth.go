@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
@@ -39,10 +40,10 @@ type Auth struct {
 }
 
 type Session struct {
-	Credential  auth.VerifiablePresentation
-	CustomerID  int
-	StartTime   time.Time
-	UserContext bool
+	Presentation auth.VerifiablePresentation
+	CustomerID   int
+	StartTime    time.Time
+	UserContext  bool
 }
 
 type JWTCustomClaims struct {
@@ -52,12 +53,29 @@ type JWTCustomClaims struct {
 }
 
 func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd string) *Auth {
-	return &Auth{
+	result := &Auth{
 		sessionKey: key,
 		customers:  customers,
 		sessions:   map[string]Session{},
 		password:   passwd,
 	}
+	// In theory, we should manage this goroutine to have it properly shut down when the server is shut down,
+	// but it's a demo app and everything is in-memory, so no chance of data corruption.
+	go func(result *Auth) {
+		// Clean up expired sessions to avoid memory leak when running over a long time
+		ticker := time.NewTicker(time.Minute)
+		for {
+			<-ticker.C
+			result.mux.Lock()
+			for token, session := range result.sessions {
+				if session.StartTime.Add(MaxSessionAge).Before(time.Now()) {
+					delete(result.sessions, token)
+				}
+			}
+			result.mux.Unlock()
+		}
+	}(result)
+	return result
 }
 
 // CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
@@ -161,6 +179,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 
 func createPasswordVP(customerDID string) auth.VerifiablePresentation {
 	const identifier = "t.tester@example.com"
+	id, _ := uuid.NewUUID()
 	return auth.VerifiablePresentation{
 		VerifiableCredential: []vc.VerifiableCredential{
 			{
@@ -180,7 +199,9 @@ func createPasswordVP(customerDID string) auth.VerifiablePresentation {
 			},
 		},
 		Proof: []interface{}{map[string]interface{}{
-			"identity": fmt.Sprintf("%s/%s", customerDID, identifier),
+			"challenge": id.String(), // VP needs to be unique, otherwise sessions might be shared/reused
+			"identity":  fmt.Sprintf("%s/%s", customerDID, identifier),
+			"created":   time.Now().Format(time.RFC3339),
 		}},
 	}
 }
@@ -197,12 +218,12 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	return token, nil
 }
 
-func (auth *Auth) createSession(customerID int, credential auth.VerifiablePresentation, userContext bool) string {
+func (auth *Auth) createSession(customerID int, presentation auth.VerifiablePresentation, userContext bool) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 
 	for k, v := range auth.sessions {
-		if reflect.DeepEqual(v.Credential, credential) {
+		if reflect.DeepEqual(v.Presentation, presentation) {
 			return k
 		}
 	}
@@ -212,10 +233,10 @@ func (auth *Auth) createSession(customerID int, credential auth.VerifiablePresen
 
 	token := hex.EncodeToString(tokenBytes)
 	auth.sessions[token] = Session{
-		Credential:  credential,
-		StartTime:   time.Now(),
-		CustomerID:  customerID,
-		UserContext: userContext,
+		Presentation: presentation,
+		StartTime:    time.Now(),
+		CustomerID:   customerID,
+		UserContext:  userContext,
 	}
 
 	return token

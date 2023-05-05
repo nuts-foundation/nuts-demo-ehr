@@ -97,7 +97,7 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	}
 
 	session := w.APIAuth.GetSession(sessionId)
-	employeeIdentifier, err := extractEmployeeIdentifier(session.Credential)
+	employeeIdentifier, err := extractEmployeeIdentifier(session.Presentation)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
 	if session == nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (unknown session)")
 	}
-	params, err := extractEmployeeCredentialSubject(session.Credential)
+	params, err := extractEmployeeCredentialSubject(session.Presentation)
 	if err != nil {
 		return err
 	}
@@ -324,7 +324,6 @@ func (w Wrapper) ListCustomers(ctx echo.Context) error {
 }
 
 func extractEmployeeCredentialSubject(presentation nutsAuth.VerifiablePresentation) (map[string]interface{}, error) {
-	// TODO: Support IRMA VP
 	// EmployeeCredential is created by password authentication
 	// NutsEmployeeCredential is created by Nuts SelfSigned auth means
 	// They share (almost?) the same credential subject structure (maybe we should make them the same credential)
@@ -334,7 +333,8 @@ func extractEmployeeCredentialSubject(presentation nutsAuth.VerifiablePresentati
 			return credential.CredentialSubject[0].(map[string]interface{}), nil
 		}
 	}
-
+	// TODO: We (probably) don't need to support IRMA credentials, since having one would mean the user is already elevated,
+	//       and thus the IRMA credential can be used instead of the NutsEmployeeCredential?
 	return nil, errors.New("no EmployeeCredential found in VP")
 }
 

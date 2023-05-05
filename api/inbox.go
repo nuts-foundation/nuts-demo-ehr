@@ -37,7 +37,7 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 		ctx.Request().Context(),
 		cid,
 		requestorDID,
-		sessionWithUserContext.Credential,
+		sessionWithUserContext.Presentation,
 		fhirTaskID,
 	)
 	if err != nil {

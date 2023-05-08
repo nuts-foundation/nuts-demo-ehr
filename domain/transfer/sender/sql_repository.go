@@ -39,12 +39,12 @@ type sqlNegotiation struct {
 
 func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*types.TransferNegotiation, error) {
 	return &types.TransferNegotiation{
-		Id:                        types.ObjectID(dbNegotiation.ID),
-		OrganizationDID:           dbNegotiation.OrganizationDID,
-		TransferNegotiationStatus: types.TransferNegotiationStatus{Status: types.TransferNegotiationStatusStatus(dbNegotiation.Status)},
-		TransferDate:              openapi_types.Date{Time: dbNegotiation.Date},
-		TransferID:                types.ObjectID(dbNegotiation.TransferID),
-		TaskID:                    dbNegotiation.TaskID,
+		Id:              dbNegotiation.ID,
+		OrganizationDID: dbNegotiation.OrganizationDID,
+		Status:          types.FHIRTaskStatus(dbNegotiation.Status),
+		TransferDate:    openapi_types.Date{Time: dbNegotiation.Date},
+		TransferID:      dbNegotiation.TransferID,
+		TaskID:          dbNegotiation.TaskID,
 	}, nil
 }
 
@@ -77,16 +77,16 @@ func (dbTransfer *sqlTransfer) UnmarshalFromDomainTransfer(customerID int, trans
 func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*types.Transfer, error) {
 	var status types.TransferStatus
 	switch dbTransfer.Status {
-	case string(types.TransferStatusCreated):
-		status = types.TransferStatusCreated
-	case string(types.TransferStatusAssigned):
-		status = types.TransferStatusAssigned
-	case string(types.TransferStatusRequested):
-		status = types.TransferStatusRequested
-	case string(types.TransferStatusCompleted):
-		status = types.TransferStatusCompleted
-	case string(types.TransferStatusCancelled):
-		status = types.TransferStatusCancelled
+	case string(types.Created):
+		fallthrough
+	case string(types.Assigned):
+		fallthrough
+	case string(types.Requested):
+		fallthrough
+	case string(types.Completed):
+		fallthrough
+	case string(types.Cancelled):
+		status = types.TransferStatus(dbTransfer.Status)
 	default:
 		return nil, fmt.Errorf("unknown tranfser status: '%s'", dbTransfer.Status)
 	}
@@ -97,12 +97,10 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*types.Transfer, error)
 	}
 
 	return &types.Transfer{
-		Id:        types.ObjectID(dbTransfer.ID),
-		DossierID: types.ObjectID(dbTransfer.DossierID),
-		Status:    status,
-		TransferProperties: types.TransferProperties{
-			TransferDate: transferTime,
-		},
+		Id:                            dbTransfer.ID,
+		DossierID:                     dbTransfer.DossierID,
+		Status:                        status,
+		TransferDate:                  transferTime,
 		FhirAdvanceNoticeComposition:  dbTransfer.FHIRAdvanceNoticeComposition,
 		FhirNursingHandoffComposition: fromNullString(dbTransfer.FHIRNursingHandoffComposition),
 	}, nil
@@ -287,13 +285,11 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		return nil, err
 	}
 	transfer := &types.Transfer{
-		Id:                           types.ObjectID(uuid.NewString()),
-		DossierID:                    types.ObjectID(dossierID),
-		Status:                       types.TransferStatusCreated,
+		Id:                           uuid.NewString(),
+		DossierID:                    dossierID,
+		Status:                       types.Created,
 		FhirAdvanceNoticeComposition: fhirAdvanceNoticeCompositionID,
-		TransferProperties: types.TransferProperties{
-			TransferDate: openapi_types.Date{Time: date},
-		},
+		TransferDate:                 openapi_types.Date{Time: date},
 	}
 	dbTransfer := sqlTransfer{}
 	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, *transfer); err != nil {
@@ -360,7 +356,7 @@ func (r SQLiteTransferRepository) Cancel(ctx context.Context, customerID int, tr
 	return transferRecord, nil
 }
 
-func (r SQLiteTransferRepository) UpdateNegotiationState(ctx context.Context, customerID int, negotiationID string, newState types.TransferNegotiationStatusStatus) (*types.TransferNegotiation, error) {
+func (r SQLiteTransferRepository) UpdateNegotiationState(ctx context.Context, customerID int, negotiationID string, newState types.FHIRTaskStatus) (*types.TransferNegotiation, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err

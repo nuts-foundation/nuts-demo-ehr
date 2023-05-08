@@ -42,7 +42,7 @@ type TransferRepository interface {
 	CancelNegotiation(ctx context.Context, customerID int, negotiationID string) (*types.TransferNegotiation, error)
 
 	// UpdateNegotiationState updates the negotiation with the new state.
-	UpdateNegotiationState(ctx context.Context, customerID int, negotiationID string, newState types.TransferNegotiationStatusStatus) (*types.TransferNegotiation, error)
+	UpdateNegotiationState(ctx context.Context, customerID int, negotiationID string, newState types.FHIRTaskStatus) (*types.TransferNegotiation, error)
 
 	// ListNegotiations returns a list of negotiations for the indicated transfer
 	ListNegotiations(ctx context.Context, customerID int, transferID string) ([]types.TransferNegotiation, error)

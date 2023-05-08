@@ -2,13 +2,8 @@ package vcr
 
 import (
 	ssi "github.com/nuts-foundation/go-did"
-	"github.com/nuts-foundation/go-did/did"
-	"github.com/nuts-foundation/go-did/vc"
 )
 
-type VerifiableCredential = vc.VerifiableCredential
-type VerifiablePresentation = vc.VerifiablePresentation
-type DID = did.DID
 type CredentialSubject = interface{}
 
 // SearchVCRequest is the request body for searching VCs

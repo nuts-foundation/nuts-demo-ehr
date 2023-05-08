@@ -122,7 +122,9 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	}
 
 	return types.Transfer{
-		TransferProperties:            domainTransfer,
+		CarePlan:                      domainTransfer.CarePlan,
+		TransferDate:                  domainTransfer.TransferDate,
+		Patient:                       domainTransfer.Patient,
 		DossierID:                     dbTransfer.DossierID,
 		FhirAdvanceNoticeComposition:  dbTransfer.FhirAdvanceNoticeComposition,
 		FhirNursingHandoffComposition: dbTransfer.FhirNursingHandoffComposition,
@@ -156,9 +158,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 	// Update the transfer
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(dbTransfer *types.Transfer) (*types.Transfer, error) {
 		// Validate if transfer is in correct state to allow new negotiations
-		if dbTransfer.Status == types.TransferStatusCancelled ||
-			dbTransfer.Status == types.TransferStatusCompleted ||
-			dbTransfer.Status == types.TransferStatusAssigned {
+		if dbTransfer.Status == types.Cancelled ||
+			dbTransfer.Status == types.Completed ||
+			dbTransfer.Status == types.Assigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
 
@@ -322,7 +324,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 
 		compositionID := nursingHandoffComposition.ID
 		dbTransfer.FhirNursingHandoffComposition = (*string)(compositionID)
-		dbTransfer.Status = types.TransferStatusAssigned
+		dbTransfer.Status = types.Assigned
 
 		// Update the task with the new state and nursing handoff composition ID
 		if err := fhirService.UpdateTask(ctx, negotiation.TaskID, func(domainTask eoverdracht.TransferTask) eoverdracht.TransferTask {
@@ -491,7 +493,7 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 			return nil, err
 		}
 		// alter state for transfer to completed as well
-		transferRecord.Status = types.TransferStatusCompleted
+		transferRecord.Status = types.Completed
 
 		// update FHIR task
 		fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
@@ -634,12 +636,12 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 	// Update the transfer
 	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(dbTransfer *types.Transfer) (*types.Transfer, error) {
 		// Validate if transfer is in correct state to allow new negotiations
-		if dbTransfer.Status == types.TransferStatusCancelled ||
-			dbTransfer.Status == types.TransferStatusCompleted ||
-			dbTransfer.Status == types.TransferStatusAssigned {
+		if dbTransfer.Status == types.Cancelled ||
+			dbTransfer.Status == types.Completed ||
+			dbTransfer.Status == types.Assigned {
 			return nil, errors.New("can't start new transfer negotiation when status is 'cancelled', 'assigned' or 'completed'")
 		}
-		dbTransfer.Status = types.TransferStatusAssigned
+		dbTransfer.Status = types.Assigned
 
 		// the advance notice was created with the dbTransfer
 		// it has to be updated to a NursingHandoff

@@ -68,7 +68,14 @@ func (w Wrapper) UpdatePatient(ctx echo.Context, patientID string) error {
 		return err
 	}
 	patient, err := w.PatientRepository.Update(ctx.Request().Context(), cid, patientID, func(c types.Patient) (*types.Patient, error) {
-		c.PatientProperties = patientProps
+		c.FirstName = patientProps.FirstName
+		c.Surname = patientProps.Surname
+		c.Ssn = patientProps.Ssn
+		c.Dob = patientProps.Dob
+		c.Zipcode = patientProps.Zipcode
+		c.AvatarUrl = patientProps.AvatarUrl
+		c.Email = patientProps.Email
+		c.Gender = patientProps.Gender
 		return &c, nil
 	})
 	if err != nil {

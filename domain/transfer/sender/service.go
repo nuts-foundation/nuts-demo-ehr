@@ -761,12 +761,14 @@ func (s service) taskForNursingHandoff(taskID string) []credential.Resource {
 func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []credential.Resource {
 	authorizedResources := []credential.Resource{
 		{
-			Path:       fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
-			Operations: []string{"read", "document"},
+			Path:        fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
+			Operations:  []string{"read", "document"},
+			UserContext: true,
 		},
 		{
-			Path:       fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)),
-			Operations: []string{"read"},
+			Path:        fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)),
+			Operations:  []string{"read"},
+			UserContext: true,
 		},
 	}
 	// Add paths of resources of both the advance notice and the nursing handoff

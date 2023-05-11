@@ -98,7 +98,7 @@ func main() {
 			logrus.Fatalf("Failed to open nuts-node key: %v", err)
 		}
 
-		authorizer = &nutsClient.Authorizer{Key: key}
+		authorizer = &nutsClient.Authorizer{Key: key, Audience: config.NutsNodeAPIAudience}
 	}
 
 	// init node API nutsClient

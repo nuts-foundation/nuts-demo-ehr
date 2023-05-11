@@ -80,7 +80,9 @@ type Config struct {
 
 	// NutsNodeKeyPath sets the path for the private key file used to sign JWTs and enable
 	// access to a protected nuts node endpoint. This value is ignored when set empty.
-	NutsNodeKeyPath string
+	NutsNodeKeyPath string `koanf:"nutsnodekeypath"`
+	// NutsNodeAPIAudience sets the 'aud' in the token generation, must match with Nuts node settings.
+	NutsNodeAPIAudience string `koanf:"nutsnodeapiaudience"`
 }
 
 type FHIR struct {

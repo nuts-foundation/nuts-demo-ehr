@@ -18,7 +18,8 @@ type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
 // Authorizer authorizes requests to nuts-node endpoints using the given private key
 type Authorizer struct {
-	Key keyring.Key
+	Key      keyring.Key
+	Audience string
 }
 
 // RequestEditorFn returns a RequestEditorFn suitable for use in WithRequestEditorFn
@@ -34,7 +35,7 @@ func (a *Authorizer) RequestEditorFn() RequestEditorFn {
 		token, err := jwt.NewBuilder().
 			Issuer("nuts-demo-ehr").
 			Subject("nuts-demo-ehr").
-			Audience([]string{req.URL.Host}).
+			Audience([]string{a.Audience}).
 			IssuedAt(issuedAt).
 			NotBefore(notBefore).
 			Expiration(expires).

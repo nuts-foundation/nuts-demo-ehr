@@ -18,7 +18,7 @@ require (
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
 	github.com/nuts-foundation/go-did v0.3.0
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20221107114949-2531aeb2af67
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
 	github.com/tidwall/gjson v1.14.4

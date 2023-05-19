@@ -14,7 +14,10 @@ type GetReportsParams struct {
 }
 
 func (w Wrapper) GetReports(ctx echo.Context, patientID string, params GetReportsParams) error {
-	customer := w.getCustomer(ctx)
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
 
 	// Get the local reports for the patient
 	reports, err := w.ReportRepository.AllByPatient(ctx.Request().Context(), customer.Id, patientID, params.EpisodeID)

@@ -13,31 +13,19 @@ import (
 
 // GetTransferRequest handles requests to receive a transfer request.
 func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
-	cid, err := w.getCustomerID(ctx)
+	session, err := w.getSession(ctx)
 	if err != nil {
 		return err
 	}
-
-	var sessionWithUserContext *Session
-
-	for _, session := range w.APIAuth.GetSessions() {
-		if session.CustomerID != cid || !session.UserContext {
-			continue
-		}
-
-		sessionWithUserContext = &session
-		break
-	}
-
-	if sessionWithUserContext == nil {
+	if session.Presentation == nil {
 		return errors.New("unable to get transfer request without elevation")
 	}
 
 	transferRequest, err := w.TransferReceiverService.GetTransferRequest(
 		ctx.Request().Context(),
-		cid,
+		session.CustomerID,
 		requestorDID,
-		sessionWithUserContext.Presentation,
+		*session.Presentation,
 		fhirTaskID,
 	)
 	if err != nil {
@@ -48,7 +36,10 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 }
 
 func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
-	customer := w.getCustomer(ctx)
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
 
 	count, err := w.TransferReceiverRepo.GetNotCompletedCount(ctx.Request().Context(), customer.Id)
 	if err != nil {
@@ -59,7 +50,10 @@ func (w Wrapper) GetInboxInfo(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetInbox(ctx echo.Context) error {
-	customer := w.getCustomer(ctx)
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
 
 	transfers, err := w.TransferReceiverRepo.GetAll(ctx.Request().Context(), customer.Id)
 	if err != nil {

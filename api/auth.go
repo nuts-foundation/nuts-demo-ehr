@@ -6,11 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	ssi "github.com/nuts-foundation/go-did"
-	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -40,10 +36,17 @@ type Auth struct {
 }
 
 type Session struct {
-	Presentation auth.VerifiablePresentation
+	Presentation *auth.VerifiablePresentation
 	CustomerID   int
 	StartTime    time.Time
-	UserContext  bool
+	UserInfo     UserInfo
+}
+
+type UserInfo struct {
+	Identifier string
+	RoleName   string
+	Initials   string
+	FamilyName string
 }
 
 type JWTCustomClaims struct {
@@ -141,11 +144,6 @@ func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
-// StoreVP stores the given VP under a new identifier or existing identifier
-func (auth *Auth) StoreVP(customerID int, VP auth.VerifiablePresentation) string {
-	return auth.createSession(customerID, VP, true)
-}
-
 // JWTHandler is like the echo JWT middleware. It checks the JWT and required claims
 func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
@@ -177,66 +175,46 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func createPasswordVP(customerDID string) auth.VerifiablePresentation {
-	const identifier = "t.tester@example.com"
-	id, _ := uuid.NewUUID()
-	return auth.VerifiablePresentation{
-		VerifiableCredential: []vc.VerifiableCredential{
-			{
-				Type:   []ssi.URI{ssi.MustParseURI("EmployeeCredential")},
-				Issuer: ssi.MustParseURI(customerDID),
-				CredentialSubject: []interface{}{
-					map[string]interface{}{
-						"employer": customerDID,
-						"employee": map[string]interface{}{
-							"identifier": identifier,
-							"roleName":   "Verpleegkundige niveau 2",
-							"initials":   "T",
-							"familyName": "Tester",
-						},
-					},
-				},
-			},
-		},
-		Proof: []interface{}{map[string]interface{}{
-			"challenge": id.String(), // VP needs to be unique, otherwise sessions might be shared/reused
-			"identity":  fmt.Sprintf("%s/%s", customerDID, identifier),
-			"created":   time.Now().Format(time.RFC3339),
-		}},
-	}
-}
-
-func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, error) {
-	customer, err := auth.customers.FindByID(customerID)
+func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, UserInfo, error) {
+	_, err := auth.customers.FindByID(customerID)
 	if err != nil {
-		return "", errors.New("invalid customer ID")
+		return "", UserInfo{}, errors.New("invalid customer ID")
 	}
 	if auth.password != password {
-		return "", errors.New("authentication failed")
+		return "", UserInfo{}, errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, createPasswordVP(*customer.Did), false)
-	return token, nil
+	userInfo := UserInfo{
+		Identifier: "t.tester@example.com",
+		RoleName:   "Verpleegkundige niveau 2",
+		Initials:   "T",
+		FamilyName: "Tester",
+	}
+	token := auth.createSession(customerID, userInfo)
+	return token, userInfo, nil
 }
 
-func (auth *Auth) createSession(customerID int, presentation auth.VerifiablePresentation, userContext bool) string {
+func (auth *Auth) Elevate(sessionID string, presentation auth.VerifiablePresentation) error {
+	session := auth.GetSession(sessionID)
+	if session == nil {
+		return errors.New("session not found")
+	}
+	cp := presentation
+	session.Presentation = &cp
+	return nil
+}
+
+func (auth *Auth) createSession(customerID int, userInfo UserInfo) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
-
-	for k, v := range auth.sessions {
-		if reflect.DeepEqual(v.Presentation, presentation) {
-			return k
-		}
-	}
 
 	tokenBytes := make([]byte, 64)
 	_, _ = rand.Read(tokenBytes)
 
 	token := hex.EncodeToString(tokenBytes)
 	auth.sessions[token] = Session{
-		Presentation: presentation,
-		StartTime:    time.Now(),
-		CustomerID:   customerID,
-		UserContext:  userContext,
+		CustomerID: customerID,
+		StartTime:  time.Now(),
+		UserInfo:   userInfo,
 	}
 
 	return token

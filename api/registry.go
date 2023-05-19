@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -11,9 +10,9 @@ import (
 type SearchOrganizationsParams = types.SearchOrganizationsParams
 
 func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error {
-	customer := w.getCustomer(ctx)
-	if customer == nil {
-		return errors.New("customer not found")
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
 	}
 
 	organizations, err := w.OrganizationRegistry.Search(ctx.Request().Context(), params.Query, params.DidServiceType)

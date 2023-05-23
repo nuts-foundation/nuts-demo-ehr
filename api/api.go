@@ -187,11 +187,13 @@ func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
 	}
 
 	params := map[string]interface{}{
-		"employer":   *customer.Did,
-		"identifier": session.UserInfo.Identifier,
-		"roleName":   session.UserInfo.RoleName,
-		"initials":   session.UserInfo.Initials,
-		"familyName": session.UserInfo.FamilyName,
+		"employer": *customer.Did,
+		"employee": map[string]interface{}{
+			"identifier": session.UserInfo.Identifier,
+			"roleName":   session.UserInfo.RoleName,
+			"initials":   session.UserInfo.Initials,
+			"familyName": session.UserInfo.FamilyName,
+		},
 	}
 	bytes, err := w.NutsAuth.CreateSelfSignedSession(params)
 	if err != nil {

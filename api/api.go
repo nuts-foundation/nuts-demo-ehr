@@ -143,10 +143,10 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	authSessionID, err := w.getSessionID(ctx)
 	if err != nil {
 		// No current session, create a new one
-		authSessionID = w.APIAuth.createSession(customerID)
+		authSessionID = w.APIAuth.createSession(customerID, UserInfo{})
 	}
 
-	err := w.APIAuth.Elevate(authSessionID, *sessionStatus.VerifiablePresentation)
+	err = w.APIAuth.Elevate(authSessionID, *sessionStatus.VerifiablePresentation)
 	if err != nil {
 		return fmt.Errorf("unable to elevate session: %w", err)
 	}
@@ -180,7 +180,14 @@ func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
 	if session == nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (unknown session)")
 	}
+
+	customer, _ := w.CustomerRepository.FindByID(session.CustomerID)
+	if customer == nil || customer.Did == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "customer with DID required for self-signed means")
+	}
+
 	params := map[string]interface{}{
+		"employer":   *customer.Did,
 		"identifier": session.UserInfo.Identifier,
 		"roleName":   session.UserInfo.RoleName,
 		"initials":   session.UserInfo.Initials,

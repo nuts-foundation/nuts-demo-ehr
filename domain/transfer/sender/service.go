@@ -190,9 +190,10 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 				Operations: []string{"read", "update"},
 			},
 			{
-				Path:        compositionPath,
-				Operations:  []string{"read", "document"},
-				UserContext: true,
+				Path:           compositionPath,
+				Operations:     []string{"read", "document"},
+				UserContext:    true,
+				AssuranceLevel: assuranceLevelLow(),
 			},
 		}
 
@@ -203,9 +204,10 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		resourcePaths = append(resourcePaths, fhir.FromStringPtr(composition.Subject.Reference))
 		for _, path := range resourcePaths {
 			authorizedResources = append(authorizedResources, credential.Resource{
-				Path:        path,
-				Operations:  []string{"read", "document"},
-				UserContext: true,
+				Path:           path,
+				Operations:     []string{"read", "document"},
+				UserContext:    true,
+				AssuranceLevel: assuranceLevelLow(),
 			})
 		}
 
@@ -361,9 +363,10 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 				continue
 			}
 			authorizedResources = append(authorizedResources, credential.Resource{
-				Path:        path,
-				Operations:  []string{"read", "document"},
-				UserContext: true,
+				Path:           path,
+				Operations:     []string{"read", "document"},
+				UserContext:    true,
+				AssuranceLevel: assuranceLevelLow(),
 			})
 			processedPaths[path] = struct{}{}
 		}
@@ -761,24 +764,32 @@ func (s service) taskForNursingHandoff(taskID string) []credential.Resource {
 func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []credential.Resource {
 	authorizedResources := []credential.Resource{
 		{
-			Path:        fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
-			Operations:  []string{"read", "document"},
-			UserContext: true,
+			Path:           fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
+			Operations:     []string{"read", "document"},
+			UserContext:    true,
+			AssuranceLevel: assuranceLevelLow(),
 		},
 		{
-			Path:        fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)),
-			Operations:  []string{"read"},
-			UserContext: true,
+			Path:           fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)),
+			Operations:     []string{"read"},
+			UserContext:    true,
+			AssuranceLevel: assuranceLevelLow(),
 		},
 	}
 	// Add paths of resources of both the advance notice and the nursing handoff
 	resourcePaths := resourcePathsFromSection(nursingHandoffComposition.Section, []string{})
 	for _, path := range resourcePaths {
 		authorizedResources = append(authorizedResources, credential.Resource{
-			Path:        path,
-			Operations:  []string{"read"},
-			UserContext: true,
+			Path:           path,
+			Operations:     []string{"read"},
+			UserContext:    true,
+			AssuranceLevel: assuranceLevelLow(),
 		})
 	}
 	return authorizedResources
+}
+
+func assuranceLevelLow() *string {
+	assuranceLevel := "low"
+	return &assuranceLevel
 }

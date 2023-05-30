@@ -95,13 +95,11 @@ func (auth *Auth) GetSession(id string) *Session {
 	auth.mux.RLock()
 	defer auth.mux.RUnlock()
 
-	for t, session := range auth.sessions {
-		if t == id {
-			return &session
-		}
+	session, ok := auth.sessions[id]
+	if !ok {
+		return nil
 	}
-
-	return nil
+	return &session
 }
 
 func (auth *Auth) GetSessions() map[string]Session {
@@ -194,12 +192,15 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 }
 
 func (auth *Auth) Elevate(sessionID string, presentation auth.VerifiablePresentation) error {
-	session := auth.GetSession(sessionID)
-	if session == nil {
+	auth.mux.Lock()
+	defer auth.mux.Unlock()
+
+	session, found := auth.sessions[sessionID]
+	if !found {
 		return errors.New("session not found")
 	}
-	cp := presentation
-	session.Presentation = &cp
+	session.Presentation = &presentation
+	auth.sessions[sessionID] = session
 	return nil
 }
 

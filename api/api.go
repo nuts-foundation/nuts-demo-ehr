@@ -142,8 +142,18 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 
 	authSessionID, err := w.getSessionID(ctx)
 	if err != nil {
-		// No current session, create a new one
-		authSessionID = w.APIAuth.createSession(customerID, UserInfo{})
+		// No current session, create a new one. Introspect IRMA VP and extract properties for UserInfo.
+		userPresentation, err := w.NutsAuth.VerifyPresentation(*sessionStatus.VerifiablePresentation)
+		if err != nil {
+			return fmt.Errorf("unable to verify presentation: %w", err)
+		}
+		attrs := *userPresentation.IssuerAttributes
+		userInfo := UserInfo{
+			Identifier: fmt.Sprintf("%v", attrs["sidn-pbdf.email.email"]),
+			Initials:   fmt.Sprintf("%v", attrs["gemeente.personalData.initials"]),
+			FamilyName: fmt.Sprintf("%v", attrs["gemeente.personalData.familyname"]),
+		}
+		authSessionID = w.APIAuth.createSession(customerID, userInfo)
 	}
 
 	err = w.APIAuth.Elevate(authSessionID, *sessionStatus.VerifiablePresentation)

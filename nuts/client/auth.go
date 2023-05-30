@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/nuts-foundation/go-did/vc"
 	"net/http"
 	"time"
 
@@ -26,6 +27,8 @@ type Auth interface {
 
 	CreateDummySession(customerDID string) ([]byte, error)
 	GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
+
+	VerifyPresentation(presentation vc.VerifiablePresentation) (*nutsAuthClient.SignatureVerificationResponse, error)
 }
 
 func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
@@ -51,6 +54,29 @@ func (c HTTPClient) getSessionResult(sessionToken string) (*nutsAuthClient.SignS
 	return sessionResponse, nil
 }
 
+func (c HTTPClient) VerifyPresentation(presentation vc.VerifiablePresentation) (*nutsAuthClient.SignatureVerificationResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	httpResponse, err := c.auth().VerifySignature(ctx, nutsAuthClient.VerifySignatureJSONRequestBody{VerifiablePresentation: presentation})
+
+	if err != nil {
+		return nil, err
+	}
+	respData, err := testAndReadResponse(http.StatusOK, httpResponse)
+
+	if err != nil {
+		return nil, err
+	}
+	response := &nutsAuthClient.SignatureVerificationResponse{}
+
+	if err := json.Unmarshal(respData, response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (c HTTPClient) CreateIrmaSession(customerDID string) ([]byte, error) {
 	return c.createSession(customerDID, nutsAuthClient.SignSessionRequestMeansIrma, nil)
 }
@@ -63,7 +89,7 @@ func (c HTTPClient) CreateSelfSignedSession(params map[string]interface{}) ([]by
 	if params == nil || params["employer"] == nil {
 		return nil, errors.New("invalid params for self-signed means")
 	}
-	return c.createSession(params["employer"].(string), nutsAuthClient.SignSessionRequestMeansSelfsigned, params)
+	return c.createSession(params["employer"].(string), nutsAuthClient.SignSessionRequestMeansEmployeeid, params)
 }
 
 func (c HTTPClient) GetSelfSignedSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {

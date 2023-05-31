@@ -100,35 +100,46 @@ func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 
 }
 
+func (w Wrapper) getSessionID(ctx echo.Context) (string, error) {
+	sessionID, ok := ctx.Get(SessionID).(string)
+	if !ok {
+		return "", errors.New("no active session")
+	}
+	return sessionID, nil
+}
+
+func (w Wrapper) getSession(ctx echo.Context) (*Session, error) {
+	sessionID, err := w.getSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	session := w.APIAuth.GetSession(sessionID)
+	if session == nil {
+		return nil, errors.New("unknown session ID")
+	}
+	sessionCopy := *session // Return copy
+	return &sessionCopy, nil
+}
+
 func (w Wrapper) getCustomerID(ctx echo.Context) (int, error) {
-	customer := w.getCustomer(ctx)
-	if customer == nil {
-		return 0, errors.New("not found")
+	session, err := w.getSession(ctx)
+	if err != nil {
+		return 0, err
 	}
-	return customer.Id, nil
+	return session.CustomerID, nil
 }
 
-func (w Wrapper) getCustomer(ctx echo.Context) *types.Customer {
-	cid, ok := ctx.Get(CustomerID).(int)
-	if !ok {
-		return nil
+func (w Wrapper) getCustomer(ctx echo.Context) (*types.Customer, error) {
+	customerID, err := w.getCustomerID(ctx)
+	if err != nil {
+		return nil, err
 	}
-	customer, _ := w.CustomerRepository.FindByID(cid)
-	if customer.Id != cid {
-		return nil
+	result, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return nil, err
 	}
-	return customer
-}
-
-func (w Wrapper) getCustomerDID(ctx echo.Context) *string {
-	cid, ok := ctx.Get(CustomerID).(int)
-	if !ok {
-		return nil
+	if result == nil {
+		return nil, errors.New("customer not found")
 	}
-	customer, _ := w.CustomerRepository.FindByID(cid)
-	if customer.Id != cid {
-		return nil
-	}
-
-	return customer.Did
+	return result, nil
 }

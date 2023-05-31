@@ -31,15 +31,22 @@ const (
 // Defines values for SignSessionRequestMeans.
 const (
 	SignSessionRequestMeansDummy      SignSessionRequestMeans = "dummy"
+	SignSessionRequestMeansEmployeeid SignSessionRequestMeans = "employeeid"
 	SignSessionRequestMeansIrma       SignSessionRequestMeans = "irma"
-	SignSessionRequestMeansSelfsigned SignSessionRequestMeans = "selfsigned"
 )
 
 // Defines values for SignSessionResponseMeans.
 const (
 	SignSessionResponseMeansDummy      SignSessionResponseMeans = "dummy"
+	SignSessionResponseMeansEmployeeid SignSessionResponseMeans = "employeeid"
 	SignSessionResponseMeansIrma       SignSessionResponseMeans = "irma"
-	SignSessionResponseMeansSelfsigned SignSessionResponseMeans = "selfsigned"
+)
+
+// Defines values for TokenIntrospectionResponseAssuranceLevel.
+const (
+	High        TokenIntrospectionResponseAssuranceLevel = "high"
+	Low         TokenIntrospectionResponseAssuranceLevel = "low"
+	Substantial TokenIntrospectionResponseAssuranceLevel = "substantial"
 )
 
 // AccessTokenRequestFailedResponse Error response when access token request fails as described in rfc6749 section 5.2
@@ -243,6 +250,9 @@ type TokenIntrospectionResponse struct {
 	// Active True if the token is active, false if the token is expired, malformed etc.
 	Active bool `json:"active"`
 
+	// AssuranceLevel Assurance level of the identity of the End-User.
+	AssuranceLevel *TokenIntrospectionResponseAssuranceLevel `json:"assurance_level,omitempty"`
+
 	// Aud As per rfc7523 https://tools.ietf.org/html/rfc7523>, the aud must be the
 	// token endpoint. This can be taken from the Nuts registry.
 	Aud *string `json:"aud,omitempty"`
@@ -272,9 +282,18 @@ type TokenIntrospectionResponse struct {
 	Service     *string                 `json:"service,omitempty"`
 
 	// Sub The subject is always the acting party, thus the care organization requesting access to data.
-	Sub *string   `json:"sub,omitempty"`
-	Vcs *[]string `json:"vcs,omitempty"`
+	Sub *string `json:"sub,omitempty"`
+
+	// UserRole Role of the End-User.
+	UserRole *string `json:"user_role,omitempty"`
+
+	// Username Identifier uniquely identifying the End-User's account in the issuing system.
+	Username *string   `json:"username,omitempty"`
+	Vcs      *[]string `json:"vcs,omitempty"`
 }
+
+// TokenIntrospectionResponseAssuranceLevel Assurance level of the identity of the End-User.
+type TokenIntrospectionResponseAssuranceLevel string
 
 // VerifiableCredential A credential according to the W3C and Nuts specs.
 type VerifiableCredential = externalRef0.VerifiableCredential

@@ -17,7 +17,10 @@ func (w Wrapper) CreateCollaboration(ctx echo.Context, dossierID string) error {
 		return err
 	}
 
-	customer := w.getCustomer(ctx)
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
 
 	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), customer.Id, dossierID)
 	if err != nil {
@@ -47,12 +50,13 @@ func (w Wrapper) CreateCollaboration(ctx echo.Context, dossierID string) error {
 }
 
 func (w Wrapper) GetCollaboration(ctx echo.Context, dossierID string) error {
-	customerDID := w.getCustomerDID(ctx)
-	if customerDID == nil {
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
+	if customer.Did == nil {
 		return errors.New("DID missing for customer")
 	}
-
-	customer := w.getCustomer(ctx)
 
 	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), customer.Id, dossierID)
 	if err != nil {

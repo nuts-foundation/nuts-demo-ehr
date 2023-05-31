@@ -97,7 +97,7 @@
     </nav>
 
     <main class="ml-72 mb-14 w-full">
-      <div v-if="org" class="absolute top-6 right-12">
+      <div v-if="organizationName" class="absolute top-6 right-12">
         <div class="flex flex-row items-center">
           <div
               class="rounded-full mb-1 mx-3 bg-white shadow-sm h-10 w-10 flex items-center justify-center overflow-hidden">
@@ -109,7 +109,7 @@
           </div>
 
           <div class="grid grid-cols-1 text-gray-800 text-sm font-semibold" id="current-organization-name">
-            {{ org }}
+            {{userIdentifier}} ({{ organizationName }})
           </div>
         </div>
       </div>
@@ -159,17 +159,21 @@ export default {
     statusMessage() {
       return this.$status.statusMessage
     },
-    org() {
+    tokenPayload() {
       const session = localStorage.getItem("session") || null;
-
       if (!session) {
         return null;
       }
-
       const [_header, rawPayload, _signature] = session.split('.');
-      const payload = JSON.parse(atob(rawPayload));
-
-      return payload.sub;
+      return JSON.parse(atob(rawPayload));
+    },
+    organizationName() {
+      let p = this.tokenPayload;
+      return p ? p.sub : null;
+    },
+    userIdentifier() {
+      let p = this.tokenPayload;
+      return p ? p.usi : null;
     },
     ...mapState(["statusMessage"])
   },

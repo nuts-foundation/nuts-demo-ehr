@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -37,10 +36,17 @@ type Auth struct {
 }
 
 type Session struct {
-	Credential  auth.VerifiablePresentation
-	CustomerID  int
-	StartTime   time.Time
-	UserContext bool
+	Presentation *auth.VerifiablePresentation
+	CustomerID   int
+	StartTime    time.Time
+	UserInfo     UserInfo
+}
+
+type UserInfo struct {
+	Identifier string
+	RoleName   string
+	Initials   string
+	FamilyName string
 }
 
 type JWTCustomClaims struct {
@@ -50,12 +56,29 @@ type JWTCustomClaims struct {
 }
 
 func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd string) *Auth {
-	return &Auth{
+	result := &Auth{
 		sessionKey: key,
 		customers:  customers,
 		sessions:   map[string]Session{},
 		password:   passwd,
 	}
+	// In theory, we should manage this goroutine to have it properly shut down when the server is shut down,
+	// but it's a demo app and everything is in-memory, so no chance of data corruption.
+	go func(result *Auth) {
+		// Clean up expired sessions to avoid memory leak when running over a long time
+		ticker := time.NewTicker(time.Minute)
+		for {
+			<-ticker.C
+			result.mux.Lock()
+			for token, session := range result.sessions {
+				if session.StartTime.Add(MaxSessionAge).Before(time.Now()) {
+					delete(result.sessions, token)
+				}
+			}
+			result.mux.Unlock()
+		}
+	}(result)
+	return result
 }
 
 // CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
@@ -66,6 +89,17 @@ func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	t.Set(CustomerID, customerId)
 
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
+}
+
+func (auth *Auth) GetSession(id string) *Session {
+	auth.mux.RLock()
+	defer auth.mux.RUnlock()
+
+	session, ok := auth.sessions[id]
+	if !ok {
+		return nil
+	}
+	return &session
 }
 
 func (auth *Auth) GetSessions() map[string]Session {
@@ -95,9 +129,10 @@ func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(subject string, customerId int, session string, elevated bool) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId int, session string, elevated bool) ([]byte, error) {
 	t := openid.New()
-	t.Set(jwt.SubjectKey, subject)
+	t.Set(jwt.SubjectKey, organizationName)
+	t.Set("usi", userName)
 	t.Set(jwt.IssuedAtKey, time.Now())
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
@@ -107,16 +142,12 @@ func (auth *Auth) CreateSessionJWT(subject string, customerId int, session strin
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
 
-// StoreVP stores the given VP under a new identifier or existing identifier
-func (auth *Auth) StoreVP(customerID int, VP auth.VerifiablePresentation) string {
-	return auth.createSession(customerID, VP, true)
-}
-
 // JWTHandler is like the echo JWT middleware. It checks the JWT and required claims
 func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
+			"/web/auth/selfsigned/session", // self-signed auth means require authenticated session for employee info
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {
@@ -125,8 +156,10 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 					ctx.Echo().Logger.Error(err)
 					return echo.NewHTTPError(http.StatusUnauthorized, err)
 				}
-				if _, ok := token.Get(SessionID); !ok {
+				if sessionID, ok := token.Get(SessionID); !ok {
 					return echo.NewHTTPError(http.StatusUnauthorized, "could not get sessionID from token")
+				} else {
+					ctx.Set(SessionID, fmt.Sprintf("%s", sessionID))
 				}
 
 				customerId, ok := customerIDFromToken(token)
@@ -140,45 +173,49 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func createPasswordVP(customerID int, password string) auth.VerifiablePresentation {
-	return auth.VerifiablePresentation{
-		Proof: []interface{}{map[string]interface{}{
-			"identity": fmt.Sprintf("%d%s", customerID, password),
-		}},
-	}
-}
-
-func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, error) {
+func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, UserInfo, error) {
 	_, err := auth.customers.FindByID(customerID)
 	if err != nil {
-		return "", errors.New("invalid customer ID")
+		return "", UserInfo{}, errors.New("invalid customer ID")
 	}
 	if auth.password != password {
-		return "", errors.New("authentication failed")
+		return "", UserInfo{}, errors.New("authentication failed")
 	}
-	token := auth.createSession(customerID, createPasswordVP(customerID, password), false)
-	return token, nil
+	userInfo := UserInfo{
+		Identifier: "t.tester@example.com",
+		RoleName:   "Verpleegkundige niveau 2",
+		Initials:   "T",
+		FamilyName: "Tester",
+	}
+	token := auth.createSession(customerID, userInfo)
+	return token, userInfo, nil
 }
 
-func (auth *Auth) createSession(customerID int, credential auth.VerifiablePresentation, userContext bool) string {
+func (auth *Auth) Elevate(sessionID string, presentation auth.VerifiablePresentation) error {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 
-	for k, v := range auth.sessions {
-		if reflect.DeepEqual(v.Credential, credential) {
-			return k
-		}
+	session, found := auth.sessions[sessionID]
+	if !found {
+		return errors.New("session not found")
 	}
+	session.Presentation = &presentation
+	auth.sessions[sessionID] = session
+	return nil
+}
+
+func (auth *Auth) createSession(customerID int, userInfo UserInfo) string {
+	auth.mux.Lock()
+	defer auth.mux.Unlock()
 
 	tokenBytes := make([]byte, 64)
 	_, _ = rand.Read(tokenBytes)
 
 	token := hex.EncodeToString(tokenBytes)
 	auth.sessions[token] = Session{
-		Credential:  credential,
-		StartTime:   time.Now(),
-		CustomerID:  customerID,
-		UserContext: userContext,
+		CustomerID: customerID,
+		StartTime:  time.Now(),
+		UserInfo:   userInfo,
 	}
 
 	return token

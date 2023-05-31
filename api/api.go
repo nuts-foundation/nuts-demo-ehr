@@ -84,17 +84,17 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
 	}
 
-	sessionId, err := w.APIAuth.AuthenticatePassword(req.CustomerID, req.Password)
-	if err != nil {
-		return ctx.JSON(http.StatusForbidden, errorResponse{err})
-	}
-
 	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
 	if err != nil {
 		return err
 	}
 
-	token, err := w.APIAuth.CreateSessionJWT(customer.Name, req.CustomerID, sessionId, false)
+	sessionId, userInfo, err := w.APIAuth.AuthenticatePassword(req.CustomerID, req.Password)
+	if err != nil {
+		return ctx.JSON(http.StatusForbidden, errorResponse{err})
+	}
+
+	token, err := w.APIAuth.CreateSessionJWT(customer.Name, userInfo.Identifier, req.CustomerID, sessionId, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -140,14 +140,114 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionID := w.APIAuth.StoreVP(customerID, *sessionStatus.VerifiablePresentation)
+	authSessionID, err := w.getSessionID(ctx)
+	if err != nil {
+		// No current session, create a new one. Introspect IRMA VP and extract properties for UserInfo.
+		userPresentation, err := w.NutsAuth.VerifyPresentation(*sessionStatus.VerifiablePresentation)
+		if err != nil {
+			return fmt.Errorf("unable to verify presentation: %w", err)
+		}
+		attrs := *userPresentation.IssuerAttributes
+		userInfo := UserInfo{
+			Identifier: fmt.Sprintf("%v", attrs["sidn-pbdf.email.email"]),
+			Initials:   fmt.Sprintf("%v", attrs["gemeente.personalData.initials"]),
+			FamilyName: fmt.Sprintf("%v", attrs["gemeente.personalData.familyname"]),
+		}
+		authSessionID = w.APIAuth.createSession(customerID, userInfo)
+	}
+
+	err = w.APIAuth.Elevate(authSessionID, *sessionStatus.VerifiablePresentation)
+	if err != nil {
+		return fmt.Errorf("unable to elevate session: %w", err)
+	}
+
+	session := w.APIAuth.GetSession(authSessionID)
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 		return err
 	}
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, session.UserInfo.Identifier, customerID, authSessionID, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, types.SessionToken{Token: string(newToken)})
+}
+
+func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
+	// The method is called "Authenticate" but it is actually elevation,
+	// since it requires an existing session from with employee info.
+	var sessionID string
+	if sid, ok := ctx.Get(SessionID).(string); ok {
+		sessionID = sid
+	} else {
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (missing token)")
+	}
+
+	session := w.APIAuth.GetSession(sessionID)
+	if session == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (unknown session)")
+	}
+
+	customer, _ := w.CustomerRepository.FindByID(session.CustomerID)
+	if customer == nil || customer.Did == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "customer with DID required for self-signed means")
+	}
+
+	params := map[string]interface{}{
+		"employer": *customer.Did,
+		"employee": map[string]interface{}{
+			"identifier": session.UserInfo.Identifier,
+			"roleName":   session.UserInfo.RoleName,
+			"initials":   session.UserInfo.Initials,
+			"familyName": session.UserInfo.FamilyName,
+		},
+	}
+	bytes, err := w.NutsAuth.CreateSelfSignedSession(params)
+	if err != nil {
+		return err
+	}
+
+	// convert to map so echo rendering doesn't escape double quotes
+	j := map[string]interface{}{}
+
+	if err := json.Unmarshal(bytes, &j); err != nil {
+		return err
+	}
+
+	return ctx.JSON(http.StatusOK, j)
+}
+
+func (w Wrapper) GetSelfSignedAuthenticationResult(ctx echo.Context, sessionToken string) error {
+	authSession, err := w.getSession(ctx)
+	if err != nil {
+		return err
+	}
+	authSessionID, _ := w.getSessionID(ctx) // can't fail
+
+	// forward to node
+	sessionStatus, err := w.NutsAuth.GetSelfSignedSessionResult(sessionToken)
+	if err != nil {
+		return err
+	}
+
+	if sessionStatus.Status != "completed" {
+		return echo.NewHTTPError(http.StatusNotFound, sessionStatus.Status)
+	}
+
+	err = w.APIAuth.Elevate(authSessionID, *sessionStatus.VerifiablePresentation)
+	if err != nil {
+		return fmt.Errorf("unable to elevate session: %w", err)
+	}
+
+	customer, err := w.CustomerRepository.FindByID(authSession.CustomerID)
+	if err != nil {
+		return err
+	}
+
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, authSession.UserInfo.Identifier, authSession.CustomerID, authSessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -182,6 +282,12 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 }
 
 func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error {
+	authSession, err := w.getSession(ctx)
+	if err != nil {
+		return err
+	}
+	authSessionID, _ := w.getSessionID(ctx) // can't fail
+
 	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
@@ -206,14 +312,17 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 		return echo.NewHTTPError(http.StatusNotFound, "signing session not completed")
 	}
 
-	sessionID := w.APIAuth.StoreVP(customerID, *sessionResult.VerifiablePresentation)
+	err = w.APIAuth.Elevate(authSessionID, *sessionResult.VerifiablePresentation)
+	if err != nil {
+		return fmt.Errorf("failed to elevate session: %w", err)
+	}
 
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 		return err
 	}
 
-	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, customerID, sessionID, true)
+	newToken, err := w.APIAuth.CreateSessionJWT(customer.Name, authSession.UserInfo.Identifier, customerID, authSessionID, true)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

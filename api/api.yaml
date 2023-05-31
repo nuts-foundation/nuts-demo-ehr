@@ -16,7 +16,7 @@ paths:
               $ref: "#/components/schemas/Customer"
       responses:
         '200':
-          description: A session was succesfully created
+          description: A session was successfully created
           content:
             application/json:
               schema:
@@ -47,7 +47,7 @@ paths:
       operationId: authenticateWithIRMA
       responses:
         '200':
-          description: An IRMA signing session was succesfully created
+          description: An IRMA signing session was successfully created
           content:
             application/json:
               schema:
@@ -64,6 +64,36 @@ paths:
       description: |
         After a successful IRMA signing session the resulting signature can be fetched using his endpoint.
       operationId: getIRMAAuthenticationResult
+      responses:
+        '200':
+          description: Session result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+  /auth/selfsigned/session:
+    post:
+      description: Create an self-signed means signing session.
+      operationId: authenticateWithSelfSigned
+      responses:
+        '200':
+          description: An self-signed means signing session was successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+  /auth/selfsigned/session/{sessionToken}/result:
+    parameters:
+      - name: sessionToken
+        in: path
+        description: Self-signed means session ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: |
+        After a successful self-signed means signing session the resulting signature can be fetched using his endpoint.
+      operationId: getSelfSignedAuthenticationResult
       responses:
         '200':
           description: Session result

@@ -20,7 +20,7 @@ require (
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20230530083350-19dbdd2c8dd1
 	github.com/sirupsen/logrus v1.9.2
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.14.4
 	golang.org/x/crypto v0.9.0
 )

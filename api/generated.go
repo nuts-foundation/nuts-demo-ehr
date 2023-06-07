@@ -23,6 +23,12 @@ type ServerInterface interface {
 	// (GET /auth/dummy/session/{sessionToken}/result)
 	GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error
 
+	// (POST /auth/employeeid/session)
+	AuthenticateWithEmployeeID(ctx echo.Context) error
+
+	// (GET /auth/employeeid/session/{sessionToken}/result)
+	GetEmployeeIDAuthenticationResult(ctx echo.Context, sessionToken string) error
+
 	// (POST /auth/irma/session)
 	AuthenticateWithIRMA(ctx echo.Context) error
 
@@ -31,12 +37,6 @@ type ServerInterface interface {
 
 	// (POST /auth/passwd)
 	AuthenticateWithPassword(ctx echo.Context) error
-
-	// (POST /auth/selfsigned/session)
-	AuthenticateWithSelfSigned(ctx echo.Context) error
-
-	// (GET /auth/selfsigned/session/{sessionToken}/result)
-	GetSelfSignedAuthenticationResult(ctx echo.Context, sessionToken string) error
 
 	// (GET /customers)
 	ListCustomers(ctx echo.Context) error
@@ -177,6 +177,35 @@ func (w *ServerInterfaceWrapper) GetDummyAuthenticationResult(ctx echo.Context) 
 	return err
 }
 
+// AuthenticateWithEmployeeID converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthenticateWithEmployeeID(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AuthenticateWithEmployeeID(ctx)
+	return err
+}
+
+// GetEmployeeIDAuthenticationResult converts echo context to params.
+func (w *ServerInterfaceWrapper) GetEmployeeIDAuthenticationResult(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sessionToken" -------------
+	var sessionToken string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "sessionToken", runtime.ParamLocationPath, ctx.Param("sessionToken"), &sessionToken)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetEmployeeIDAuthenticationResult(ctx, sessionToken)
+	return err
+}
+
 // AuthenticateWithIRMA converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	var err error
@@ -214,35 +243,6 @@ func (w *ServerInterfaceWrapper) AuthenticateWithPassword(ctx echo.Context) erro
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.AuthenticateWithPassword(ctx)
-	return err
-}
-
-// AuthenticateWithSelfSigned converts echo context to params.
-func (w *ServerInterfaceWrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(BearerAuthScopes, []string{""})
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AuthenticateWithSelfSigned(ctx)
-	return err
-}
-
-// GetSelfSignedAuthenticationResult converts echo context to params.
-func (w *ServerInterfaceWrapper) GetSelfSignedAuthenticationResult(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "sessionToken" -------------
-	var sessionToken string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "sessionToken", runtime.ParamLocationPath, ctx.Param("sessionToken"), &sessionToken)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
-	}
-
-	ctx.Set(BearerAuthScopes, []string{""})
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetSelfSignedAuthenticationResult(ctx, sessionToken)
 	return err
 }
 
@@ -826,11 +826,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth", wrapper.SetCustomer)
 	router.POST(baseURL+"/auth/dummy", wrapper.AuthenticateWithDummy)
 	router.GET(baseURL+"/auth/dummy/session/:sessionToken/result", wrapper.GetDummyAuthenticationResult)
+	router.POST(baseURL+"/auth/employeeid/session", wrapper.AuthenticateWithEmployeeID)
+	router.GET(baseURL+"/auth/employeeid/session/:sessionToken/result", wrapper.GetEmployeeIDAuthenticationResult)
 	router.POST(baseURL+"/auth/irma/session", wrapper.AuthenticateWithIRMA)
 	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
-	router.POST(baseURL+"/auth/selfsigned/session", wrapper.AuthenticateWithSelfSigned)
-	router.GET(baseURL+"/auth/selfsigned/session/:sessionToken/result", wrapper.GetSelfSignedAuthenticationResult)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
 	router.POST(baseURL+"/external/transfer/notify/:taskID", wrapper.NotifyTransferUpdate)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)

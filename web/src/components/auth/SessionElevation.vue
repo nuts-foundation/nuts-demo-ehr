@@ -17,8 +17,8 @@
           <span class="text-lg font-semibold">IRMA</span>
         </button>
 
-        <button class="btn btn-secondary" @click="elevateWithSelfSigned" id="elevate-selfsigned-button">
-          <span class="text-lg font-semibold">Self-Signed</span>
+        <button class="btn btn-secondary" @click="elevateWithEmployeeID" id="elevate-employeeid-button">
+          <span class="text-lg font-semibold">EmployeeID</span>
         </button>
 
         <button class="btn btn-secondary" @click="elevateWithDummy" id="elevate-dummy-button">
@@ -26,9 +26,9 @@
         </button>
       </div>
     </div>
-    <div v-if="selfSignedSessionURL !== null" class="px-12 py-8">
-      <h1 class="mb-6 mt-12">Self-Signed Identity</h1>
-      <iframe :src="selfSignedSessionURL" title="Self-Signed Authentication"
+    <div v-if="employeeIDSessionURL !== null" class="px-12 py-8">
+      <h1 class="mb-6 mt-12">EmployeeID</h1>
+      <iframe :src="employeeIDSessionURL" title="EmployeeID Authentication"
               width="560" height="650"></iframe>
     </div>
 
@@ -50,8 +50,8 @@ export default {
     return {
       means: null,
       irmaLogo: irmaLogo,
-      selfSignedSessionURL: null,
-      selfSignedResultPoller: null,
+      employeeIDSessionURL: null,
+      employeeIDResultPoller: null,
     }
   },
   methods: {
@@ -63,21 +63,21 @@ export default {
     elevateWithIRMA() {
       this.means = "irma"
     },
-    elevateWithSelfSigned() {
-      this.means = "selfsigned"
-      // Elevation with self-signed means starting a self-signed means authentication session (providing the current auth session token),
+    elevateWithEmployeeID() {
+      this.means = "EmployeeID"
+      // Elevation with EmployeeID means starting a EmployeeID means authentication session (providing the current auth session token),
       // showing the user the returned URL (which is the consent page) in an IFrame,
       // then polling the server for the result of the authentication session.
-      this.$api.authenticateWithSelfSigned()
+      this.$api.authenticateWithEmployeeID()
           .then(session => {
             if (!session.sessionPtr.url) {
               throw "No URL returned by server";
             }
-            this.selfSignedSessionURL = session.sessionPtr.url;
-            this.selfSignedResultPoller = setInterval(() => {
-              this.$api.getSelfSignedAuthenticationResult({sessionToken: session.sessionID})
+            this.employeeIDSessionURL = session.sessionPtr.url;
+            this.employeeIDResultPoller = setInterval(() => {
+              this.$api.getEmployeeIDAuthenticationResult({sessionToken: session.sessionID})
                   .then((sessionResult) => {
-                    clearInterval(this.selfSignedResultPoller);
+                    clearInterval(this.employeeIDResultPoller);
                     if (sessionResult.token) {
                       // Wait for 3 seconds, so the user can see the result of the authentication session.
                       setTimeout(() => this.onElevationSuccess(sessionResult.token), 3000);
@@ -91,11 +91,11 @@ export default {
                         break;
                       default:
                         // All other cases are errors, unless the user rejected
-                        clearInterval(this.selfSignedResultPoller);
+                        clearInterval(this.employeeIDResultPoller);
                         if (err === "cancelled") {
-                          console.log('User has rejected self-signed auth');
+                          console.log('User has rejected EmployeeID auth');
                         } else {
-                          console.error('Self-signed authentication error: ' + err)
+                          console.error('EmployeeID authentication error: ' + err)
                         }
                     }
                   })
@@ -119,8 +119,8 @@ export default {
     }
   },
   beforeUnmount() {
-    if (this.selfSignedResultPoller) {
-      clearInterval(this.selfSignedResultPoller);
+    if (this.employeeIDResultPoller) {
+      clearInterval(this.employeeIDResultPoller);
     }
   }
 }

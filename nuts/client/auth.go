@@ -22,8 +22,8 @@ type Auth interface {
 	CreateIrmaSession(customerDID string) ([]byte, error)
 	GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 
-	CreateSelfSignedSession(params map[string]interface{}) ([]byte, error)
-	GetSelfSignedSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
+	CreateEmployeeIDSession(params map[string]interface{}) ([]byte, error)
+	GetEmployeeIDSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
 
 	CreateDummySession(customerDID string) ([]byte, error)
 	GetDummySessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error)
@@ -85,14 +85,14 @@ func (c HTTPClient) GetIrmaSessionResult(sessionToken string) (*nutsAuthClient.S
 	return c.getSessionResult(sessionToken)
 }
 
-func (c HTTPClient) CreateSelfSignedSession(params map[string]interface{}) ([]byte, error) {
+func (c HTTPClient) CreateEmployeeIDSession(params map[string]interface{}) ([]byte, error) {
 	if params == nil || params["employer"] == nil {
-		return nil, errors.New("invalid params for self-signed means")
+		return nil, errors.New("invalid params for EmployeeID means")
 	}
 	return c.createSession(params["employer"].(string), nutsAuthClient.SignSessionRequestMeansEmployeeid, params)
 }
 
-func (c HTTPClient) GetSelfSignedSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
+func (c HTTPClient) GetEmployeeIDSessionResult(sessionToken string) (*nutsAuthClient.SignSessionStatusResponse, error) {
 	return c.getSessionResult(sessionToken)
 }
 

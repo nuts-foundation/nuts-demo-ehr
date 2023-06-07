@@ -176,24 +176,24 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	return ctx.JSON(200, types.SessionToken{Token: string(newToken)})
 }
 
-func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
+func (w Wrapper) AuthenticateWithEmployeeID(ctx echo.Context) error {
 	// The method is called "Authenticate" but it is actually elevation,
 	// since it requires an existing session from with employee info.
 	var sessionID string
 	if sid, ok := ctx.Get(SessionID).(string); ok {
 		sessionID = sid
 	} else {
-		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (missing token)")
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for EmployeeID means (missing token)")
 	}
 
 	session := w.APIAuth.GetSession(sessionID)
 	if session == nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for self-signed means (unknown session)")
+		return echo.NewHTTPError(http.StatusUnauthorized, "existing session is required for EmployeeID means (unknown session)")
 	}
 
 	customer, _ := w.CustomerRepository.FindByID(session.CustomerID)
 	if customer == nil || customer.Did == nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "customer with DID required for self-signed means")
+		return echo.NewHTTPError(http.StatusUnauthorized, "customer with DID required for EmployeeID means")
 	}
 
 	params := map[string]interface{}{
@@ -205,7 +205,7 @@ func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
 			"familyName": session.UserInfo.FamilyName,
 		},
 	}
-	bytes, err := w.NutsAuth.CreateSelfSignedSession(params)
+	bytes, err := w.NutsAuth.CreateEmployeeIDSession(params)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (w Wrapper) AuthenticateWithSelfSigned(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, j)
 }
 
-func (w Wrapper) GetSelfSignedAuthenticationResult(ctx echo.Context, sessionToken string) error {
+func (w Wrapper) GetEmployeeIDAuthenticationResult(ctx echo.Context, sessionToken string) error {
 	authSession, err := w.getSession(ctx)
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (w Wrapper) GetSelfSignedAuthenticationResult(ctx echo.Context, sessionToke
 	authSessionID, _ := w.getSessionID(ctx) // can't fail
 
 	// forward to node
-	sessionStatus, err := w.NutsAuth.GetSelfSignedSessionResult(sessionToken)
+	sessionStatus, err := w.NutsAuth.GetEmployeeIDSessionResult(sessionToken)
 	if err != nil {
 		return err
 	}

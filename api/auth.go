@@ -147,7 +147,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
-			"/web/auth/selfsigned/session", // self-signed auth means require authenticated session for employee info
+			"/web/auth/employeeid/session", // EmployeeID auth means require authenticated session for employee info
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {

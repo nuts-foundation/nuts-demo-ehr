@@ -71,29 +71,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SessionToken"
-  /auth/selfsigned/session:
+  /auth/employeeid/session:
     post:
-      description: Create an self-signed means signing session.
-      operationId: authenticateWithSelfSigned
+      description: Create an EmployeeID means signing session.
+      operationId: authenticateWithEmployeeID
       responses:
         '200':
-          description: An self-signed means signing session was successfully created
+          description: An EmployeeID means signing session was successfully created
           content:
             application/json:
               schema:
                 type: object
-  /auth/selfsigned/session/{sessionToken}/result:
+  /auth/employeeid/session/{sessionToken}/result:
     parameters:
       - name: sessionToken
         in: path
-        description: Self-signed means session ID
+        description: EmployeeID means session ID
         required: true
         schema:
           type: string
     get:
       description: |
-        After a successful self-signed means signing session the resulting signature can be fetched using his endpoint.
-      operationId: getSelfSignedAuthenticationResult
+        After a successful EmployeeID means signing session the resulting signature can be fetched using his endpoint.
+      operationId: getEmployeeIDAuthenticationResult
       responses:
         '200':
           description: Session result

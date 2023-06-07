@@ -100,6 +100,34 @@ function createApi(options) {
           mode,
         });
     },
+    authenticateWithEmployeeID(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'authenticateWithEmployeeID');
+      return fetch(endpoint + basePath + '/auth/employeeid/session'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+        });
+    },
+    getEmployeeIDAuthenticationResult(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getEmployeeIDAuthenticationResult');
+      return fetch(endpoint + basePath + '/auth/employeeid/session/' + params['sessionToken'] + '/result'
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     authenticateWithIRMA(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {
@@ -143,34 +171,6 @@ function createApi(options) {
           mode,
           body: JSON.stringify(params['body']),
 
-        });
-    },
-    authenticateWithSelfSigned(parameters) {
-      const params = typeof parameters === 'undefined' ? {} : parameters;
-      let headers = {
-
-      };
-      handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'authenticateWithSelfSigned');
-      return fetch(endpoint + basePath + '/auth/selfsigned/session'
-        , {
-          method: 'POST',
-          headers,
-          mode,
-        });
-    },
-    getSelfSignedAuthenticationResult(parameters) {
-      const params = typeof parameters === 'undefined' ? {} : parameters;
-      let headers = {
-
-      };
-      handleSecurity([{"bearerAuth":[]}]
-          , headers, params, 'getSelfSignedAuthenticationResult');
-      return fetch(endpoint + basePath + '/auth/selfsigned/session/' + params['sessionToken'] + '/result'
-        , {
-          method: 'GET',
-          headers,
-          mode,
         });
     },
     listCustomers(parameters) {

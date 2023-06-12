@@ -13,14 +13,14 @@ require (
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/labstack/gommon v0.4.0
 	github.com/lestrrat-go/jwx v1.2.25
-	github.com/lestrrat-go/jwx/v2 v2.0.9
+	github.com/lestrrat-go/jwx/v2 v2.0.10
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
 	github.com/nuts-foundation/go-did v0.5.1
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20230530083350-19dbdd2c8dd1
 	github.com/sirupsen/logrus v1.9.2
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.14.4
 	golang.org/x/crypto v0.9.0
 )
@@ -31,7 +31,7 @@ require (
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
@@ -86,6 +86,7 @@ require (
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/redis/go-redis/v9 v9.0.5 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shengdoushi/base58 v1.0.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/labstack/gommon v0.4.0
 	github.com/lestrrat-go/jwx v1.2.26
-	github.com/lestrrat-go/jwx/v2 v2.0.10
+	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
 	github.com/nuts-foundation/go-did v0.5.1

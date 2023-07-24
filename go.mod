@@ -16,7 +16,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
-	github.com/nuts-foundation/go-did v0.5.1
+	github.com/nuts-foundation/go-did v0.6.2
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20230530083350-19dbdd2c8dd1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
@@ -85,7 +85,6 @@ require (
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nuts-foundation/crypto-ecies v0.0.0-20211207143025-5b84f9efce2b // indirect
-	github.com/nuts-foundation/did-ockam v0.0.0-20230313074753-fafd938c948c // indirect
 	github.com/nuts-foundation/go-leia/v3 v3.3.0 // indirect
 	github.com/nuts-foundation/go-stoabs v1.8.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect

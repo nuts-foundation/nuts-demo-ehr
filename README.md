@@ -13,7 +13,8 @@ for a quick setup. You can generate a localized data set using the [Internaltion
 
 This version is an updated version using vue.js as frontend framework and a Golang backend. It's based on the [nuts-registry-admin-demo](https://github.com/nuts-foundation/nuts-registry-admin-demo).
 
-Go to the [master](https://github.com/nuts-foundation/nuts-registry-admin-demo/tree/master/) branch to find the previous version of the app.
+Versions are in sync with the Nuts node version. The main branch uses the master branch of the Nuts node.
+Older versions have a `vX` branch.
 
 **NOTE THAT THIS APPLICATION IS NOT INTENDED FOR USE WITH REAL MEDICAL
 INFORMATION! IT IS IN NO WAY DEVELOPED TO BE SAFE, STABLE OR EVEN USABLE FOR

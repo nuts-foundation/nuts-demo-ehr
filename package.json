@@ -24,7 +24,7 @@
     "autoprefixer": "^10.4.13",
     "css-loader": "^6.10.0",
     "eslint": "^8.28.0",
-    "eslint-config-standard": "^17.0.0",
+    "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.28.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.1.1",

@@ -40,6 +40,21 @@ paths:
           description: Authentication successful.
         '403':
           description: Invalid credentials
+  /auth/webauthn:
+    post:
+      description: Authenticate using a WebAuthn device. If successful an authenticated session is created and returned.
+      operationId: authenticateWithWebAuthn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebAuthnAuthenticateRequest"
+      responses:
+        '204':
+          description: Authentication successful.
+        '403':
+          description: Invalid credentials
   # IRMA authentication
   /auth/irma/session:
     post:
@@ -860,6 +875,23 @@ components:
           type: integer
           example: 1
         password:
+          type: string
+    WebAuthnAuthenticateRequest:
+      required:
+        - customerID
+        - userID
+        - credentialID
+        - publicKey
+      properties:
+        customerID:
+          description: Internal ID of the customer for which is being logged in
+          type: integer
+          example: 1
+        userID:
+          type: string
+        credentialID:
+          type: string
+        publicKey:
           type: string
     Organization:
       description: A care organization available through the Nuts Network to exchange information.

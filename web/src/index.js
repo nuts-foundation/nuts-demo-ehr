@@ -6,6 +6,7 @@ import store from "./ehr/store"
 import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
+import WebAuthnAuthentication from './components/auth/WebAuthnAuthentication.vue'
 import PasswordAuthentication from './components/auth/PasswordAuthentication.vue'
 import IRMALogin from './components/auth/IRMALogin.vue'
 import Logout from './Logout.vue'
@@ -28,6 +29,7 @@ import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
 import Elevation from "./components/auth/SessionElevation.vue"
 import NewReport from "./ehr/patient/dossier/NewReport.vue"
+import SignTest from "./ehr/demo/SignTest.vue"
 
 const routes = [
   {path: '/', component: Login},
@@ -41,6 +43,12 @@ const routes = [
     name: 'logout',
     path: '/logout',
     component: Logout
+  },
+  {
+    name: 'auth.webauthn',
+    path: '/auth/webauthn/',
+    component: WebAuthnAuthentication,
+    props: route => ({redirectPath: route.query.redirect})
   },
   {
     name: 'auth.passwd',
@@ -144,6 +152,11 @@ const routes = [
         path: 'settings',
         name: 'ehr.settings',
         component: Settings
+      },
+      {
+        path: 'signtest',
+        name: 'ehr.signtest',
+        component: SignTest
       }
     ],
     meta: {requiresAuth: true}

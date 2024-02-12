@@ -13,8 +13,8 @@ import (
 
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type sqlTransfer struct {

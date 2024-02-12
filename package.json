@@ -46,6 +46,7 @@
     "@privacybydesign/irma-core": "^0.4.3",
     "@privacybydesign/irma-frontend": "^0.4.3",
     "@privacybydesign/irma-web": "^0.3.3",
+    "base-64": "^1.0.0",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
     "url": "^0.11.0",

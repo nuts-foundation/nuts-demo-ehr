@@ -191,6 +191,24 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	return token, userInfo, nil
 }
 
+func (auth *Auth) AuthenticateWebAuthn(customerID int, credentialID string) (string, UserInfo, error) {
+	_, err := auth.customers.FindByID(customerID)
+	if err != nil {
+		return "", UserInfo{}, errors.New("invalid customer ID")
+	}
+	if credentialID == "" {
+		return "", UserInfo{}, errors.New("authentication failed")
+	}
+	userInfo := UserInfo{
+		Identifier: credentialID,
+		RoleName:   "Verpleegkundige niveau 2",
+		Initials:   "T",
+		FamilyName: "Tester",
+	}
+	token := auth.createSession(customerID, userInfo)
+	return token, userInfo, nil
+}
+
 func (auth *Auth) Elevate(sessionID string, presentation auth.VerifiablePresentation) error {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()

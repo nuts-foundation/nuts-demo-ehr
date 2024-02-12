@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	types2 "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	types2 "github.com/oapi-codegen/runtime/types"
 	"github.com/tidwall/gjson"
 )
 

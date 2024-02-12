@@ -43,8 +43,8 @@ import (
 
 	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"

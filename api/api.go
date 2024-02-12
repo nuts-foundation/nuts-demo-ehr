@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
 	"strconv"
@@ -26,6 +29,8 @@ import (
 )
 
 const BearerAuthScopes = types.BearerAuthScopes
+
+var _ ServerInterface = (*Wrapper)(nil)
 
 type errorResponse struct {
 	Error error
@@ -94,6 +99,52 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 		return ctx.JSON(http.StatusForbidden, errorResponse{err})
 	}
 
+	token, err := w.APIAuth.CreateSessionJWT(customer.Name, userInfo.Identifier, req.CustomerID, sessionId, false)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.JSON(200, types.SessionToken{Token: string(token)})
+}
+
+func (w Wrapper) AuthenticateWithWebAuthn(ctx echo.Context) error {
+	req := types.WebAuthnAuthenticateRequest{}
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, errorResponse{err})
+	}
+
+	ctx.Echo().Logger.Infof("received publicKey: %s", req.PublicKey)
+	derEncodedKey, err := base64.StdEncoding.DecodeString(req.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	// convert to JWK and print
+	// first to PEM
+	pubBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derEncodedKey,
+	})
+	jwKey, err := jwk.ParseKey(pubBytes, jwk.WithPEM(true))
+	asJson, err := json.Marshal(jwKey)
+	if err != nil {
+		return err
+	}
+	// create did:jwk
+	didjwk := fmt.Sprintf("did:jwk:%s", base64.URLEncoding.EncodeToString(asJson))
+	ctx.Echo().Logger.Infof("registered did:jwk: %s", didjwk)
+
+	customer, err := w.CustomerRepository.FindByID(req.CustomerID)
+	if err != nil {
+		return err
+	}
+
+	sessionId, userInfo, err := w.APIAuth.AuthenticateWebAuthn(req.CustomerID, req.CredentialID)
+	if err != nil {
+		return ctx.JSON(http.StatusForbidden, errorResponse{err})
+	}
+
+	// userInfo.Identifier == req.UserID
 	token, err := w.APIAuth.CreateSessionJWT(customer.Name, userInfo.Identifier, req.CustomerID, sessionId, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)

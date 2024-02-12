@@ -1,7 +1,7 @@
 <template>
   <div class="flex justify-center">
 
-    <div class="mt-12 bg-white shadow-sm border rounded-md w-96 p-8 flex flex-col">
+    <div class="mt-12 bg-white shadow-sm border rounded-md w-fit p-8 flex flex-col">
       <h1>Nuts Demo EHR</h1>
       <h2>Login</h2>
 
@@ -28,7 +28,7 @@
           <div class="pt-6">
             <h2 class="mb-4">Pick a method:</h2>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <button class="btn btn-primary flex justify-center items-center w-full" @click="loginWithIRMA" v-bind:disabled="selectedCustomer === null">
               <span class="w-8 mr-2">
                 <img class="max-w-full" v-bind:src="irmaLogo">
@@ -41,6 +41,10 @@
 
               <button id="password-button" class="btn btn-primary block w-full" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
                 Password
+              </button>
+
+              <button id="webauthn-button" class="btn btn-primary block w-full" @click="loginWithWebAuthn" v-bind:disabled="selectedCustomer === null">
+                WebAuthn
               </button>
             </div>
           </div>
@@ -104,6 +108,11 @@ export default {
             this.loginError = response
           })
           .finally(() => this.loading = false)
+    },
+    loginWithWebAuthn() {
+      if (this.selectedCustomer) {
+        this.$router.push({name: 'auth.webauthn', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
+      }
     },
     loginWithPassword() {
       if (this.selectedCustomer) {

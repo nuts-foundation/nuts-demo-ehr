@@ -173,6 +173,23 @@ function createApi(options) {
 
         });
     },
+    authenticateWithWebAuthn(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+        'content-type': 'application/json',
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'authenticateWithWebAuthn');
+      return fetch(endpoint + basePath + '/auth/webauthn'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+          body: JSON.stringify(params['body']),
+
+        });
+    },
     listCustomers(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

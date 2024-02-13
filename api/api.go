@@ -37,9 +37,12 @@ func (e errorResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(asMap)
 }
 
+var _ ServerInterface = (*Wrapper)(nil)
+
 type Wrapper struct {
 	APIAuth                 *Auth
 	NutsAuth                nutsClient.Auth
+	NutsIam                 nutsClient.Iam
 	CustomerRepository      customers.Repository
 	PatientRepository       patients.Repository
 	ReportRepository        reports.Repository
@@ -100,6 +103,42 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(200, types.SessionToken{Token: string(token)})
+}
+
+func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context) error {
+	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	if err != nil {
+		return err
+	}
+	customer, err := w.CustomerRepository.FindByID(customerID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
+	}
+	response, err := w.NutsIam.CreateAuthenticationRequest(*customer.Did)
+	if err != nil {
+		return err
+	}
+
+	// convert to map so echo rendering doesn't escape double quotes
+	return ctx.JSON(http.StatusOK, response)
+}
+
+func (w Wrapper) GetOpenID4VPAuthenticationResult(ctx echo.Context, token string) error {
+	//customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
+	//if err != nil {
+	//	return err
+	//}
+	//customer, err := w.CustomerRepository.FindByID(customerID)
+	//if err != nil {
+	//	return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
+	//}
+	response, err := w.NutsIam.GetAuthenticationResult(token)
+	if err != nil {
+		return err
+	}
+
+	// convert to map so echo rendering doesn't escape double quotes
+	return ctx.JSON(http.StatusOK, response)
 }
 
 func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {

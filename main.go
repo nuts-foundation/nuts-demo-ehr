@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
+	openapiTypes "github.com/oapi-codegen/runtime/types"
 	"io"
 	"io/fs"
 	"log"
@@ -21,37 +21,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	log2 "github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/nuts-foundation/nuts-demo-ehr/api"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/episode"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
-
-	"github.com/nuts-foundation/nuts-demo-ehr/api"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
+	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
-
-	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
-
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/jmoiron/sqlx"
-
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	log2 "github.com/labstack/gommon/log"
 )
 
 const assetPath = "web/dist"
@@ -236,6 +230,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	apiWrapper := api.Wrapper{
 		APIAuth:                 auth,
 		NutsAuth:                nodeClient,
+		NutsIam:                 nodeClient,
 		CustomerRepository:      customerRepository,
 		PatientRepository:       patientRepository,
 		ReportRepository:        reportRepository,
@@ -269,8 +264,8 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 }
 
 func registerPatients(repository patients.Repository, db *sqlx.DB, customerID int) {
-	pdate := func(value time.Time) *openapi_types.Date {
-		val := openapi_types.Date{value}
+	pdate := func(value time.Time) *openapiTypes.Date {
+		val := openapiTypes.Date{Time: value}
 		return &val
 	}
 	pstring := func(value string) *string {

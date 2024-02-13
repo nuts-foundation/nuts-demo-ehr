@@ -8,7 +8,9 @@ import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
 import PasswordAuthentication from './components/auth/PasswordAuthentication.vue'
 import IRMALogin from './components/auth/IRMALogin.vue'
+import OpenID4VPLogin from './components/auth/OpenID4VPAuthentication.vue'
 import Logout from './Logout.vue'
+import Close from './Close.vue'
 import NotFound from './NotFound.vue'
 import Api from './plugins/api'
 import StatusReporter from './plugins/StatusReporter.js'
@@ -43,6 +45,11 @@ const routes = [
     component: Logout
   },
   {
+    name: 'close',
+    path: '/close',
+    component: Close
+  },
+  {
     name: 'auth.passwd',
     path: '/auth/passwd/',
     component: PasswordAuthentication,
@@ -52,6 +59,12 @@ const routes = [
     name: 'auth.irma',
     path: '/auth/irma/',
     component: IRMALogin,
+    props: route => ({redirectPath: route.query.redirect})
+  },
+  {
+    name: 'auth.openid4vp',
+    path: '/auth/openid4vp/',
+    component: OpenID4VPLogin,
     props: route => ({redirectPath: route.query.redirect})
   },
   {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	openapiTypes "github.com/oapi-codegen/runtime/types"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +14,6 @@ import (
 
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -42,7 +42,7 @@ func (dbNegotiation sqlNegotiation) MarshalToDomainNegotiation() (*types.Transfe
 		Id:              dbNegotiation.ID,
 		OrganizationDID: dbNegotiation.OrganizationDID,
 		Status:          types.FHIRTaskStatus(dbNegotiation.Status),
-		TransferDate:    openapi_types.Date{Time: dbNegotiation.Date},
+		TransferDate:    openapiTypes.Date{Time: dbNegotiation.Date},
 		TransferID:      dbNegotiation.TransferID,
 		TaskID:          dbNegotiation.TaskID,
 	}, nil
@@ -91,9 +91,9 @@ func (dbTransfer sqlTransfer) MarshalToDomainTransfer() (*types.Transfer, error)
 		return nil, fmt.Errorf("unknown tranfser status: '%s'", dbTransfer.Status)
 	}
 
-	var transferTime openapi_types.Date
+	var transferTime openapiTypes.Date
 	if dbTransfer.Date.Valid {
-		transferTime = openapi_types.Date{Time: dbTransfer.Date.Time}
+		transferTime = openapiTypes.Date{Time: dbTransfer.Date.Time}
 	}
 
 	return &types.Transfer{
@@ -289,7 +289,7 @@ func (r SQLiteTransferRepository) Create(ctx context.Context, customerID int, do
 		DossierID:                    dossierID,
 		Status:                       types.Created,
 		FhirAdvanceNoticeComposition: fhirAdvanceNoticeCompositionID,
-		TransferDate:                 openapi_types.Date{Time: date},
+		TransferDate:                 openapiTypes.Date{Time: date},
 	}
 	dbTransfer := sqlTransfer{}
 	if err := dbTransfer.UnmarshalFromDomainTransfer(customerID, *transfer); err != nil {

@@ -156,6 +156,34 @@ function createApi(options) {
           mode,
         });
     },
+    createAuthorizationRequest(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'createAuthorizationRequest');
+      return fetch(endpoint + basePath + '/auth/openid4vp'
+        , {
+          method: 'POST',
+          headers,
+          mode,
+        });
+    },
+    getOpenID4VPAuthenticationResult(parameters) {
+      const params = typeof parameters === 'undefined' ? {} : parameters;
+      let headers = {
+
+      };
+      handleSecurity([{"bearerAuth":[]}]
+          , headers, params, 'getOpenID4VPAuthenticationResult');
+      return fetch(endpoint + basePath + '/auth/openid4vp/' + params['token'] + ''
+        , {
+          method: 'GET',
+          headers,
+          mode,
+        });
+    },
     authenticateWithPassword(parameters) {
       const params = typeof parameters === 'undefined' ? {} : parameters;
       let headers = {

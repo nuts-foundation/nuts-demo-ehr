@@ -3,10 +3,10 @@ package eoverdracht
 import (
 	"encoding/json"
 	"fmt"
+	openapiTypes "github.com/oapi-codegen/runtime/types"
 	"strings"
 	"time"
 
-	types2 "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -46,7 +46,7 @@ func ToDomainPatient(fhirPatient resources.Patient) types.Patient {
 	avatar := p.Get(`photo.0.url`).String()
 	return types.Patient{
 		ObjectID:  p.Get("id").String(),
-		Dob:       &types2.Date{Time: dob},
+		Dob:       &openapiTypes.Date{Time: dob},
 		Email:     nil,
 		FirstName: p.Get(`name.0.given.0`).String(),
 		Gender:    gender,
@@ -68,7 +68,7 @@ func AdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProperti
 	domainTransfer := types.TransferProperties{
 		Patient:      patient,
 		CarePlan:     types.CarePlan{PatientProblems: []types.PatientProblem{}},
-		TransferDate: types2.Date{Time: transferDate},
+		TransferDate: openapiTypes.Date{Time: transferDate},
 	}
 
 	for _, condition := range notice.Problems {
@@ -99,7 +99,7 @@ func NursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.Transf
 	domainTransfer := types.TransferProperties{
 		Patient:      patient,
 		CarePlan:     types.CarePlan{PatientProblems: []types.PatientProblem{}},
-		TransferDate: types2.Date{Time: transferDate},
+		TransferDate: openapiTypes.Date{Time: transferDate},
 	}
 
 	for _, condition := range nursingHandoff.Problems {

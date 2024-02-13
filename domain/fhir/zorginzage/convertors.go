@@ -1,9 +1,9 @@
 package zorginzage
 
 import (
+	openapiTypes "github.com/oapi-codegen/runtime/types"
 	"time"
 
-	types2 "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
@@ -25,8 +25,7 @@ func ToEpisode(episode *fhir.EpisodeOfCare) *types.Episode {
 	return &types.Episode{
 		Id:        types.ObjectID(fhir.FromIDPtr(episode.ID)),
 		Status:    &status,
-		Period:    types.Period{Start: &types2.Date{Time: periodStart}},
+		Period:    types.Period{Start: &openapiTypes.Date{Time: periodStart}},
 		Diagnosis: diagnosis,
 	}
 }
-

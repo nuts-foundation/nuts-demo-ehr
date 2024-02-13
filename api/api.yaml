@@ -40,6 +40,45 @@ paths:
           description: Authentication successful.
         '403':
           description: Invalid credentials
+  # OpenID4VP authentication to self
+  /auth/openid4vp:
+    post:
+      description: Create an OAuth2 authorize request. It returns a redirectURL.
+      operationId: createAuthorizationRequest
+      responses:
+        '200':
+          description: Request created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirect_uri:
+                    type: string
+                    description: The URL to redirect the user to.
+                  session_id:
+                    type: string
+                    description: The session ID to use for the token request.
+  /auth/openid4vp/{token}:
+    parameters:
+      - name: token
+        in: path
+        description: The session ID
+        required: true
+        schema:
+          type: string
+    get:
+      description: |
+        After a successful OAuth2 authorize request the resulting token can be fetched using his endpoint.
+      operationId: getOpenID4VPAuthenticationResult
+      responses:
+        '200':
+          description: Session result with access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+
   # IRMA authentication
   /auth/irma/session:
     post:
@@ -850,6 +889,44 @@ components:
         token:
           type: string
           description: the result from a signing session. It's an updated JWT.
+    TokenResponse:
+      type: object
+      description: |
+        Token Responses are made as defined in (RFC6749)[https://datatracker.ietf.org/doc/html/rfc6749#section-5.1]
+      required:
+        - access_token
+        - token_type
+      properties:
+        access_token:
+          type: string
+          description: |
+            The access token issued by the authorization server.
+          example: "eyJhbGciOiJSUzI1NiIsInR5cCI6Ikp..sHQ"
+        token_type:
+          type: string
+          description: |
+            The type of the token issued as described in [RFC6749].
+          example: "bearer"
+        scope:
+          type: string
+        status:
+          type: string
+          description: |
+            The status of the access token request. Can be 'pending' or 'active'.
+            If the status is 'pending', the access token is not yet available.
+            Only used when the access token is requested through /request-user-access-token.
+          enum: [ pending, active ]
+        expires_in:
+          type: integer
+          description: |
+            The lifetime in seconds of the access token.
+          example: 3600
+      example:
+        {
+          "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6Ikp..sHQ",
+          "token_type": "bearer",
+          "expires_in": 3600,
+        }
     PasswordAuthenticateRequest:
       required:
         - customerID

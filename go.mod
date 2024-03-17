@@ -14,7 +14,7 @@ require (
 	github.com/knadh/koanf v1.5.0
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/labstack/gommon v0.4.2
-	github.com/lestrrat-go/jwx v1.2.28
+	github.com/lestrrat-go/jwx v1.2.29
 	github.com/lestrrat-go/jwx/v2 v2.0.19
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
@@ -22,7 +22,7 @@ require (
 	github.com/nuts-foundation/nuts-node v1.0.1-0.20240211124130-dcf636dfc035
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.1
 	golang.org/x/crypto v0.21.0
 )

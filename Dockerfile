@@ -12,7 +12,7 @@ RUN npm run build
 #
 # Build backend
 #
-FROM golang:1.19-alpine as backend-builder
+FROM golang:1.22-alpine as backend-builder
 
 ARG TARGETARCH
 ARG TARGETOS

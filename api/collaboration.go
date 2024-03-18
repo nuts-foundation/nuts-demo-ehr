@@ -21,6 +21,12 @@ func (w Wrapper) CreateCollaboration(ctx echo.Context, dossierID string) error {
 	if err != nil {
 		return err
 	}
+	if customer.Did == nil || *customer.Did == "" {
+		return errors.New("DID missing for customer")
+	}
+	if request.Sender.Did == "" {
+		return errors.New("DID missing for other party")
+	}
 
 	dossier, err := w.DossierRepository.FindByID(ctx.Request().Context(), customer.Id, dossierID)
 	if err != nil {
@@ -73,7 +79,9 @@ func (w Wrapper) GetCollaboration(ctx echo.Context, dossierID string) error {
 	}
 
 	// We want to find collaborations pointing to us, so we don't want to search on the customer DID
-	collaborations, err := w.EpisodeService.GetCollaborations(ctx.Request().Context(), "", dossierID, *patient.Ssn)
+	// TODO: We changed this API to showing organizations we shared this episode with, need to
+	//       add another method that shows organizations that shared with us
+	collaborations, err := w.EpisodeService.GetCollaborations(ctx.Request().Context(), *customer.Did, dossierID, *patient.Ssn)
 	if err != nil {
 		return err
 	}

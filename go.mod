@@ -1,8 +1,6 @@
 module github.com/nuts-foundation/nuts-demo-ehr
 
-go 1.21
-
-toolchain go1.21.0
+go 1.22
 
 require (
 	github.com/avast/retry-go/v4 v4.5.1

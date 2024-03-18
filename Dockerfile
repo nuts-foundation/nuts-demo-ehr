@@ -12,7 +12,7 @@ RUN npm run build
 #
 # Build backend
 #
-FROM golang:1.19-alpine as backend-builder
+FROM golang:1.22-alpine as backend-builder
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -33,7 +33,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 COPY --from=frontend-builder /app/web/dist /app/web/dist
-RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/nuts-demo-ehr
+RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/nuts-demo-ehr
 
 #
 # Runtime

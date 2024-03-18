@@ -58,7 +58,7 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead>
           <tr>
-            <th>Organization</th>
+            <th>Organizations this episode is shared with</th>
           </tr>
           </thead>
           <tbody>
@@ -126,8 +126,8 @@ export default {
           .catch(error => this.$status.error(error))
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations({query: query, discoveryServiceType: 'zorginzage-demo', didServiceType: "zorginzage-demo"})
-          .then((result) => this.organizations = result.data)
+      this.$api.searchOrganizations(null, {query: {"credentialSubject.organization.name": query + '*'}, excludeOwn: true})
+          .then((result) => this.organizations = Object.values(result.data))
           .catch(error => this.$status.error(error))
     },
   },

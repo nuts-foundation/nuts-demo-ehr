@@ -50,6 +50,9 @@ type ServerInterface interface {
 	// (POST /external/transfer/notify/{taskID})
 	NotifyTransferUpdate(ctx echo.Context, taskID string) error
 
+	// (GET /internal/acl/{tenantDID}/{authorizedDID})
+	GetACL(ctx echo.Context, tenantDID string, authorizedDID string) error
+
 	// (PUT /internal/customer/{customerID}/task/{taskID})
 	TaskUpdate(ctx echo.Context, customerID int, taskID string) error
 
@@ -77,14 +80,17 @@ type ServerInterface interface {
 	// (POST /private/episode/{episodeID}/collaboration)
 	CreateCollaboration(ctx echo.Context, episodeID string) error
 
+	// (POST /private/network/discovery)
+	SearchOrganizations(ctx echo.Context) error
+
 	// (GET /private/network/inbox)
 	GetInbox(ctx echo.Context) error
 
 	// (GET /private/network/inbox/info)
 	GetInboxInfo(ctx echo.Context) error
 
-	// (GET /private/network/organizations)
-	SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error
+	// (GET /private/network/patient)
+	GetRemotePatient(ctx echo.Context, params GetRemotePatientParams) error
 
 	// (GET /private/patient/{patientID})
 	GetPatient(ctx echo.Context, patientID string) error
@@ -310,6 +316,26 @@ func (w *ServerInterfaceWrapper) NotifyTransferUpdate(ctx echo.Context) error {
 	return err
 }
 
+// GetACL converts echo context to params.
+func (w *ServerInterfaceWrapper) GetACL(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "tenantDID" -------------
+	var tenantDID string
+
+	tenantDID = ctx.Param("tenantDID")
+
+	// ------------- Path parameter "authorizedDID" -------------
+	var authorizedDID string
+
+	authorizedDID = ctx.Param("authorizedDID")
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetACL(ctx, tenantDID, authorizedDID)
+	return err
+}
+
 // TaskUpdate converts echo context to params.
 func (w *ServerInterfaceWrapper) TaskUpdate(ctx echo.Context) error {
 	var err error
@@ -452,6 +478,17 @@ func (w *ServerInterfaceWrapper) CreateCollaboration(ctx echo.Context) error {
 	return err
 }
 
+// SearchOrganizations converts echo context to params.
+func (w *ServerInterfaceWrapper) SearchOrganizations(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SearchOrganizations(ctx)
+	return err
+}
+
 // GetInbox converts echo context to params.
 func (w *ServerInterfaceWrapper) GetInbox(ctx echo.Context) error {
 	var err error
@@ -474,37 +511,37 @@ func (w *ServerInterfaceWrapper) GetInboxInfo(ctx echo.Context) error {
 	return err
 }
 
-// SearchOrganizations converts echo context to params.
-func (w *ServerInterfaceWrapper) SearchOrganizations(ctx echo.Context) error {
+// GetRemotePatient converts echo context to params.
+func (w *ServerInterfaceWrapper) GetRemotePatient(ctx echo.Context) error {
 	var err error
 
 	ctx.Set(BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params SearchOrganizationsParams
-	// ------------- Required query parameter "query" -------------
+	var params GetRemotePatientParams
+	// ------------- Required query parameter "patientSSN" -------------
 
-	err = runtime.BindQueryParameter("form", true, true, "query", ctx.QueryParams(), &params.Query)
+	err = runtime.BindQueryParameter("form", true, true, "patientSSN", ctx.QueryParams(), &params.PatientSSN)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter query: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientSSN: %s", err))
 	}
 
-	// ------------- Optional query parameter "didServiceType" -------------
+	// ------------- Required query parameter "remotePartyDID" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "didServiceType", ctx.QueryParams(), &params.DidServiceType)
+	err = runtime.BindQueryParameter("form", true, true, "remotePartyDID", ctx.QueryParams(), &params.RemotePartyDID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter didServiceType: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter remotePartyDID: %s", err))
 	}
 
-	// ------------- Required query parameter "discoveryServiceType" -------------
+	// ------------- Required query parameter "scope" -------------
 
-	err = runtime.BindQueryParameter("form", true, true, "discoveryServiceType", ctx.QueryParams(), &params.DiscoveryServiceType)
+	err = runtime.BindQueryParameter("form", true, true, "scope", ctx.QueryParams(), &params.Scope)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter discoveryServiceType: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter scope: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.SearchOrganizations(ctx, params)
+	err = w.Handler.GetRemotePatient(ctx, params)
 	return err
 }
 
@@ -877,6 +914,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
 	router.POST(baseURL+"/external/transfer/notify/:taskID", wrapper.NotifyTransferUpdate)
+	router.GET(baseURL+"/internal/acl/:tenantDID/:authorizedDID", wrapper.GetACL)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
@@ -886,9 +924,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/episode/:episodeID", wrapper.GetEpisode)
 	router.GET(baseURL+"/private/episode/:episodeID/collaboration", wrapper.GetCollaboration)
 	router.POST(baseURL+"/private/episode/:episodeID/collaboration", wrapper.CreateCollaboration)
+	router.POST(baseURL+"/private/network/discovery", wrapper.SearchOrganizations)
 	router.GET(baseURL+"/private/network/inbox", wrapper.GetInbox)
 	router.GET(baseURL+"/private/network/inbox/info", wrapper.GetInboxInfo)
-	router.GET(baseURL+"/private/network/organizations", wrapper.SearchOrganizations)
+	router.GET(baseURL+"/private/network/patient", wrapper.GetRemotePatient)
 	router.GET(baseURL+"/private/patient/:patientID", wrapper.GetPatient)
 	router.PUT(baseURL+"/private/patient/:patientID", wrapper.UpdatePatient)
 	router.GET(baseURL+"/private/patients", wrapper.GetPatients)

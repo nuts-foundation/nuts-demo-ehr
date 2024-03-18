@@ -10,7 +10,6 @@ import (
 	"github.com/avast/retry-go/v4"
 
 	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -184,7 +183,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		}
 
 		// Build the list of resources for the authorization credential:
-		authorizedResources := []credential.Resource{
+		authorizedResources := []registry.Resource{
 			{
 				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
 				Operations: []string{"read", "update"},
@@ -203,7 +202,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// Include subject reference (patient)
 		resourcePaths = append(resourcePaths, fhir.FromStringPtr(composition.Subject.Reference))
 		for _, path := range resourcePaths {
-			authorizedResources = append(authorizedResources, credential.Resource{
+			authorizedResources = append(authorizedResources, registry.Resource{
 				Path:           path,
 				Operations:     []string{"read", "document"},
 				UserContext:    true,
@@ -211,7 +210,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			})
 		}
 
-		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
+		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
 			ID:           organizationDID,
 			PurposeOfUse: transfer.SenderServiceName,
 			Resources:    authorizedResources,
@@ -342,7 +341,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			return nil, fmt.Errorf("unable to confirm negotiation: could not revoke advance notice authorization credential: %w", err)
 		}
 
-		authorizedResources := []credential.Resource{
+		authorizedResources := []registry.Resource{
 			{
 				Path:       fmt.Sprintf("/Task/%s", negotiation.TaskID),
 				Operations: []string{"read", "update"},
@@ -362,7 +361,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			if _, exists := processedPaths[path]; exists {
 				continue
 			}
-			authorizedResources = append(authorizedResources, credential.Resource{
+			authorizedResources = append(authorizedResources, registry.Resource{
 				Path:           path,
 				Operations:     []string{"read", "document"},
 				UserContext:    true,
@@ -372,7 +371,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
-		if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &credential.NutsAuthorizationCredentialSubject{
+		if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
 			ID:           negotiation.OrganizationDID,
 			PurposeOfUse: transfer.SenderServiceName,
 			Resources:    authorizedResources,
@@ -712,7 +711,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string) error {
 	// Create an Auth Credential for the Task
 	authorizedTask := s.taskForNursingHandoff(transferTask.ID)
-	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
+	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &registry.NutsAuthorizationCredentialSubject{
 		ID:           organizationDID,
 		PurposeOfUse: transfer.SenderServiceName,
 		Resources:    authorizedTask,
@@ -723,7 +722,7 @@ func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverd
 	// Build the list of resources for the authorization credential:
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
 
-	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
+	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &registry.NutsAuthorizationCredentialSubject{
 		ID:           organizationDID,
 		PurposeOfUse: transfer.SenderServiceName,
 		Resources:    authorizedResources,
@@ -752,8 +751,8 @@ func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID i
 	return &nursingHandoffComposition, err
 }
 
-func (s service) taskForNursingHandoff(taskID string) []credential.Resource {
-	return []credential.Resource{
+func (s service) taskForNursingHandoff(taskID string) []registry.Resource {
+	return []registry.Resource{
 		{
 			Path:       fmt.Sprintf("/Task/%s", taskID),
 			Operations: []string{"read", "update"},
@@ -761,8 +760,8 @@ func (s service) taskForNursingHandoff(taskID string) []credential.Resource {
 	}
 }
 
-func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []credential.Resource {
-	authorizedResources := []credential.Resource{
+func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []registry.Resource {
+	authorizedResources := []registry.Resource{
 		{
 			Path:           fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
 			Operations:     []string{"read", "document"},
@@ -779,7 +778,7 @@ func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Comp
 	// Add paths of resources of both the advance notice and the nursing handoff
 	resourcePaths := resourcePathsFromSection(nursingHandoffComposition.Section, []string{})
 	for _, path := range resourcePaths {
-		authorizedResources = append(authorizedResources, credential.Resource{
+		authorizedResources = append(authorizedResources, registry.Resource{
 			Path:           path,
 			Operations:     []string{"read"},
 			UserContext:    true,

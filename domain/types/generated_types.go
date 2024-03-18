@@ -235,6 +235,9 @@ type Organization struct {
 	// Did Decentralized Identifier which uniquely identifies the care organization on the Nuts Network.
 	Did string `json:"did"`
 
+	// DiscoveryServices List of Discovery Services the care organization is registered with.
+	DiscoveryServices []string `json:"discoveryServices"`
+
 	// Name Name of the care organization.
 	Name string `json:"name"`
 }
@@ -319,6 +322,13 @@ type Problem struct {
 
 // ProblemStatus defines model for Problem.Status.
 type ProblemStatus string
+
+// RemotePatientFile A patient file from a remote XIS.
+type RemotePatientFile struct {
+	// Observations List of FHIR Observation resources for the patient.
+	Observations []map[string]interface{} `json:"observations"`
+	Patient      Patient                  `json:"patient"`
+}
 
 // Report defines model for Report.
 type Report struct {
@@ -451,16 +461,31 @@ type TransferRequest struct {
 	TransferDate *openapi_types.Date `json:"transferDate,omitempty"`
 }
 
-// SearchOrganizationsParams defines parameters for SearchOrganizations.
-type SearchOrganizationsParams struct {
-	// Query Keyword for finding care organizations.
-	Query string `form:"query" json:"query"`
-
+// SearchOrganizationsJSONBody defines parameters for SearchOrganizations.
+type SearchOrganizationsJSONBody struct {
 	// DidServiceType Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own. If not supplied, care organizations aren't filtered on service.
-	DidServiceType *string `form:"didServiceType,omitempty" json:"didServiceType,omitempty"`
+	DidServiceType *string `json:"didServiceType,omitempty"`
 
-	// DiscoveryServiceType Filters other care organizations on the Nuts Network on service, only returning care organizations that registered for the given service at a discovery server.
-	DiscoveryServiceType string `form:"discoveryServiceType" json:"discoveryServiceType"`
+	// DiscoveryServiceID Filters other care organizations on the Nuts Network, only returning care organizations that registered for the given Discovery Service. It false, it will search on all Discovery Services.
+	DiscoveryServiceID *string `json:"discoveryServiceID,omitempty"`
+
+	// ExcludeOwn If true, the current care organization is excluded from the search results. Defaults to false.
+	ExcludeOwn *bool `json:"excludeOwn,omitempty"`
+
+	// Query The search query, key-value string properties. E.g.: 'credentialSubject.organization.name: Ziekenhuis'
+	Query map[string]string `json:"query"`
+}
+
+// GetRemotePatientParams defines parameters for GetRemotePatient.
+type GetRemotePatientParams struct {
+	// PatientSSN The patient's SSN
+	PatientSSN string `form:"patientSSN" json:"patientSSN"`
+
+	// RemotePartyDID The DID of the remote party.
+	RemotePartyDID string `form:"remotePartyDID" json:"remotePartyDID"`
+
+	// Scope The OAuth2 scope to request.
+	Scope string `form:"scope" json:"scope"`
 }
 
 // GetPatientsParams defines parameters for GetPatients.
@@ -495,6 +520,9 @@ type CreateEpisodeJSONRequestBody = CreateEpisodeRequest
 
 // CreateCollaborationJSONRequestBody defines body for CreateCollaboration for application/json ContentType.
 type CreateCollaborationJSONRequestBody = CreateCollaborationRequest
+
+// SearchOrganizationsJSONRequestBody defines body for SearchOrganizations for application/json ContentType.
+type SearchOrganizationsJSONRequestBody SearchOrganizationsJSONBody
 
 // UpdatePatientJSONRequestBody defines body for UpdatePatient for application/json ContentType.
 type UpdatePatientJSONRequestBody = PatientProperties

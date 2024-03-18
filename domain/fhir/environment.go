@@ -13,7 +13,7 @@ func InitializeTenant(fhirServerURL string, tenant string) error {
 	restClient := resty.New()
 
 	// Check if tenant already exists
-	response, err := restClient.R().SetQueryParam("id", tenant).Get(buildRequestURI(fhirServerURL, "DEFAULT", "$partition-management-read-partition"))
+	response, err := restClient.R().SetQueryParam("id", tenant).Get(buildRequestURI(fhirServerURL, "DEFAULT", "$partition-management-read-partition").String())
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func InitializeTenant(fhirServerURL string, tenant string) error {
 			{Name: ToStringPtr("name"), ValueCode: ToCodePtr(tenant)},
 		},
 	}
-	response, err = restClient.R().SetHeader("Content-Type", "application/json").SetBody(parameters).Post(buildRequestURI(fhirServerURL, "DEFAULT", "$partition-management-create-partition"))
+	response, err = restClient.R().SetHeader("Content-Type", "application/json").SetBody(parameters).Post(buildRequestURI(fhirServerURL, "DEFAULT", "$partition-management-create-partition").String())
 	if err != nil {
 		return fmt.Errorf("unable create new HAPI FHIR Server partition: %w", err)
 	}

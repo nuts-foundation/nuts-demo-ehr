@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
-	"github.com/nuts-foundation/nuts-node/vcr/holder"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vcr"
 )
+
+var NutsV1ContextURI = ssi.MustParseURI("https://nuts.nl/credentials/v1")
+var VerifiableCredentialLDContextV1 = ssi.MustParseURI("https://www.w3.org/2018/credentials/v1")
 
 type VCRClient interface {
 	CreateVC(ctx context.Context, typeName, issuer string, credentialSubject map[string]interface{}, expirationDate *time.Time, publishPublic bool) error
@@ -105,7 +106,7 @@ func (c HTTPClient) ResolveCredential(ctx context.Context, credentialID string) 
 
 func GetNutsCredentialTemplate(credentialType ssi.URI) vcr.SearchVCQuery {
 	return vcr.SearchVCQuery{
-		Context: []ssi.URI{holder.VerifiableCredentialLDContextV1, credential.NutsV1ContextURI},
+		Context: []ssi.URI{VerifiableCredentialLDContextV1, NutsV1ContextURI},
 		Type:    []ssi.URI{vc.VerifiableCredentialTypeV1URI(), credentialType},
 	}
 }

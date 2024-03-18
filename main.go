@@ -10,7 +10,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
 	openapiTypes "github.com/oapi-codegen/runtime/types"
+
 	"io"
 	"io/fs"
 	"log"
@@ -45,6 +48,7 @@ import (
 	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -226,12 +230,16 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	}
 	auth := api.NewAuth(config.sessionKey, customerRepository, passwd)
 
+	aclRepository, err := acl.NewRepository(sqlDB)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Initialize wrapper
 	apiWrapper := api.Wrapper{
 		APIAuth:                 auth,
-		NutsAuth:                nodeClient,
-		NutsIam:                 nodeClient,
-		NutsDiscovery:           nodeClient,
+		ACL:                     aclRepository,
+		NutsClient:              nodeClient,
 		CustomerRepository:      customerRepository,
 		PatientRepository:       patientRepository,
 		ReportRepository:        reportRepository,
@@ -241,8 +249,9 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferSenderService:   transferSenderService,
 		TransferReceiverService: transferReceiverService,
 		TransferReceiverRepo:    transferReceiverRepo,
+		ZorginzageService:       domain.ZorginzageService{NutsClient: nodeClient},
 		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
-		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry),
+		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry, aclRepository),
 		TenantInitializer:       tenantInitializer,
 		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
 	}

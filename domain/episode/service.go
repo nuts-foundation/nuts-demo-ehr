@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	"github.com/sirupsen/logrus"
+	"net/url"
 	"strings"
 
 	"github.com/monarko/fhirgo/STU3/resources"
@@ -14,23 +18,22 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 type Service interface {
 	Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error)
 	Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error)
 	GetReports(ctx context.Context, customerDID, patientSSN string) ([]types.Report, error)
-	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error
-	GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string) ([]types.Collaboration, error)
+	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string, client fhir.Client) error
+	GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string, client fhir.Client) ([]types.Collaboration, error)
 }
 
 func ssnURN(ssn string) string {
 	return fmt.Sprintf("urn:oid:2.16.840.1.113883.2.4.6.3:%s", ssn)
 }
 
-func parseAuthCredentialSubject(authCredential vc.VerifiableCredential) (*credential.NutsAuthorizationCredentialSubject, error) {
-	subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+func parseAuthCredentialSubject(authCredential vc.VerifiableCredential) (*registry.NutsAuthorizationCredentialSubject, error) {
+	subject := make([]registry.NutsAuthorizationCredentialSubject, 0)
 
 	if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
 		return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
@@ -40,14 +43,16 @@ func parseAuthCredentialSubject(authCredential vc.VerifiableCredential) (*creden
 }
 
 type service struct {
-	factory  fhir.Factory
-	auth     auth.Service
-	registry registry.OrganizationRegistry
-	vcr      registry.VerifiableCredentialRegistry
+	factory       fhir.Factory
+	auth          auth.Service
+	aclRepository *acl.Repository
+	nutsClient    nutsClient.HTTPClient
+	registry      registry.OrganizationRegistry
+	vcr           registry.VerifiableCredentialRegistry
 }
 
-func NewService(factory fhir.Factory, auth auth.Service, registry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry) Service {
-	return &service{factory: factory, auth: auth, registry: registry, vcr: vcr}
+func NewService(factory fhir.Factory, auth auth.Service, registry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, aclRepository *acl.Repository) Service {
+	return &service{factory: factory, auth: auth, registry: registry, vcr: vcr, aclRepository: aclRepository}
 }
 
 func parseEpisodeOfCareID(authCredential vc.VerifiableCredential) (string, error) {
@@ -87,66 +92,96 @@ func (service *service) Get(ctx context.Context, customerID int, dossierID strin
 	return zorginzage.ToEpisode(episode), nil
 }
 
-func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error {
-	subject := ssnURN(patientSSN)
-
-	return service.vcr.CreateAuthorizationCredential(ctx, customerDID, &credential.NutsAuthorizationCredentialSubject{
-		ID:           senderDID,
-		Subject:      &subject,
-		PurposeOfUse: zorginzage.ServiceName,
-		Resources: []credential.Resource{
-			{
-				Path:       fmt.Sprintf("/EpisodeOfCare/%s", dossierID),
-				Operations: []string{"read"},
-			},
+func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string, client fhir.Client) error {
+	// TODO: Need to formalize this in a use case specification
+	type authorizedResource struct {
+		Path       string
+		Parameters map[string]string
+		Operations []string
+	}
+	authorizedResources := []authorizedResource{
+		{
+			Path:       "Patient",
+			Parameters: map[string]string{"identifier": patientSSN},
+			Operations: []string{"read"},
 		},
-	})
+		// TODO: Do we need this particular one?
+		{
+			Path:       fmt.Sprintf("/EpisodeOfCare/%s", dossierID),
+			Operations: []string{"read"},
+		},
+		{
+			Path:       "/EpisodeOfCare",
+			Parameters: map[string]string{"patient.identifier": patientSSN},
+			Operations: []string{"read"},
+		},
+		{
+			Path:       "/Observation",
+			Parameters: map[string]string{"patient.identifier": patientSSN},
+			Operations: []string{"read"},
+		},
+	}
+	for _, resource := range authorizedResources {
+		resourceURL := buildResourcePath(client, resource.Path, resource.Parameters)
+		for _, op := range resource.Operations {
+			if err := service.aclRepository.GrantAccess(ctx, customerDID, senderDID, op, resourceURL); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
-func (service *service) GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string) ([]types.Collaboration, error) {
-	params := &registry.VCRSearchParams{
-		PurposeOfUse: zorginzage.ServiceName,
-		Subject:      ssnURN(patientSSN),
-		ResourcePath: fmt.Sprintf("/EpisodeOfCare/%s", dossierID),
+func buildResourcePath(client fhir.Client, resourcePath string, query map[string]string) string {
+	resourceURL := client.BuildRequestURI(resourcePath)
+	resourceURL.Host = ""
+	resourceURL.Scheme = ""
+	if len(query) > 0 {
+		values := url.Values{}
+		for key, value := range query {
+			values.Add(key, value)
+		}
+		resourceURL.RawQuery = values.Encode()
 	}
+	return resourceURL.String()
+}
 
-	if customerDID != "" {
-		params.SubjectID = customerDID
+func (service *service) GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string, client fhir.Client) ([]types.Collaboration, error) {
+	// Find collaborators given the parties that have access to relevant FHIR resources
+	searchResources := []string{
+		buildResourcePath(client, "EpisodeOfCare/"+dossierID, nil),
 	}
-
-	credentials, err := service.vcr.FindAuthorizationCredentials(
-		ctx,
-		params,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	var subjects []credential.NutsAuthorizationCredentialSubject
-
-	for _, authCredential := range credentials {
-		subject, err := parseAuthCredentialSubject(authCredential)
+	authorizedDIDs := make(map[string]struct{})
+	for _, resource := range searchResources {
+		dids, err := service.aclRepository.AuthorizedParties(ctx, customerDID, resource, "read")
 		if err != nil {
 			return nil, err
 		}
-
-		subjects = append(subjects, *subject)
+		for _, did := range dids {
+			authorizedDIDs[did] = struct{}{}
+		}
 	}
 
-	episodeID := types.ObjectID(dossierID)
+	episodeID := dossierID
 
 	var collaborations []types.Collaboration
 
-	for _, subject := range subjects {
-		org, err := service.registry.Get(ctx, subject.ID)
+	for authorizedDID, _ := range authorizedDIDs {
+		org, err := service.registry.Get(ctx, authorizedDID)
 		if err != nil {
-			return nil, err
+			logrus.WithError(err).Warn("Error looking up episode collaborator organization")
+			collaborations = append(collaborations, types.Collaboration{
+				EpisodeID:        episodeID,
+				OrganizationDID:  authorizedDID,
+				OrganizationName: "!ERROR! " + err.Error(),
+			})
+		} else {
+			collaborations = append(collaborations, types.Collaboration{
+				EpisodeID:        episodeID,
+				OrganizationDID:  authorizedDID,
+				OrganizationName: org.Details.Name,
+			})
 		}
-		collaborations = append(collaborations, types.Collaboration{
-			EpisodeID:        episodeID,
-			OrganizationDID:  subject.ID,
-			OrganizationName: org.Details.Name,
-		})
 	}
 
 	return collaborations, nil

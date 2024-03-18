@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/deepmap/oapi-codegen v1.16.2
-	github.com/go-resty/resty/v2 v2.11.0
+	github.com/go-resty/resty/v2 v2.12.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -165,7 +165,7 @@ require (
 	go.etcd.io/bbolt v1.3.8 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

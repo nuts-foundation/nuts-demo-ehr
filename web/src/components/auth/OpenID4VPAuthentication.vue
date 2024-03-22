@@ -66,7 +66,7 @@ export default {
                     console.log("OpenID4VP authentication failed: " + response)
                     //this.loginError = response
                   })
-            }, 100)
+            }, 1000)
 
             //localStorage.setItem("session", responseData.token)
             //this.redirectAfterLogin()

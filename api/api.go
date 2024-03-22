@@ -43,6 +43,7 @@ type Wrapper struct {
 	APIAuth                 *Auth
 	NutsAuth                nutsClient.Auth
 	NutsIam                 nutsClient.Iam
+	NutsDiscovery           nutsClient.Discovery
 	CustomerRepository      customers.Repository
 	PatientRepository       patients.Repository
 	ReportRepository        reports.Repository

@@ -402,6 +402,7 @@ function createApi(options) {
       return fetch(endpoint + basePath + '/private/network/organizations' + '?' + buildQuery({
           'query': params['query'],
           'didServiceType': params['didServiceType'],
+          'discoveryServiceType': params['discoveryServiceType'],
         })
 
         , {

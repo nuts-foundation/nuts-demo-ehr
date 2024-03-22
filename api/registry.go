@@ -15,7 +15,7 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganization
 		return err
 	}
 
-	organizations, err := w.OrganizationRegistry.Search(ctx.Request().Context(), params.Query, params.DidServiceType)
+	organizations, err := w.NutsDiscovery.SearchService(ctx.Request().Context(), params.Query, params.DiscoveryServiceType, params.DidServiceType)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

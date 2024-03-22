@@ -36,8 +36,10 @@ func (c HTTPClient) CreateVC(ctx context.Context, typeName, issuer string, crede
 	} else {
 		visibility = vcr.Private
 	}
+	t := new(vcr.IssueVCRequest_Type)
+	_ = t.FromIssueVCRequestType0(typeName)
 	response, err := c.vcr().IssueVC(ctx, vcr.IssueVCJSONRequestBody{
-		Type:              typeName,
+		Type:              *t,
 		Issuer:            issuer,
 		CredentialSubject: credentialSubject,
 		ExpirationDate:    exp,

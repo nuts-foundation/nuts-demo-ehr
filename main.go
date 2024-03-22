@@ -231,6 +231,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		APIAuth:                 auth,
 		NutsAuth:                nodeClient,
 		NutsIam:                 nodeClient,
+		NutsDiscovery:           nodeClient,
 		CustomerRepository:      customerRepository,
 		PatientRepository:       patientRepository,
 		ReportRepository:        reportRepository,

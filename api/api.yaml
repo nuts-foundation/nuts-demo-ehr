@@ -611,6 +611,13 @@ paths:
           required: false
           schema:
             type: string
+        - name: discoveryServiceType
+          in: query
+          description: >
+            Filters other care organizations on the Nuts Network on service, only returning care organizations that registered for the given service at a discovery server.
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: Search successful.

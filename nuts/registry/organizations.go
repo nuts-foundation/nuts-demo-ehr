@@ -4,20 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts"
 	"sync"
 	"time"
 
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/didman"
 )
 
 const cacheMaxAge = 10 * time.Second
 
 type OrganizationRegistry interface {
-	Search(ctx context.Context, query string, didServiceType *string) ([]NutsOrganization, error)
-	Get(ctx context.Context, organizationDID string) (*NutsOrganization, error)
+	Get(ctx context.Context, organizationDID string) (*nuts.NutsOrganization, error)
 	GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error)
 }
 
@@ -29,17 +28,6 @@ func NewOrganizationRegistry(client *client.HTTPClient) OrganizationRegistry {
 	}
 }
 
-// NutsOrganization models the credentialSubject of a NutsOrganizationCredential.
-type NutsOrganization struct {
-	ID      string              `json:"id"`
-	Details OrganizationDetails `json:"organization"`
-}
-
-type OrganizationDetails struct {
-	Name string `json:"name"`
-	City string `json:"city"`
-}
-
 type remoteOrganizationRegistry struct {
 	client   *client.HTTPClient
 	cache    map[string]entry
@@ -47,24 +35,11 @@ type remoteOrganizationRegistry struct {
 }
 
 type entry struct {
-	organization NutsOrganization
+	organization nuts.NutsOrganization
 	writeTime    time.Time
 }
 
-func (r remoteOrganizationRegistry) Search(ctx context.Context, query string, didServiceType *string) ([]NutsOrganization, error) {
-	organizations, err := r.client.SearchOrganizations(ctx, query, didServiceType)
-	if err != nil {
-		return nil, err
-	}
-	results := make([]NutsOrganization, len(organizations))
-	for i, curr := range organizations {
-		results[i] = organizationSearchResultToDomain(curr)
-	}
-	r.toCache(results...)
-	return results, nil
-}
-
-func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID string) (*NutsOrganization, error) {
+func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID string) (*nuts.NutsOrganization, error) {
 	cached := r.fromCache(organizationDID)
 	if cached != nil {
 		return cached, nil
@@ -104,7 +79,7 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
-	var results []NutsOrganization
+	var results []nuts.NutsOrganization
 	err = credentials[0].UnmarshalCredentialSubject(&results)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal NutsOrganizationCredential subject: %w", err)
@@ -121,18 +96,7 @@ func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Conte
 	return r.client.GetCompoundServiceEndpoint(ctx, organizationDID, serviceType, field)
 }
 
-func organizationSearchResultToDomain(result didman.OrganizationSearchResult) NutsOrganization {
-	org := result.Organization
-	return NutsOrganization{
-		ID: result.DIDDocument.ID.String(),
-		Details: OrganizationDetails{
-			Name: org["name"].(string),
-			City: org["city"].(string),
-		},
-	}
-}
-
-func (r remoteOrganizationRegistry) toCache(organizations ...NutsOrganization) {
+func (r remoteOrganizationRegistry) toCache(organizations ...nuts.NutsOrganization) {
 	r.cacheMux.Lock()
 	defer r.cacheMux.Unlock()
 	for _, organization := range organizations {
@@ -143,7 +107,7 @@ func (r remoteOrganizationRegistry) toCache(organizations ...NutsOrganization) {
 	}
 }
 
-func (r remoteOrganizationRegistry) fromCache(organizationDID string) *NutsOrganization {
+func (r remoteOrganizationRegistry) fromCache(organizationDID string) *nuts.NutsOrganization {
 	r.cacheMux.Lock()
 	defer r.cacheMux.Unlock()
 	if cached, ok := r.cache[organizationDID]; ok && time.Now().Before(cached.writeTime.Add(cacheMaxAge)) {

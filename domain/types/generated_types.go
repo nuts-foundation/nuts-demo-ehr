@@ -458,6 +458,9 @@ type SearchOrganizationsParams struct {
 
 	// DidServiceType Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own. If not supplied, care organizations aren't filtered on service.
 	DidServiceType *string `form:"didServiceType,omitempty" json:"didServiceType,omitempty"`
+
+	// DiscoveryServiceType Filters other care organizations on the Nuts Network on service, only returning care organizations that registered for the given service at a discovery server.
+	DiscoveryServiceType string `form:"discoveryServiceType" json:"discoveryServiceType"`
 }
 
 // GetPatientsParams defines parameters for GetPatients.

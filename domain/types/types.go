@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts"
 	"time"
 )
 
@@ -16,7 +16,7 @@ type IncomingTransfer struct {
 	CreatedAt  time.Time                 `json:"createdAt"`
 }
 
-func FromNutsOrganization(src registry.NutsOrganization) Organization {
+func FromNutsOrganization(src nuts.NutsOrganization) Organization {
 	return Organization{
 		Did:  src.ID,
 		Name: src.Details.Name,

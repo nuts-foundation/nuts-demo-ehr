@@ -496,6 +496,13 @@ func (w *ServerInterfaceWrapper) SearchOrganizations(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter didServiceType: %s", err))
 	}
 
+	// ------------- Required query parameter "discoveryServiceType" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "discoveryServiceType", ctx.QueryParams(), &params.DiscoveryServiceType)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter discoveryServiceType: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.SearchOrganizations(ctx, params)
 	return err

@@ -29,23 +29,8 @@
             <h2 class="mb-4">Pick a method:</h2>
 
             <div class="grid grid-cols-2 gap-2">
-              <button class="btn btn-secondary flex justify-center items-center w-full" @click="loginWithIRMA" disabled>
-                <!-- <button class="btn btn-primary flex justify-center items-center w-full" @click="loginWithIRMA" disabled v-bind:disabled="selectedCustomer === null"> -->
-              <span class="w-8 mr-2">
-                <img class="max-w-full" v-bind:src="irmaLogo">
-              </span>
-
-                <span>
-                IRMA
-              </span>
-              </button>
-
               <button id="password-button" class="btn btn-primary block w-full" @click="loginWithPassword" v-bind:disabled="selectedCustomer === null">
                 Password
-              </button>
-
-              <button id="password-button" class="btn btn-primary block w-full" @click="loginWithOpenID4VP" v-bind:disabled="selectedCustomer === null">
-                Wallet
               </button>
             </div>
           </div>
@@ -115,16 +100,11 @@ export default {
         this.$router.push({name: 'auth.passwd', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
       }
     },
-    loginWithIRMA() {
-      if (this.selectedCustomer) {
-        this.$router.push({name: 'auth.irma', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
-      }
-    },
-    loginWithOpenID4VP() {
-      if (this.selectedCustomer) {
-        this.$router.push({name: 'auth.openid4vp', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
-      }
-    }
+    // loginWithOpenID4VP() {
+    //   if (this.selectedCustomer) {
+    //     this.$router.push({name: 'auth.openid4vp', params: {customer: JSON.stringify(this.selectedCustomer)}, query: {redirect: this.redirectPath}})
+    //   }
+    // }
   },
 }
 </script>

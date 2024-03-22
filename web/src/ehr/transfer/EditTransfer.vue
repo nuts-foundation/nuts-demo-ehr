@@ -154,7 +154,7 @@ export default {
       this.requestedOrganization = null
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations({query: query, didServiceType: "eOverdracht-receiver"})
+      this.$api.searchOrganizations({query: query, discoveryServiceType: "eoverdracht_dev3", didServiceType: "eOverdracht-receiver"})
           .then((organizations) => {
             // Only show organizations that we aren't already negotiating with
             this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)

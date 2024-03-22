@@ -50,6 +50,9 @@ oapi-codegen -generate server -package api -o api/generated.go api/api.yaml
 oapi-codegen -generate client,types -package auth \
   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
   -o nuts/client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
+oapi-codegen -generate client,types -package discovery \
+  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
+  -o nuts/client/discovery/generated.go https://nuts-node.readthedocs.io/en/latest/_static/discovery/v1.yaml  
 oapi-codegen -generate client,types -package iam \
   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
   -o nuts/client/iam/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/iam.yaml  

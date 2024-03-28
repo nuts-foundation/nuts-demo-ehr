@@ -39,10 +39,10 @@ export default {
     },
     login() {
       this.$api.createAuthorizationRequest()
-          .then(responseData => {
+          .then(result => {
             // show a popup using the redirect URL
-            window.open(responseData.redirect_uri, "_blank", "width=400,height=600")
-            console.log("session_id: " + responseData.session_id)
+            window.open(result.data.redirect_uri, "_blank", "width=400,height=600")
+            console.log("session_id: " + result.data.session_id)
 
             // update the status in the UI
             document.getElementById("status").innerText = "In progress"
@@ -50,20 +50,20 @@ export default {
 
             // let's poll the server for the result
             // loop and call every 1 second
-            const session_id = responseData.session_id
+            const session_id = result.data.session_id
             let interval = setInterval(() => {
               this.$api.getOpenID4VPAuthenticationResult({token: session_id})
-                  .then(responseData => {
-                    if (responseData.status === "active") {
+                  .then(result => {
+                    if (result.data.status === "active") {
                       clearInterval(interval)
                       console.log("OpenID4VP authentication successful")
-                      console.log("AccessToken: " + responseData.access_token)
+                      console.log("AccessToken: " + result.data.access_token)
                       document.getElementById("status").innerText = "Done"
                     }
                     //this.redirectAfterLogin()
                   })
-                  .catch(response => {
-                    console.log("OpenID4VP authentication failed: " + response)
+                  .catch(error => {
+                    console.log("OpenID4VP authentication failed: " + error)
                     //this.loginError = response
                   })
             }, 1000)
@@ -71,9 +71,9 @@ export default {
             //localStorage.setItem("session", responseData.token)
             //this.redirectAfterLogin()
           })
-          .catch(response => {
-            console.log("OpenID4VP authentication failed: " + response)
-            this.loginError = response
+          .catch(error => {
+            console.log("OpenID4VP authentication failed: " + error)
+            this.loginError = error
           })
     },
   },

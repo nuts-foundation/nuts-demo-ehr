@@ -100,8 +100,8 @@ export default {
     fetchDossiers() {
       this.loadingDossiers = true
       this.$api.getDossier({patientID: this.$route.params.id})
-          .then(dossiers => {
-            this.dossiers = dossiers
+          .then(result => {
+            this.dossiers = result.data
             this.loadingDossiers = false
           })
           .catch(error => {
@@ -111,19 +111,19 @@ export default {
     },
     fetchReports() {
       this.$api.getReports({patientID: this.$route.params.id})
-          .then(reports => this.reports = reports)
+          .then(result => this.reports = result.data)
           .catch(error => this.$status.error(error))
     },
     fetchTransfers() {
       this.$api.getPatientTransfers({patientID: this.$route.params.id})
-          .then(transfers => {
-            this.transfers = transfers
-            // Also fetch negotiations so we can show the "network" of the dossier
+          .then(result => {
+            this.transfers = result.data
+            // Also fetch negotiations, so we can show the "network" of the dossier
             return Promise.all(this.transfers.map(t => this.$api.listTransferNegotiations({transferID: t.id})))
           })
-          .then(negotiations => {
-            for (let i = 0; i < negotiations.length; i++) {
-              this.transfers[i].negotiations = negotiations[i]
+          .then(results => {
+            for (let i = 0; i < results.length; i++) {
+              this.transfers[i].negotiations = results[i].data
             }
           })
           .catch(error => this.$status.error(error))

@@ -29,7 +29,7 @@ const defaultDelimiter = "."
 const configFileFlag = "configfile"
 const defaultConfigFile = "server.config.yaml"
 const defaultHTTPPort = 1304
-const defaultNutsNodeAddress = "http://localhost:1323"
+const defaultNutsNodeAddress = "http://localhost:8081"
 const defaultCustomerFile = "customers.json"
 const defaultLogLevel = "info"
 

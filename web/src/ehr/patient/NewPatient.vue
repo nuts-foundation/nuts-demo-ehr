@@ -94,8 +94,8 @@ export default {
       }
       this.loading = true;
 
-      this.$api.newPatient({body: this.patient})
-          .then(response => {
+      this.$api.newPatient(null, this.patient)
+          .then(() => {
             this.$store.commit("statusUpdate", "Patient added")
             this.$router.push({name: 'ehr.patients'})
           })

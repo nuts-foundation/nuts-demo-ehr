@@ -45,7 +45,7 @@ export default {
     },
     fetchPatient() {
       this.$api.getPatient({patientID: this.$route.params.id})
-          .then(patient => this.patient = patient)
+          .then(result => this.patient = result.data)
           .catch(error => this.$status.error(error))
     },
     back() {

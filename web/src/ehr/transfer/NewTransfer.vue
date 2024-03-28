@@ -88,23 +88,24 @@ export default {
       }
       this.loading = true;
 
-      this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Transfer'}})
-          .then(dossier => this.createTransfer(dossier.id))
-          .then(transfer => this.$router.push({name: 'ehr.patient.transfer.edit', params: {transferID: transfer.id}}))
+      this.$api.createDossier(null, {patientID: this.$route.params.id, name: 'Transfer'})
+          .then(result => this.createTransfer(result.data.id))
+          .then(result => this.$router.push({
+            name: 'ehr.patient.transfer.edit',
+            params: {transferID: result.data.id}
+          }))
           .catch(error => this.$status.error(error))
           .finally(() => this.loading = false)
     },
     createTransfer(dossierID) {
-      return this.$api.createTransfer({
-        body: {
+      return this.$api.createTransfer(null, {
           dossierID: dossierID,
           ...this.transfer
-        }
       })
     },
     fetchPatient(patientID) {
       this.$api.getPatient({patientID: patientID})
-          .then(patient => this.patient = patient)
+          .then(result => this.patient = result.data)
           .catch(error => this.$status.error(error))
     }
   },

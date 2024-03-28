@@ -69,29 +69,29 @@ export default {
     'selectedCustomerID'() {
       localStorage.removeItem("session")
       const customer = this.customers.find(c => c.id === this.selectedCustomerID)
-      this.$api.setCustomer({body: customer})
-          .then(responseData => {
-            localStorage.setItem("session", responseData.token)
+      this.$api.setCustomer(null, customer)
+          .then(result => {
+            localStorage.setItem("session", result.data.token)
             this.selectedCustomer = customer
             this.loginError = ''
           })
           .catch(reason => {
             console.error("failure", reason)
-            this.loginError = reason
+            this.loginError = reason.message
           })
     }
   },
   methods: {
     fetchData() {
       this.$api.listCustomers()
-          .then(data => this.customers = data)
-          .catch(response => {
-            console.error("failure", response)
-            if (response.status === 403) {
+          .then(result => this.customers = result.data)
+          .catch(error => {
+            console.error("failure", error)
+            if (error.status === 403) {
               this.loginError = "Invalid credentials"
               return
             }
-            this.loginError = response
+            this.loginError = error
           })
           .finally(() => this.loading = false)
     },

@@ -154,7 +154,7 @@ export default {
         requestorDID: this.$route.params.requestorDID,
         fhirTaskID: this.$route.params.fhirTaskID
       })
-          .then((transferRequest) => this.transferRequest = transferRequest)
+          .then((result) => this.transferRequest = result.data)
           .catch(error => this.$status.error(error))
     },
     accept() {
@@ -163,8 +163,7 @@ export default {
       this.$api.changeTransferRequestState({
         requestorDID: this.$route.params.requestorDID,
         fhirTaskID: this.$route.params.fhirTaskID,
-        body: {status: 'accepted'}
-      })
+      }, {status: 'accepted'})
           .then(() => this.fetchData())
           .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
@@ -172,11 +171,13 @@ export default {
     complete() {
       this.state = 'completing';
 
-      this.$api.changeTransferRequestState({
-        requestorDID: this.$route.params.requestorDID,
-        fhirTaskID: this.$route.params.fhirTaskID,
-        body: {status: 'completed'}
-      })
+      this.$api.changeTransferRequestState(
+          {
+            requestorDID: this.$route.params.requestorDID,
+            fhirTaskID: this.$route.params.fhirTaskID
+          },
+          {status: 'completed'}
+      )
           .then(() => this.fetchData())
           .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')

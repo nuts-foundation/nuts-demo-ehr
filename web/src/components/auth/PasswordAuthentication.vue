@@ -56,15 +56,15 @@ export default {
       this.$router.push("/ehr/")
     },
     login() {
-      this.$api.authenticateWithPassword({body: this.credentials})
-          .then(responseData => {
-            localStorage.setItem("session", responseData.token)
+      this.$api.authenticateWithPassword(null, this.credentials)
+          .then(result => {
+            localStorage.setItem("session", result.data.token)
             console.log("Password authentication successful")
             this.redirectAfterLogin()
           })
-          .catch(response => {
-            console.log("Password authentication failed: " + response)
-            this.loginError = response
+          .catch(error => {
+            console.log("Password authentication failed: " + error)
+            this.loginError = error
           })
     },
   },

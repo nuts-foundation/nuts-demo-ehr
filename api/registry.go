@@ -7,28 +7,33 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 )
 
-type SearchOrganizationsParams = types.SearchOrganizationsParams
-
-func (w Wrapper) SearchOrganizations(ctx echo.Context, params SearchOrganizationsParams) error {
+func (w Wrapper) SearchOrganizations(ctx echo.Context) error {
 	customer, err := w.getCustomer(ctx)
 	if err != nil {
 		return err
 	}
 
-	organizations, err := w.NutsDiscovery.SearchService(ctx.Request().Context(), params.Query, params.DiscoveryServiceType, params.DidServiceType)
+	var request types.SearchOrganizationsJSONRequestBody
+	if err := ctx.Bind(&request); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	organizations, err := w.NutsClient.SearchDiscoveryService(ctx.Request().Context(), request.Query, request.DiscoveryServiceID, request.DidServiceType)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	var results = make([]types.Organization, 0)
-
+	var results = make(map[string]types.Organization, 0)
 	for _, organization := range organizations {
 		// Hide our own organization
-		if organization.ID == *customer.Did {
+		if request.ExcludeOwn != nil && *request.ExcludeOwn && organization.ID == *customer.Did {
 			continue
 		}
-
-		results = append(results, types.FromNutsOrganization(organization))
+		current, exists := results[organization.ID]
+		if !exists {
+			current = types.FromNutsOrganization(organization.NutsOrganization)
+		}
+		current.DiscoveryServices = append(current.DiscoveryServices, organization.ServiceID)
+		results[organization.ID] = current
 	}
 
 	return ctx.JSON(http.StatusOK, results)

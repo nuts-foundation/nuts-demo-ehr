@@ -162,6 +162,30 @@ type VerifiableCredential = externalRef0.VerifiableCredential
 // VerifiablePresentation Verifiable Presentation
 type VerifiablePresentation = externalRef0.VerifiablePresentation
 
+// RequestServiceAccessTokenJSONBody defines parameters for RequestServiceAccessToken.
+type RequestServiceAccessTokenJSONBody struct {
+	// Scope The scope that will be the service for which this access token can be used.
+	Scope    string `json:"scope"`
+	Verifier string `json:"verifier"`
+}
+
+// RequestUserAccessTokenJSONBody defines parameters for RequestUserAccessToken.
+type RequestUserAccessTokenJSONBody struct {
+	// RedirectUri The URL to which the user-agent will be redirected after the authorization request.
+	// This is the URL of the calling application.
+	// The OAuth2 flow will finish at the /callback URL of the node and the node will redirect the user to this redirect_uri.
+	RedirectUri string `json:"redirect_uri"`
+
+	// Scope The scope that will be the service for which this access token can be used.
+	Scope string `json:"scope"`
+
+	// UserId The ID of the user for which this access token is requested.
+	UserId string `json:"user_id"`
+
+	// Verifier The DID of the verifier, the relying party for which this access token is requested.
+	Verifier string `json:"verifier"`
+}
+
 // HandleAuthorizeRequestParams defines parameters for HandleAuthorizeRequest.
 type HandleAuthorizeRequestParams struct {
 	Params *map[string]string `form:"params,omitempty" json:"params,omitempty"`
@@ -214,36 +238,6 @@ type HandleTokenRequestFormdataBody struct {
 	Scope                  *string `form:"scope,omitempty" json:"scope,omitempty"`
 }
 
-// RequestServiceAccessTokenJSONBody defines parameters for RequestServiceAccessToken.
-type RequestServiceAccessTokenJSONBody struct {
-	// Scope The scope that will be the service for which this access token can be used.
-	Scope    string `json:"scope"`
-	Verifier string `json:"verifier"`
-}
-
-// RequestUserAccessTokenJSONBody defines parameters for RequestUserAccessToken.
-type RequestUserAccessTokenJSONBody struct {
-	// RedirectUri The URL to which the user-agent will be redirected after the authorization request.
-	// This is the URL of the calling application.
-	// The OAuth2 flow will finish at the /callback URL of the node and the node will redirect the user to this redirect_uri.
-	RedirectUri string `json:"redirect_uri"`
-
-	// Scope The scope that will be the service for which this access token can be used.
-	Scope string `json:"scope"`
-
-	// UserId The ID of the user for which this access token is requested.
-	UserId string `json:"user_id"`
-
-	// Verifier The DID of the verifier, the relying party for which this access token is requested.
-	Verifier string `json:"verifier"`
-}
-
-// HandleAuthorizeResponseFormdataRequestBody defines body for HandleAuthorizeResponse for application/x-www-form-urlencoded ContentType.
-type HandleAuthorizeResponseFormdataRequestBody HandleAuthorizeResponseFormdataBody
-
-// HandleTokenRequestFormdataRequestBody defines body for HandleTokenRequest for application/x-www-form-urlencoded ContentType.
-type HandleTokenRequestFormdataRequestBody HandleTokenRequestFormdataBody
-
 // IntrospectAccessTokenFormdataRequestBody defines body for IntrospectAccessToken for application/x-www-form-urlencoded ContentType.
 type IntrospectAccessTokenFormdataRequestBody = TokenIntrospectionRequest
 
@@ -252,6 +246,12 @@ type RequestServiceAccessTokenJSONRequestBody RequestServiceAccessTokenJSONBody
 
 // RequestUserAccessTokenJSONRequestBody defines body for RequestUserAccessToken for application/json ContentType.
 type RequestUserAccessTokenJSONRequestBody RequestUserAccessTokenJSONBody
+
+// HandleAuthorizeResponseFormdataRequestBody defines body for HandleAuthorizeResponse for application/x-www-form-urlencoded ContentType.
+type HandleAuthorizeResponseFormdataRequestBody HandleAuthorizeResponseFormdataBody
+
+// HandleTokenRequestFormdataRequestBody defines body for HandleTokenRequest for application/x-www-form-urlencoded ContentType.
+type HandleTokenRequestFormdataRequestBody HandleTokenRequestFormdataBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -329,33 +329,8 @@ type ClientInterface interface {
 	// OAuthAuthorizationServerMetadata request
 	OAuthAuthorizationServerMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// HandleAuthorizeRequest request
-	HandleAuthorizeRequest(ctx context.Context, id string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// Callback request
-	Callback(ctx context.Context, id string, params *CallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetWebDID request
 	GetWebDID(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// OAuthClientMetadata request
-	OAuthClientMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PresentationDefinition request
-	PresentationDefinition(ctx context.Context, id string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// HandleAuthorizeResponseWithBody request with any body
-	HandleAuthorizeResponseWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	HandleAuthorizeResponseWithFormdataBody(ctx context.Context, id string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StatusList request
-	StatusList(ctx context.Context, id string, page int, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// HandleTokenRequestWithBody request with any body
-	HandleTokenRequestWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	HandleTokenRequestWithFormdataBody(ctx context.Context, id string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// IntrospectAccessTokenWithBody request with any body
 	IntrospectAccessTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -374,6 +349,31 @@ type ClientInterface interface {
 	RequestUserAccessTokenWithBody(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	RequestUserAccessToken(ctx context.Context, did string, body RequestUserAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HandleAuthorizeRequest request
+	HandleAuthorizeRequest(ctx context.Context, did string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// Callback request
+	Callback(ctx context.Context, did string, params *CallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// OAuthClientMetadata request
+	OAuthClientMetadata(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PresentationDefinition request
+	PresentationDefinition(ctx context.Context, did string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HandleAuthorizeResponseWithBody request with any body
+	HandleAuthorizeResponseWithBody(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	HandleAuthorizeResponseWithFormdataBody(ctx context.Context, did string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HandleTokenRequestWithBody request with any body
+	HandleTokenRequestWithBody(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	HandleTokenRequestWithFormdataBody(ctx context.Context, did string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StatusList request
+	StatusList(ctx context.Context, did string, page int, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) OAuthAuthorizationServerMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -388,116 +388,8 @@ func (c *Client) OAuthAuthorizationServerMetadata(ctx context.Context, id string
 	return c.Client.Do(req)
 }
 
-func (c *Client) HandleAuthorizeRequest(ctx context.Context, id string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHandleAuthorizeRequestRequest(c.Server, id, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) Callback(ctx context.Context, id string, params *CallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCallbackRequest(c.Server, id, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) GetWebDID(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetWebDIDRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) OAuthClientMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewOAuthClientMetadataRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PresentationDefinition(ctx context.Context, id string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPresentationDefinitionRequest(c.Server, id, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HandleAuthorizeResponseWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHandleAuthorizeResponseRequestWithBody(c.Server, id, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HandleAuthorizeResponseWithFormdataBody(ctx context.Context, id string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHandleAuthorizeResponseRequestWithFormdataBody(c.Server, id, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) StatusList(ctx context.Context, id string, page int, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStatusListRequest(c.Server, id, page)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HandleTokenRequestWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHandleTokenRequestRequestWithBody(c.Server, id, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HandleTokenRequestWithFormdataBody(ctx context.Context, id string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHandleTokenRequestRequestWithFormdataBody(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -592,6 +484,114 @@ func (c *Client) RequestUserAccessToken(ctx context.Context, did string, body Re
 	return c.Client.Do(req)
 }
 
+func (c *Client) HandleAuthorizeRequest(ctx context.Context, did string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHandleAuthorizeRequestRequest(c.Server, did, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) Callback(ctx context.Context, did string, params *CallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCallbackRequest(c.Server, did, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) OAuthClientMetadata(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewOAuthClientMetadataRequest(c.Server, did)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PresentationDefinition(ctx context.Context, did string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPresentationDefinitionRequest(c.Server, did, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) HandleAuthorizeResponseWithBody(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHandleAuthorizeResponseRequestWithBody(c.Server, did, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) HandleAuthorizeResponseWithFormdataBody(ctx context.Context, did string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHandleAuthorizeResponseRequestWithFormdataBody(c.Server, did, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) HandleTokenRequestWithBody(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHandleTokenRequestRequestWithBody(c.Server, did, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) HandleTokenRequestWithFormdataBody(ctx context.Context, did string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHandleTokenRequestRequestWithFormdataBody(c.Server, did, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) StatusList(ctx context.Context, did string, page int, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStatusListRequest(c.Server, did, page)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // NewOAuthAuthorizationServerMetadataRequest generates requests for OAuthAuthorizationServerMetadata
 func NewOAuthAuthorizationServerMetadataRequest(server string, id string) (*http.Request, error) {
 	var err error
@@ -616,166 +616,6 @@ func NewOAuthAuthorizationServerMetadataRequest(server string, id string) (*http
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHandleAuthorizeRequestRequest generates requests for HandleAuthorizeRequest
-func NewHandleAuthorizeRequestRequest(server string, id string, params *HandleAuthorizeRequestParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/authorize", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Params != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "params", runtime.ParamLocationQuery, *params.Params); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCallbackRequest generates requests for Callback
-func NewCallbackRequest(server string, id string, params *CallbackParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/callback", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Code != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "code", runtime.ParamLocationQuery, *params.Code); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.State != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "state", runtime.ParamLocationQuery, *params.State); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Error != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "error", runtime.ParamLocationQuery, *params.Error); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.ErrorDescription != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "error_description", runtime.ParamLocationQuery, *params.ErrorDescription); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -816,227 +656,6 @@ func NewGetWebDIDRequest(server string, id string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewOAuthClientMetadataRequest generates requests for OAuthClientMetadata
-func NewOAuthClientMetadataRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/oauth-client", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewPresentationDefinitionRequest generates requests for PresentationDefinition
-func NewPresentationDefinitionRequest(server string, id string, params *PresentationDefinitionParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/presentation_definition", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "scope", runtime.ParamLocationQuery, params.Scope); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHandleAuthorizeResponseRequestWithFormdataBody calls the generic HandleAuthorizeResponse builder with application/x-www-form-urlencoded body
-func NewHandleAuthorizeResponseRequestWithFormdataBody(server string, id string, body HandleAuthorizeResponseFormdataRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	bodyStr, err := runtime.MarshalForm(body, nil)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewHandleAuthorizeResponseRequestWithBody(server, id, "application/x-www-form-urlencoded", bodyReader)
-}
-
-// NewHandleAuthorizeResponseRequestWithBody generates requests for HandleAuthorizeResponse with any type of body
-func NewHandleAuthorizeResponseRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/response", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewStatusListRequest generates requests for StatusList
-func NewStatusListRequest(server string, id string, page int) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "page", runtime.ParamLocationPath, page)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/statuslist/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHandleTokenRequestRequestWithFormdataBody calls the generic HandleTokenRequest builder with application/x-www-form-urlencoded body
-func NewHandleTokenRequestRequestWithFormdataBody(server string, id string, body HandleTokenRequestFormdataRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	bodyStr, err := runtime.MarshalForm(body, nil)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewHandleTokenRequestRequestWithBody(server, id, "application/x-www-form-urlencoded", bodyReader)
-}
-
-// NewHandleTokenRequestRequestWithBody generates requests for HandleTokenRequest with any type of body
-func NewHandleTokenRequestRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/iam/%s/token", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1203,6 +822,366 @@ func NewRequestUserAccessTokenRequestWithBody(server string, did string, content
 	return req, nil
 }
 
+// NewHandleAuthorizeRequestRequest generates requests for HandleAuthorizeRequest
+func NewHandleAuthorizeRequestRequest(server string, did string, params *HandleAuthorizeRequestParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/authorize", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Params != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "params", runtime.ParamLocationQuery, *params.Params); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCallbackRequest generates requests for Callback
+func NewCallbackRequest(server string, did string, params *CallbackParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/callback", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Code != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "code", runtime.ParamLocationQuery, *params.Code); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "state", runtime.ParamLocationQuery, *params.State); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Error != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "error", runtime.ParamLocationQuery, *params.Error); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ErrorDescription != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "error_description", runtime.ParamLocationQuery, *params.ErrorDescription); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewOAuthClientMetadataRequest generates requests for OAuthClientMetadata
+func NewOAuthClientMetadataRequest(server string, did string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/oauth-client", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPresentationDefinitionRequest generates requests for PresentationDefinition
+func NewPresentationDefinitionRequest(server string, did string, params *PresentationDefinitionParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/presentation_definition", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "scope", runtime.ParamLocationQuery, params.Scope); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHandleAuthorizeResponseRequestWithFormdataBody calls the generic HandleAuthorizeResponse builder with application/x-www-form-urlencoded body
+func NewHandleAuthorizeResponseRequestWithFormdataBody(server string, did string, body HandleAuthorizeResponseFormdataRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	bodyStr, err := runtime.MarshalForm(body, nil)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = strings.NewReader(bodyStr.Encode())
+	return NewHandleAuthorizeResponseRequestWithBody(server, did, "application/x-www-form-urlencoded", bodyReader)
+}
+
+// NewHandleAuthorizeResponseRequestWithBody generates requests for HandleAuthorizeResponse with any type of body
+func NewHandleAuthorizeResponseRequestWithBody(server string, did string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/response", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewHandleTokenRequestRequestWithFormdataBody calls the generic HandleTokenRequest builder with application/x-www-form-urlencoded body
+func NewHandleTokenRequestRequestWithFormdataBody(server string, did string, body HandleTokenRequestFormdataRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	bodyStr, err := runtime.MarshalForm(body, nil)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = strings.NewReader(bodyStr.Encode())
+	return NewHandleTokenRequestRequestWithBody(server, did, "application/x-www-form-urlencoded", bodyReader)
+}
+
+// NewHandleTokenRequestRequestWithBody generates requests for HandleTokenRequest with any type of body
+func NewHandleTokenRequestRequestWithBody(server string, did string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/oauth2/%s/token", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewStatusListRequest generates requests for StatusList
+func NewStatusListRequest(server string, did string, page int) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0 = did
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "page", runtime.ParamLocationPath, page)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/statuslist/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1249,33 +1228,8 @@ type ClientWithResponsesInterface interface {
 	// OAuthAuthorizationServerMetadataWithResponse request
 	OAuthAuthorizationServerMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*OAuthAuthorizationServerMetadataResponse, error)
 
-	// HandleAuthorizeRequestWithResponse request
-	HandleAuthorizeRequestWithResponse(ctx context.Context, id string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*HandleAuthorizeRequestResponse, error)
-
-	// CallbackWithResponse request
-	CallbackWithResponse(ctx context.Context, id string, params *CallbackParams, reqEditors ...RequestEditorFn) (*CallbackResponse, error)
-
 	// GetWebDIDWithResponse request
 	GetWebDIDWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetWebDIDResponse, error)
-
-	// OAuthClientMetadataWithResponse request
-	OAuthClientMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*OAuthClientMetadataResponse, error)
-
-	// PresentationDefinitionWithResponse request
-	PresentationDefinitionWithResponse(ctx context.Context, id string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*PresentationDefinitionResponse, error)
-
-	// HandleAuthorizeResponseWithBodyWithResponse request with any body
-	HandleAuthorizeResponseWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error)
-
-	HandleAuthorizeResponseWithFormdataBodyWithResponse(ctx context.Context, id string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error)
-
-	// StatusListWithResponse request
-	StatusListWithResponse(ctx context.Context, id string, page int, reqEditors ...RequestEditorFn) (*StatusListResponse, error)
-
-	// HandleTokenRequestWithBodyWithResponse request with any body
-	HandleTokenRequestWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error)
-
-	HandleTokenRequestWithFormdataBodyWithResponse(ctx context.Context, id string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error)
 
 	// IntrospectAccessTokenWithBodyWithResponse request with any body
 	IntrospectAccessTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IntrospectAccessTokenResponse, error)
@@ -1294,6 +1248,31 @@ type ClientWithResponsesInterface interface {
 	RequestUserAccessTokenWithBodyWithResponse(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RequestUserAccessTokenResponse, error)
 
 	RequestUserAccessTokenWithResponse(ctx context.Context, did string, body RequestUserAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*RequestUserAccessTokenResponse, error)
+
+	// HandleAuthorizeRequestWithResponse request
+	HandleAuthorizeRequestWithResponse(ctx context.Context, did string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*HandleAuthorizeRequestResponse, error)
+
+	// CallbackWithResponse request
+	CallbackWithResponse(ctx context.Context, did string, params *CallbackParams, reqEditors ...RequestEditorFn) (*CallbackResponse, error)
+
+	// OAuthClientMetadataWithResponse request
+	OAuthClientMetadataWithResponse(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*OAuthClientMetadataResponse, error)
+
+	// PresentationDefinitionWithResponse request
+	PresentationDefinitionWithResponse(ctx context.Context, did string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*PresentationDefinitionResponse, error)
+
+	// HandleAuthorizeResponseWithBodyWithResponse request with any body
+	HandleAuthorizeResponseWithBodyWithResponse(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error)
+
+	HandleAuthorizeResponseWithFormdataBodyWithResponse(ctx context.Context, did string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error)
+
+	// HandleTokenRequestWithBodyWithResponse request with any body
+	HandleTokenRequestWithBodyWithResponse(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error)
+
+	HandleTokenRequestWithFormdataBodyWithResponse(ctx context.Context, did string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error)
+
+	// StatusListWithResponse request
+	StatusListWithResponse(ctx context.Context, did string, page int, reqEditors ...RequestEditorFn) (*StatusListResponse, error)
 }
 
 type OAuthAuthorizationServerMetadataResponse struct {
@@ -1328,58 +1307,6 @@ func (r OAuthAuthorizationServerMetadataResponse) StatusCode() int {
 	return 0
 }
 
-type HandleAuthorizeRequestResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r HandleAuthorizeRequestResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r HandleAuthorizeRequestResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CallbackResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r CallbackResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CallbackResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetWebDIDResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1396,156 +1323,6 @@ func (r GetWebDIDResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetWebDIDResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type OAuthClientMetadataResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *OAuthClientMetadata
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r OAuthClientMetadataResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r OAuthClientMetadataResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PresentationDefinitionResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *PresentationDefinition
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r PresentationDefinitionResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PresentationDefinitionResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type HandleAuthorizeResponseResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *RedirectResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r HandleAuthorizeResponseResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r HandleAuthorizeResponseResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type StatusListResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *VerifiableCredential
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r StatusListResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r StatusListResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type HandleTokenRequestResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *TokenResponse
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r HandleTokenRequestResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r HandleTokenRequestResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1670,6 +1447,208 @@ func (r RequestUserAccessTokenResponse) StatusCode() int {
 	return 0
 }
 
+type HandleAuthorizeRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r HandleAuthorizeRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HandleAuthorizeRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CallbackResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSONDefault *struct {
+		// Detail A human-readable explanation specific to this occurrence of the problem.
+		Detail string `json:"detail"`
+
+		// Status HTTP statuscode
+		Status float32 `json:"status"`
+
+		// Title A short, human-readable summary of the problem type.
+		Title string `json:"title"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r CallbackResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CallbackResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type OAuthClientMetadataResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *OAuthClientMetadata
+	ApplicationproblemJSONDefault *struct {
+		// Detail A human-readable explanation specific to this occurrence of the problem.
+		Detail string `json:"detail"`
+
+		// Status HTTP statuscode
+		Status float32 `json:"status"`
+
+		// Title A short, human-readable summary of the problem type.
+		Title string `json:"title"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r OAuthClientMetadataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r OAuthClientMetadataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PresentationDefinitionResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *PresentationDefinition
+	ApplicationproblemJSONDefault *struct {
+		// Detail A human-readable explanation specific to this occurrence of the problem.
+		Detail string `json:"detail"`
+
+		// Status HTTP statuscode
+		Status float32 `json:"status"`
+
+		// Title A short, human-readable summary of the problem type.
+		Title string `json:"title"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r PresentationDefinitionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PresentationDefinitionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type HandleAuthorizeResponseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *RedirectResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r HandleAuthorizeResponseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HandleAuthorizeResponseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type HandleTokenRequestResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *TokenResponse
+	ApplicationproblemJSONDefault *struct {
+		// Detail A human-readable explanation specific to this occurrence of the problem.
+		Detail string `json:"detail"`
+
+		// Status HTTP statuscode
+		Status float32 `json:"status"`
+
+		// Title A short, human-readable summary of the problem type.
+		Title string `json:"title"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r HandleTokenRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HandleTokenRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type StatusListResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *VerifiableCredential
+	ApplicationproblemJSONDefault *struct {
+		// Detail A human-readable explanation specific to this occurrence of the problem.
+		Detail string `json:"detail"`
+
+		// Status HTTP statuscode
+		Status float32 `json:"status"`
+
+		// Title A short, human-readable summary of the problem type.
+		Title string `json:"title"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r StatusListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StatusListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // OAuthAuthorizationServerMetadataWithResponse request returning *OAuthAuthorizationServerMetadataResponse
 func (c *ClientWithResponses) OAuthAuthorizationServerMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*OAuthAuthorizationServerMetadataResponse, error) {
 	rsp, err := c.OAuthAuthorizationServerMetadata(ctx, id, reqEditors...)
@@ -1679,24 +1658,6 @@ func (c *ClientWithResponses) OAuthAuthorizationServerMetadataWithResponse(ctx c
 	return ParseOAuthAuthorizationServerMetadataResponse(rsp)
 }
 
-// HandleAuthorizeRequestWithResponse request returning *HandleAuthorizeRequestResponse
-func (c *ClientWithResponses) HandleAuthorizeRequestWithResponse(ctx context.Context, id string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*HandleAuthorizeRequestResponse, error) {
-	rsp, err := c.HandleAuthorizeRequest(ctx, id, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHandleAuthorizeRequestResponse(rsp)
-}
-
-// CallbackWithResponse request returning *CallbackResponse
-func (c *ClientWithResponses) CallbackWithResponse(ctx context.Context, id string, params *CallbackParams, reqEditors ...RequestEditorFn) (*CallbackResponse, error) {
-	rsp, err := c.Callback(ctx, id, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCallbackResponse(rsp)
-}
-
 // GetWebDIDWithResponse request returning *GetWebDIDResponse
 func (c *ClientWithResponses) GetWebDIDWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetWebDIDResponse, error) {
 	rsp, err := c.GetWebDID(ctx, id, reqEditors...)
@@ -1704,67 +1665,6 @@ func (c *ClientWithResponses) GetWebDIDWithResponse(ctx context.Context, id stri
 		return nil, err
 	}
 	return ParseGetWebDIDResponse(rsp)
-}
-
-// OAuthClientMetadataWithResponse request returning *OAuthClientMetadataResponse
-func (c *ClientWithResponses) OAuthClientMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*OAuthClientMetadataResponse, error) {
-	rsp, err := c.OAuthClientMetadata(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseOAuthClientMetadataResponse(rsp)
-}
-
-// PresentationDefinitionWithResponse request returning *PresentationDefinitionResponse
-func (c *ClientWithResponses) PresentationDefinitionWithResponse(ctx context.Context, id string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*PresentationDefinitionResponse, error) {
-	rsp, err := c.PresentationDefinition(ctx, id, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePresentationDefinitionResponse(rsp)
-}
-
-// HandleAuthorizeResponseWithBodyWithResponse request with arbitrary body returning *HandleAuthorizeResponseResponse
-func (c *ClientWithResponses) HandleAuthorizeResponseWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error) {
-	rsp, err := c.HandleAuthorizeResponseWithBody(ctx, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHandleAuthorizeResponseResponse(rsp)
-}
-
-func (c *ClientWithResponses) HandleAuthorizeResponseWithFormdataBodyWithResponse(ctx context.Context, id string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error) {
-	rsp, err := c.HandleAuthorizeResponseWithFormdataBody(ctx, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHandleAuthorizeResponseResponse(rsp)
-}
-
-// StatusListWithResponse request returning *StatusListResponse
-func (c *ClientWithResponses) StatusListWithResponse(ctx context.Context, id string, page int, reqEditors ...RequestEditorFn) (*StatusListResponse, error) {
-	rsp, err := c.StatusList(ctx, id, page, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStatusListResponse(rsp)
-}
-
-// HandleTokenRequestWithBodyWithResponse request with arbitrary body returning *HandleTokenRequestResponse
-func (c *ClientWithResponses) HandleTokenRequestWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error) {
-	rsp, err := c.HandleTokenRequestWithBody(ctx, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHandleTokenRequestResponse(rsp)
-}
-
-func (c *ClientWithResponses) HandleTokenRequestWithFormdataBodyWithResponse(ctx context.Context, id string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error) {
-	rsp, err := c.HandleTokenRequestWithFormdataBody(ctx, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHandleTokenRequestResponse(rsp)
 }
 
 // IntrospectAccessTokenWithBodyWithResponse request with arbitrary body returning *IntrospectAccessTokenResponse
@@ -1827,6 +1727,85 @@ func (c *ClientWithResponses) RequestUserAccessTokenWithResponse(ctx context.Con
 	return ParseRequestUserAccessTokenResponse(rsp)
 }
 
+// HandleAuthorizeRequestWithResponse request returning *HandleAuthorizeRequestResponse
+func (c *ClientWithResponses) HandleAuthorizeRequestWithResponse(ctx context.Context, did string, params *HandleAuthorizeRequestParams, reqEditors ...RequestEditorFn) (*HandleAuthorizeRequestResponse, error) {
+	rsp, err := c.HandleAuthorizeRequest(ctx, did, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandleAuthorizeRequestResponse(rsp)
+}
+
+// CallbackWithResponse request returning *CallbackResponse
+func (c *ClientWithResponses) CallbackWithResponse(ctx context.Context, did string, params *CallbackParams, reqEditors ...RequestEditorFn) (*CallbackResponse, error) {
+	rsp, err := c.Callback(ctx, did, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCallbackResponse(rsp)
+}
+
+// OAuthClientMetadataWithResponse request returning *OAuthClientMetadataResponse
+func (c *ClientWithResponses) OAuthClientMetadataWithResponse(ctx context.Context, did string, reqEditors ...RequestEditorFn) (*OAuthClientMetadataResponse, error) {
+	rsp, err := c.OAuthClientMetadata(ctx, did, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseOAuthClientMetadataResponse(rsp)
+}
+
+// PresentationDefinitionWithResponse request returning *PresentationDefinitionResponse
+func (c *ClientWithResponses) PresentationDefinitionWithResponse(ctx context.Context, did string, params *PresentationDefinitionParams, reqEditors ...RequestEditorFn) (*PresentationDefinitionResponse, error) {
+	rsp, err := c.PresentationDefinition(ctx, did, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePresentationDefinitionResponse(rsp)
+}
+
+// HandleAuthorizeResponseWithBodyWithResponse request with arbitrary body returning *HandleAuthorizeResponseResponse
+func (c *ClientWithResponses) HandleAuthorizeResponseWithBodyWithResponse(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error) {
+	rsp, err := c.HandleAuthorizeResponseWithBody(ctx, did, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandleAuthorizeResponseResponse(rsp)
+}
+
+func (c *ClientWithResponses) HandleAuthorizeResponseWithFormdataBodyWithResponse(ctx context.Context, did string, body HandleAuthorizeResponseFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleAuthorizeResponseResponse, error) {
+	rsp, err := c.HandleAuthorizeResponseWithFormdataBody(ctx, did, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandleAuthorizeResponseResponse(rsp)
+}
+
+// HandleTokenRequestWithBodyWithResponse request with arbitrary body returning *HandleTokenRequestResponse
+func (c *ClientWithResponses) HandleTokenRequestWithBodyWithResponse(ctx context.Context, did string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error) {
+	rsp, err := c.HandleTokenRequestWithBody(ctx, did, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandleTokenRequestResponse(rsp)
+}
+
+func (c *ClientWithResponses) HandleTokenRequestWithFormdataBodyWithResponse(ctx context.Context, did string, body HandleTokenRequestFormdataRequestBody, reqEditors ...RequestEditorFn) (*HandleTokenRequestResponse, error) {
+	rsp, err := c.HandleTokenRequestWithFormdataBody(ctx, did, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandleTokenRequestResponse(rsp)
+}
+
+// StatusListWithResponse request returning *StatusListResponse
+func (c *ClientWithResponses) StatusListWithResponse(ctx context.Context, did string, page int, reqEditors ...RequestEditorFn) (*StatusListResponse, error) {
+	rsp, err := c.StatusList(ctx, did, page, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStatusListResponse(rsp)
+}
+
 // ParseOAuthAuthorizationServerMetadataResponse parses an HTTP response from a OAuthAuthorizationServerMetadataWithResponse call
 func ParseOAuthAuthorizationServerMetadataResponse(rsp *http.Response) (*OAuthAuthorizationServerMetadataResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1869,57 +1848,6 @@ func ParseOAuthAuthorizationServerMetadataResponse(rsp *http.Response) (*OAuthAu
 	return response, nil
 }
 
-// ParseHandleAuthorizeRequestResponse parses an HTTP response from a HandleAuthorizeRequestWithResponse call
-func ParseHandleAuthorizeRequestResponse(rsp *http.Response) (*HandleAuthorizeRequestResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &HandleAuthorizeRequestResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseCallbackResponse parses an HTTP response from a CallbackWithResponse call
-func ParseCallbackResponse(rsp *http.Response) (*CallbackResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CallbackResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseGetWebDIDResponse parses an HTTP response from a GetWebDIDWithResponse call
 func ParseGetWebDIDResponse(rsp *http.Response) (*GetWebDIDResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1940,200 +1868,6 @@ func ParseGetWebDIDResponse(rsp *http.Response) (*GetWebDIDResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseOAuthClientMetadataResponse parses an HTTP response from a OAuthClientMetadataWithResponse call
-func ParseOAuthClientMetadataResponse(rsp *http.Response) (*OAuthClientMetadataResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &OAuthClientMetadataResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest OAuthClientMetadata
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePresentationDefinitionResponse parses an HTTP response from a PresentationDefinitionWithResponse call
-func ParsePresentationDefinitionResponse(rsp *http.Response) (*PresentationDefinitionResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PresentationDefinitionResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest PresentationDefinition
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseHandleAuthorizeResponseResponse parses an HTTP response from a HandleAuthorizeResponseWithResponse call
-func ParseHandleAuthorizeResponseResponse(rsp *http.Response) (*HandleAuthorizeResponseResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &HandleAuthorizeResponseResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest RedirectResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseStatusListResponse parses an HTTP response from a StatusListWithResponse call
-func ParseStatusListResponse(rsp *http.Response) (*StatusListResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &StatusListResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest VerifiableCredential
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseHandleTokenRequestResponse parses an HTTP response from a HandleTokenRequestWithResponse call
-func ParseHandleTokenRequestResponse(rsp *http.Response) (*HandleTokenRequestResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &HandleTokenRequestResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest TokenResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
 
 	}
 
@@ -2266,6 +2000,251 @@ func ParseRequestUserAccessTokenResponse(rsp *http.Response) (*RequestUserAccess
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RedirectResponseWithID
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest struct {
+			// Detail A human-readable explanation specific to this occurrence of the problem.
+			Detail string `json:"detail"`
+
+			// Status HTTP statuscode
+			Status float32 `json:"status"`
+
+			// Title A short, human-readable summary of the problem type.
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseHandleAuthorizeRequestResponse parses an HTTP response from a HandleAuthorizeRequestWithResponse call
+func ParseHandleAuthorizeRequestResponse(rsp *http.Response) (*HandleAuthorizeRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HandleAuthorizeRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseCallbackResponse parses an HTTP response from a CallbackWithResponse call
+func ParseCallbackResponse(rsp *http.Response) (*CallbackResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CallbackResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest struct {
+			// Detail A human-readable explanation specific to this occurrence of the problem.
+			Detail string `json:"detail"`
+
+			// Status HTTP statuscode
+			Status float32 `json:"status"`
+
+			// Title A short, human-readable summary of the problem type.
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseOAuthClientMetadataResponse parses an HTTP response from a OAuthClientMetadataWithResponse call
+func ParseOAuthClientMetadataResponse(rsp *http.Response) (*OAuthClientMetadataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &OAuthClientMetadataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OAuthClientMetadata
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest struct {
+			// Detail A human-readable explanation specific to this occurrence of the problem.
+			Detail string `json:"detail"`
+
+			// Status HTTP statuscode
+			Status float32 `json:"status"`
+
+			// Title A short, human-readable summary of the problem type.
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePresentationDefinitionResponse parses an HTTP response from a PresentationDefinitionWithResponse call
+func ParsePresentationDefinitionResponse(rsp *http.Response) (*PresentationDefinitionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PresentationDefinitionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PresentationDefinition
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest struct {
+			// Detail A human-readable explanation specific to this occurrence of the problem.
+			Detail string `json:"detail"`
+
+			// Status HTTP statuscode
+			Status float32 `json:"status"`
+
+			// Title A short, human-readable summary of the problem type.
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseHandleAuthorizeResponseResponse parses an HTTP response from a HandleAuthorizeResponseWithResponse call
+func ParseHandleAuthorizeResponseResponse(rsp *http.Response) (*HandleAuthorizeResponseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HandleAuthorizeResponseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RedirectResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseHandleTokenRequestResponse parses an HTTP response from a HandleTokenRequestWithResponse call
+func ParseHandleTokenRequestResponse(rsp *http.Response) (*HandleTokenRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HandleTokenRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TokenResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest struct {
+			// Detail A human-readable explanation specific to this occurrence of the problem.
+			Detail string `json:"detail"`
+
+			// Status HTTP statuscode
+			Status float32 `json:"status"`
+
+			// Title A short, human-readable summary of the problem type.
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStatusListResponse parses an HTTP response from a StatusListWithResponse call
+func ParseStatusListResponse(rsp *http.Response) (*StatusListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StatusListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerifiableCredential
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

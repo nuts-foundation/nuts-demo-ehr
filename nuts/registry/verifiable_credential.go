@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/vc"
 
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
 type VCRSearchParams struct {
@@ -20,9 +18,37 @@ type VCRSearchParams struct {
 	ResourcePath string
 }
 
+var NutsAuthorizationCredentialTypeURI = ssi.MustParseURI("NutsAuthorizationCredential")
+
+// NutsAuthorizationCredentialSubject defines the CredentialSubject struct for the NutsAuthorizationCredential
+type NutsAuthorizationCredentialSubject struct {
+	// ID contains the DID of the subject
+	ID string `json:"id"`
+	// PurposeOfUse refers to the Bolt access policy
+	PurposeOfUse string `json:"purposeOfUse"`
+	// Resources contains additional individual resources that can be accessed.
+	Resources []Resource `json:"resources,omitempty"`
+	// Subject contains a URN referring to the subject of care (not the credential subject)
+	Subject *string `json:"subject,omitempty"`
+}
+
+// Resource defines a single accessbile resource
+type Resource struct {
+	// Path defines the path of the resource relative to the service base URL.
+	// Which service acts as base URL is described by the Bolt.
+	Path string `json:"path"`
+	// Operations define which operations are allowed on the resource.
+	Operations []string `json:"operations"`
+	// UserContext defines if a user login contract is required for the resource.
+	UserContext bool `json:"userContext"`
+	// AssuranceLevel defines the assurance level required for the resource (low, substantial, high).
+	// Should be set if userContext = true, defaults to low
+	AssuranceLevel *string `json:"assuranceLevel"`
+}
+
 type VerifiableCredentialRegistry interface {
 	// CreateAuthorizationCredential creates a NutsAuthorizationCredential on the nuts node
-	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error
+	CreateAuthorizationCredential(ctx context.Context, issuer string, subject *NutsAuthorizationCredentialSubject) error
 	// RevokeAuthorizationCredential revokes a credential based on the resourcePath contained in the credential
 	RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error
 	// ResolveVerifiableCredential from the nuts node. It also returns untrusted credentials
@@ -41,7 +67,7 @@ func NewVerifiableCredentialRegistry(client nutsClient.VCRClient) VerifiableCred
 	}
 }
 
-func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *credential.NutsAuthorizationCredentialSubject) error {
+func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(ctx context.Context, issuer string, subject *NutsAuthorizationCredentialSubject) error {
 	subjectMap := map[string]interface{}{}
 
 	data, err := json.Marshal(subject)
@@ -53,11 +79,11 @@ func (registry *httpVerifiableCredentialRegistry) CreateAuthorizationCredential(
 		return fmt.Errorf("invalid subject: %w", err)
 	}
 
-	return registry.nutsClient.CreateVC(ctx, credential.NutsAuthorizationCredentialType, issuer, subjectMap, nil, false)
+	return registry.nutsClient.CreateVC(ctx, NutsAuthorizationCredentialTypeURI.String(), issuer, subjectMap, nil, false)
 }
 
 func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(ctx context.Context, params *VCRSearchParams) ([]vc.VerifiableCredential, error) {
-	query := nutsClient.GetNutsCredentialTemplate(*credential.NutsAuthorizationCredentialTypeURI)
+	query := nutsClient.GetNutsCredentialTemplate(NutsAuthorizationCredentialTypeURI)
 	credentialSubject := make(map[string]interface{}, 0)
 	query.CredentialSubject = credentialSubject
 
@@ -83,7 +109,7 @@ func (registry *httpVerifiableCredentialRegistry) FindAuthorizationCredentials(c
 
 func (registry *httpVerifiableCredentialRegistry) RevokeAuthorizationCredential(ctx context.Context, purposeOfUse, subjectID, resourcePath string) error {
 	// may be extended by issuanceDate for even faster results.
-	query := nutsClient.GetNutsCredentialTemplate(*credential.NutsAuthorizationCredentialTypeURI)
+	query := nutsClient.GetNutsCredentialTemplate(NutsAuthorizationCredentialTypeURI)
 	query.CredentialSubject = map[string]interface{}{
 		"id":           subjectID,
 		"purposeOfUse": purposeOfUse,

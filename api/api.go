@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
 	"strconv"
@@ -41,9 +43,8 @@ var _ ServerInterface = (*Wrapper)(nil)
 
 type Wrapper struct {
 	APIAuth                 *Auth
-	NutsAuth                nutsClient.Auth
-	NutsIam                 nutsClient.Iam
-	NutsDiscovery           nutsClient.Discovery
+	ACL                     *acl.Repository
+	NutsClient              *nutsClient.HTTPClient
 	CustomerRepository      customers.Repository
 	PatientRepository       patients.Repository
 	ReportRepository        reports.Repository
@@ -53,6 +54,7 @@ type Wrapper struct {
 	TransferSenderService   sender.TransferService
 	TransferReceiverService receiver.TransferService
 	TransferReceiverRepo    receiver.TransferRepository
+	ZorginzageService       domain.ZorginzageService
 	FHIRService             fhir.Service
 	EpisodeService          episode.Service
 	NotificationHandler     notification.Handler
@@ -115,7 +117,7 @@ func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
-	response, err := w.NutsIam.CreateAuthenticationRequest(*customer.Did)
+	response, err := w.NutsClient.CreateAuthenticationRequest(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,7 @@ func (w Wrapper) GetOpenID4VPAuthenticationResult(ctx echo.Context, token string
 	//if err != nil {
 	//	return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	//}
-	response, err := w.NutsIam.GetAuthenticationResult(token)
+	response, err := w.NutsClient.GetAuthenticationResult(token)
 	if err != nil {
 		return err
 	}
@@ -153,7 +155,7 @@ func (w Wrapper) AuthenticateWithIRMA(ctx echo.Context) error {
 	}
 
 	// forward to node
-	bytes, err := w.NutsAuth.CreateIrmaSession(*customer.Did)
+	bytes, err := w.NutsClient.CreateIrmaSession(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -171,7 +173,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	}
 
 	// forward to node
-	sessionStatus, err := w.NutsAuth.GetIrmaSessionResult(sessionToken)
+	sessionStatus, err := w.NutsClient.GetIrmaSessionResult(sessionToken)
 	if err != nil {
 		return err
 	}
@@ -183,7 +185,7 @@ func (w Wrapper) GetIRMAAuthenticationResult(ctx echo.Context, sessionToken stri
 	authSessionID, err := w.getSessionID(ctx)
 	if err != nil {
 		// No current session, create a new one. Introspect IRMA VP and extract properties for UserInfo.
-		userPresentation, err := w.NutsAuth.VerifyPresentation(*sessionStatus.VerifiablePresentation)
+		userPresentation, err := w.NutsClient.VerifyPresentation(*sessionStatus.VerifiablePresentation)
 		if err != nil {
 			return fmt.Errorf("unable to verify presentation: %w", err)
 		}
@@ -245,7 +247,7 @@ func (w Wrapper) AuthenticateWithEmployeeID(ctx echo.Context) error {
 			"familyName": session.UserInfo.FamilyName,
 		},
 	}
-	bytes, err := w.NutsAuth.CreateEmployeeIDSession(params)
+	bytes, err := w.NutsClient.CreateEmployeeIDSession(params)
 	if err != nil {
 		return err
 	}
@@ -268,7 +270,7 @@ func (w Wrapper) GetEmployeeIDAuthenticationResult(ctx echo.Context, sessionToke
 	authSessionID, _ := w.getSessionID(ctx) // can't fail
 
 	// forward to node
-	sessionStatus, err := w.NutsAuth.GetEmployeeIDSessionResult(sessionToken)
+	sessionStatus, err := w.NutsClient.GetEmployeeIDSessionResult(sessionToken)
 	if err != nil {
 		return err
 	}
@@ -306,7 +308,7 @@ func (w Wrapper) AuthenticateWithDummy(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
 
-	bytes, err := w.NutsAuth.CreateDummySession(*customer.Did)
+	bytes, err := w.NutsClient.CreateDummySession(*customer.Did)
 	if err != nil {
 		return err
 	}
@@ -338,7 +340,7 @@ func (w Wrapper) GetDummyAuthenticationResult(ctx echo.Context, sessionToken str
 	// for dummy, it takes a few request to get to status completed.
 	for i := 0; i < 4; i++ {
 		// forward to node
-		sessionResult, err = w.NutsAuth.GetDummySessionResult(sessionToken)
+		sessionResult, err = w.NutsClient.GetDummySessionResult(sessionToken)
 		if err != nil {
 			return err
 		}

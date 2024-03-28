@@ -6,26 +6,55 @@ import (
 	"github.com/nuts-foundation/go-did/did"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts"
 	nutsDiscoveryClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/discovery"
-	"github.com/nuts-foundation/nuts-node/vdr/didweb"
-	"io"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vdr_v2"
 	"net/http"
 	"time"
 )
 
 var _ Discovery = (*HTTPClient)(nil)
 
-type Discovery interface {
-	SearchService(ctx context.Context, organizationSearchParam string, discoveryServiceID string, didServiceType *string) ([]nuts.NutsOrganization, error)
+// DiscoverySearchResult models a single result for when searching on Discovery Services.
+type DiscoverySearchResult struct {
+	nuts.NutsOrganization
+	ServiceID string `json:"service_id"`
 }
 
-func (c HTTPClient) SearchService(ctx context.Context, organizationSearchParam string, discoveryServiceID string, didServiceType *string) ([]nuts.NutsOrganization, error) {
+type Discovery interface {
+	SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string, didServiceType *string) ([]DiscoverySearchResult, error)
+}
+
+func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string, didServiceType *string) ([]DiscoverySearchResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	searchParams := map[string]interface{}{
-		"credentialSubject.organization.name": organizationSearchParam + "*",
+	var serviceIDs []string
+	if discoveryServiceID != nil {
+		serviceIDs = append(serviceIDs, *discoveryServiceID)
+	} else {
+		// service ID not specified, search all discovery services
+		var err error
+		serviceIDs, err = c.getDiscoveryServices(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
-	params := nutsDiscoveryClient.SearchPresentationsParams{Query: &searchParams}
+	searchResults := make([]DiscoverySearchResult, 0)
+	for _, serviceID := range serviceIDs {
+		currResults, err := c.searchDiscoveryService(ctx, query, serviceID, didServiceType)
+		if err != nil {
+			return nil, err
+		}
+		searchResults = append(searchResults, currResults...)
+	}
+	return searchResults, nil
+}
+
+func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID string, didServiceType *string) ([]DiscoverySearchResult, error) {
+	queryAsMap := make(map[string]interface{}, 0)
+	for key, value := range query {
+		queryAsMap[key] = value
+	}
+	params := nutsDiscoveryClient.SearchPresentationsParams{Query: &queryAsMap}
 
 	resp, err := c.discovery().SearchPresentations(ctx, discoveryServiceID, &params)
 	if err != nil {
@@ -41,11 +70,11 @@ func (c HTTPClient) SearchService(ctx context.Context, organizationSearchParam s
 	}
 
 	// resolve all DIDs from .subjectId and filter on given didServiceType if given
-	results := make([]nuts.NutsOrganization, 0)
+	results := make([]DiscoverySearchResult, 0)
 	for _, searchResult := range response {
 		if didServiceType != nil {
 			// parse did and convert did:web to url
-			doc, err := resolve(ctx, searchResult.SubjectId)
+			doc, err := c.resolveDID(ctx, searchResult.SubjectId)
 			if err != nil {
 				return nil, err
 			}
@@ -61,38 +90,27 @@ func (c HTTPClient) SearchService(ctx context.Context, organizationSearchParam s
 				continue
 			}
 		}
-		// convert searchResult to NutsOrganization and use the toCache method to store the results in the cache
-		results = append(results, organizationSearchResultToDomain(searchResult))
+		results = append(results, DiscoverySearchResult{
+			NutsOrganization: organizationSearchResultToDomain(searchResult),
+			ServiceID:        discoveryServiceID,
+		})
 	}
-
 	return results, nil
 }
 
-// resolve a did:web document. This is a helper function to resolve a did:web document to a did.Document.
-// construct the right URL, call it and parse the result to a did.Document.
-func resolve(ctx context.Context, didStr string) (*did.Document, error) {
-	id, err := did.ParseDID(didStr)
+func (c HTTPClient) resolveDID(ctx context.Context, didStr string) (*did.Document, error) {
+	response, err := c.vdr().ResolveDID(ctx, didStr)
+	if err != nil {
+		return nil, nil
+	}
+	if err := testResponseCode(http.StatusOK, response); err != nil {
+		return nil, err
+	}
+	didResponse, err := vdr_v2.ParseResolveDIDResponse(response)
 	if err != nil {
 		return nil, err
 	}
-	didURL, err := didweb.DIDToURL(*id)
-	if err != nil {
-		return nil, err
-	}
-	didURL = didURL.JoinPath("did.json")
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, didURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	bytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return did.ParseDocument(string(bytes))
+	return &didResponse.JSON200.Document, nil
 }
 
 func organizationSearchResultToDomain(searchResult nutsDiscoveryClient.SearchResult) nuts.NutsOrganization {
@@ -103,6 +121,26 @@ func organizationSearchResultToDomain(searchResult nutsDiscoveryClient.SearchRes
 			City: searchResult.Fields["organization_city"].(string),
 		},
 	}
+}
+
+func (c HTTPClient) getDiscoveryServices(ctx context.Context) ([]string, error) {
+	response, err := c.discovery().GetServices(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = testResponseCode(http.StatusOK, response)
+	if err != nil {
+		return nil, err
+	}
+	services, err := nutsDiscoveryClient.ParseGetServicesResponse(response)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0)
+	for _, service := range *services.JSON200 {
+		result = append(result, service.Id)
+	}
+	return result, nil
 }
 
 func (c HTTPClient) discovery() nutsDiscoveryClient.ClientInterface {

@@ -50,11 +50,15 @@
           </td>
           <td v-if="!!requestedOrganization" class="space-x-2">
             <button class="btn btn-sm btn-primary" @click="assignOrganization" id="transfer-assign-button"
-                    :class="{'btn-loading': state === 'assigning'}"><span>Assign<span style="font-family: monospace;" v-if="state === 'assigning'"> {{'.'.repeat(waitCount) + '&nbsp;'.repeat(3-waitCount)}}</span></span></button>
-<!-- Not supported for now -->
-<!--            <button class="btn btn-sm btn-primary" @click="startNegotiation"-->
-<!--                    :class="{'btn-loading': state === 'requesting'}">Request-->
-<!--            </button>-->
+                    :class="{'btn-loading': state === 'assigning'}"><span>Assign<span style="font-family: monospace;"
+                                                                                      v-if="state === 'assigning'"> {{
+                '.'.repeat(waitCount) + '&nbsp;'.repeat(3 - waitCount)
+              }}</span></span>
+            </button>
+            <!-- Not supported for now -->
+            <!--            <button class="btn btn-sm btn-primary" @click="startNegotiation"-->
+            <!--                    :class="{'btn-loading': state === 'requesting'}">Request-->
+            <!--            </button>-->
             <button class="btn btn-sm btn-secondary" @click="cancelOrganization">Cancel</button>
           </td>
         </tr>
@@ -154,12 +158,15 @@ export default {
       this.requestedOrganization = null
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations({query: query, discoveryServiceType: "eoverdracht_dev3", didServiceType: "eOverdracht-receiver"})
-          .then((result) => {
-            // Only show organizations that we aren't already negotiating with
-            this.organizations = result.data.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
-          })
-          .catch(error => this.$status.error(error))
+      this.$api.searchOrganizations(null, {
+        query: {'credentialSubject.organization.name': query + '*'},
+        discoveryServiceType: "eoverdracht_dev3",
+        didServiceType: "eOverdracht-receiver",
+        excludeOwn: true
+      }).then((result) => {
+        // Only show organizations that we aren't already negotiating with
+        this.organizations = result.data.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
+      }).catch(error => this.$status.error(error))
     },
     assignOrganization() {
       this.state = 'assigning';

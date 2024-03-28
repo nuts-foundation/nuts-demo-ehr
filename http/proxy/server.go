@@ -17,7 +17,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
@@ -221,8 +220,8 @@ func (server *Server) verifyAccess(ctx echo.Context, request *http.Request, toke
 	return nil
 }
 
-func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse) ([]credential.NutsAuthorizationCredentialSubject, error) {
-	var subjects []credential.NutsAuthorizationCredentialSubject
+func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, token *nutsAuthClient.TokenIntrospectionResponse) ([]registry.NutsAuthorizationCredentialSubject, error) {
+	var subjects []registry.NutsAuthorizationCredentialSubject
 
 	if token.Vcs == nil {
 		return subjects, nil
@@ -239,7 +238,7 @@ func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, tok
 			continue
 		}
 
-		subject := make([]credential.NutsAuthorizationCredentialSubject, 0)
+		subject := make([]registry.NutsAuthorizationCredentialSubject, 0)
 
 		if err := authCredential.UnmarshalCredentialSubject(&subject); err != nil {
 			return nil, fmt.Errorf("invalid content for NutsAuthorizationCredential credentialSubject: %w", err)
@@ -251,7 +250,7 @@ func (server *Server) parseNutsAuthorizationCredentials(ctx context.Context, tok
 	return subjects, nil
 }
 
-func (server *Server) validateWithNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionResponse, subjects []credential.NutsAuthorizationCredentialSubject, route fhirRoute) error {
+func (server *Server) validateWithNutsAuthorizationCredential(token *nutsAuthClient.TokenIntrospectionResponse, subjects []registry.NutsAuthorizationCredentialSubject, route fhirRoute) error {
 	hasUser := token.Email != nil
 
 	if token.Vcs != nil {
@@ -295,5 +294,5 @@ func (server *Server) getTenant(requesterDID string) (int, error) {
 }
 
 func validCredentialType(verifiableCredential vc.VerifiableCredential) bool {
-	return verifiableCredential.IsType(*credential.NutsAuthorizationCredentialTypeURI)
+	return verifiableCredential.IsType(registry.NutsAuthorizationCredentialTypeURI)
 }

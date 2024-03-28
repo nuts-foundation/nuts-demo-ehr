@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -16,6 +17,8 @@ type GetPatientsParams struct {
 	// Search patients by name
 	Name *string `json:"name,omitempty"`
 }
+
+type GetRemotePatientParams = types.GetRemotePatientParams
 
 func (w Wrapper) GetPatients(ctx echo.Context, params GetPatientsParams) error {
 	customerID, err := w.getCustomerID(ctx)
@@ -97,7 +100,18 @@ func (w Wrapper) GetPatient(ctx echo.Context, patientID string) error {
 		return ctx.NoContent(http.StatusNotFound)
 	}
 	return ctx.JSON(http.StatusOK, patient)
+}
 
+func (w Wrapper) GetRemotePatient(ctx echo.Context, params GetRemotePatientParams) error {
+	customer, err := w.getCustomer(ctx)
+	if err != nil {
+		return err
+	}
+	patient, err := w.ZorginzageService.RemotePatient(ctx.Request().Context(), *customer.Did, params.RemotePartyDID, params.PatientSSN)
+	if err != nil {
+		return fmt.Errorf("unable to load remote patient: %w", err)
+	}
+	return ctx.JSON(http.StatusOK, patient)
 }
 
 func (w Wrapper) getSessionID(ctx echo.Context) (string, error) {

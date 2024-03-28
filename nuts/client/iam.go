@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	nutsIamClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/iam"
 	"net/http"
 	"time"
@@ -76,8 +76,13 @@ func (c HTTPClient) RequestServiceAccessToken(ctx context.Context, relyingPartyD
 	if err != nil {
 		return "", err
 	}
+
 	if tokenResponse.JSON200 == nil {
-		return "", errors.New("unable to get access token")
+		var detail string
+		if tokenResponse.ApplicationproblemJSONDefault != nil {
+			detail = tokenResponse.ApplicationproblemJSONDefault.Detail
+		}
+		return "", fmt.Errorf("unable to get access token: %s", detail)
 	}
 	return tokenResponse.JSON200.AccessToken, nil
 

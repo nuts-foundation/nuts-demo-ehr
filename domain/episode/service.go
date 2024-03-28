@@ -23,7 +23,7 @@ type Service interface {
 	Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error)
 	Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error)
 	GetReports(ctx context.Context, customerDID, patientSSN string) ([]types.Report, error)
-	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error
+	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string, client fhir.Client) error
 	GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string) ([]types.Collaboration, error)
 }
 
@@ -91,7 +91,7 @@ func (service *service) Get(ctx context.Context, customerID int, dossierID strin
 	return zorginzage.ToEpisode(episode), nil
 }
 
-func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string) error {
+func (service *service) CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string, client fhir.Client) error {
 	// TODO: Need to formalize this in a use case specification
 	authorizedResources := []registry.Resource{
 		{
@@ -110,7 +110,7 @@ func (service *service) CreateCollaboration(ctx context.Context, customerDID, do
 	}
 	for _, resource := range authorizedResources {
 		for _, op := range resource.Operations {
-			if err := service.aclRepository.GrantAccess(ctx, customerDID, senderDID, op, resource.Path); err != nil {
+			if err := service.aclRepository.GrantAccess(ctx, customerDID, senderDID, op, client.BuildRequestURI(resource.Path)); err != nil {
 				return err
 			}
 		}

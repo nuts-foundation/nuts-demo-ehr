@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"net/http"
 
@@ -48,6 +49,7 @@ func (w Wrapper) CreateCollaboration(ctx echo.Context, dossierID string) error {
 		dossierID,
 		*patient.Ssn,
 		request.Sender.Did,
+		w.FHIRService.ClientFactory(fhir.WithTenant(customer.Id)),
 	); err != nil {
 		return err
 	}

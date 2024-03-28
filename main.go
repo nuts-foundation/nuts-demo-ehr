@@ -249,14 +249,11 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferSenderService:   transferSenderService,
 		TransferReceiverService: transferReceiverService,
 		TransferReceiverRepo:    transferReceiverRepo,
-		ZorginzageService: domain.ZorginzageService{
-			NutsClient:  nodeClient,
-			FHIRFactory: fhirClientFactory,
-		},
-		FHIRService:         fhir.Service{ClientFactory: fhirClientFactory},
-		EpisodeService:      episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry, aclRepository),
-		TenantInitializer:   tenantInitializer,
-		NotificationHandler: notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
+		ZorginzageService:       domain.ZorginzageService{NutsClient: nodeClient},
+		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
+		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry, aclRepository),
+		TenantInitializer:       tenantInitializer,
+		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
 	}
 
 	// JWT checking for correct claims

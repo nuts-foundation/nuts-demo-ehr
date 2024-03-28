@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -108,7 +109,7 @@ func (w Wrapper) GetRemotePatient(ctx echo.Context, params GetRemotePatientParam
 	}
 	patient, err := w.ZorginzageService.RemotePatient(ctx.Request().Context(), *customer.Did, params.RemotePartyDID, params.PatientSSN)
 	if err != nil {
-		return errors.New("unable to load remote patient")
+		return fmt.Errorf("unable to load remote patient: %w", err)
 	}
 	return ctx.JSON(http.StatusOK, patient)
 }

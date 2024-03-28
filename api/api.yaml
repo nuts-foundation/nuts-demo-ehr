@@ -1377,4 +1377,4 @@ security:
   - bearerAuth: [ ] # Apply Bearer Auth to all endpoints
 
 servers:
-  - url: "/web"
+  - url: "./web"

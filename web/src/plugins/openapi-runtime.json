@@ -549,7 +549,7 @@
   "components": {},
   "servers": [
     {
-      "url": "/web"
+      "url": "./web"
     }
   ]
 }

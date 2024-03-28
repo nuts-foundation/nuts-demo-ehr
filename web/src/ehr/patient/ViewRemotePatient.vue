@@ -48,7 +48,7 @@ export default {
       loading: false,
       formErrors: [],
       patient: null,
-      chosenPatientSSN: null,
+      chosenPatientSSN: '1234567890',
       chosenOrganization: null,
       requestedScope: "homemonitoring",
       organizations: [],

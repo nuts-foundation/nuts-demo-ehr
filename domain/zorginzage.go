@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -33,16 +32,16 @@ func (z ZorginzageService) RemotePatient(ctx context.Context, localDID, remotePa
 func (z ZorginzageService) fhirClient(ctx context.Context, localDID string, remotePartyDID string, scope string, serviceName string) (fhir.Client, error) {
 	endpointsInterf, err := z.NutsClient.ResolveServiceEndpoint(ctx, remotePartyDID, serviceName, "object")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolve DID service (DID=%s, service=%s): %w", remotePartyDID, serviceName, err)
 	}
 	endpoints := endpointsInterf.(map[string]string)
 	fhirEndpoint := endpoints["fhir"]
 	if fhirEndpoint == "" {
-		return nil, errors.New("remote XIS does not have its FHIR endpoint registered")
+		return nil, fmt.Errorf("remote XIS does not have its FHIR endpoint registered (DID=%s)", remotePartyDID)
 	}
 	accessToken, err := z.NutsClient.RequestServiceAccessToken(ctx, localDID, remotePartyDID, scope)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get access token: %w", err)
+		return nil, fmt.Errorf("unable to get access token (DID=%s,scope=%s): %w", remotePartyDID, scope, err)
 	}
 	fhirClient := z.FHIRFactory(fhir.WithURL(fhirEndpoint), fhir.WithAuthToken(accessToken))
 	return fhirClient, nil

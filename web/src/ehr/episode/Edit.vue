@@ -126,7 +126,7 @@ export default {
           .catch(error => this.$status.error(error))
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations(null, {query: {"credentialSubject.organization.name": query + '*'}})
+      this.$api.searchOrganizations(null, {query: {"credentialSubject.organization.name": query + '*'}, excludeOwn: true})
           .then((result) => this.organizations = Object.values(result.data))
           .catch(error => this.$status.error(error))
     },

@@ -55,23 +55,21 @@ export default {
 
       this.loading = true
 
-      this.$api.createDossier({body: {patientID: this.$route.params.id, name: 'Episode'}})
-          .then(dossier => this.createEpisode(dossier.id))
-          .then(episode => {
+      this.$api.createDossier(null, {patientID: this.$route.params.id, name: 'Episode'})
+          .then(result => this.createEpisode(result.data.id))
+          .then(result => {
             return this.$router.push({
               name: 'ehr.patient.episode.edit',
-              params: {episodeID: episode.id}
+              params: {episodeID: result.data.id}
             })
           })
           .catch(error => this.$status.error(error))
           .finally(() => this.loading = false)
     },
     createEpisode(dossierID) {
-      return this.$api.createEpisode({
-        body: {
+      return this.$api.createEpisode(null, {
           dossierID,
           ...this.episode,
-        }
       })
     }
   },

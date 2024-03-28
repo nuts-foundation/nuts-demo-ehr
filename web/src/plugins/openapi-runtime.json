@@ -1,0 +1,514 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "",
+    "version": ""
+  },
+  "paths": {
+    "/auth": {
+      "post": {
+        "operationId": "setCustomer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/auth/passwd": {
+      "post": {
+        "operationId": "authenticateWithPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/auth/openid4vp": {
+      "post": {
+        "operationId": "createAuthorizationRequest",
+        "responses": {}
+      }
+    },
+    "/auth/openid4vp/{token}": {
+      "parameters": [
+        {
+          "name": "token",
+          "in": "path",
+          "description": "The session ID",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getOpenID4VPAuthenticationResult",
+        "responses": {}
+      }
+    },
+    "/auth/irma/session": {
+      "post": {
+        "operationId": "authenticateWithIRMA",
+        "responses": {}
+      }
+    },
+    "/auth/irma/session/{sessionToken}/result": {
+      "parameters": [
+        {
+          "name": "sessionToken",
+          "in": "path",
+          "description": "IRMA session ID",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getIRMAAuthenticationResult",
+        "responses": {}
+      }
+    },
+    "/auth/employeeid/session": {
+      "post": {
+        "operationId": "authenticateWithEmployeeID",
+        "responses": {}
+      }
+    },
+    "/auth/employeeid/session/{sessionToken}/result": {
+      "parameters": [
+        {
+          "name": "sessionToken",
+          "in": "path",
+          "description": "EmployeeID means session ID",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getEmployeeIDAuthenticationResult",
+        "responses": {}
+      }
+    },
+    "/auth/dummy": {
+      "post": {
+        "operationId": "authenticateWithDummy",
+        "responses": {}
+      }
+    },
+    "/auth/dummy/session/{sessionToken}/result": {
+      "parameters": [
+        {
+          "name": "sessionToken",
+          "in": "path",
+          "description": "Dummy session ID",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getDummyAuthenticationResult",
+        "responses": {}
+      }
+    },
+    "/private": {
+      "get": {
+        "operationId": "checkSession",
+        "responses": {}
+      }
+    },
+    "/private/customer": {
+      "get": {
+        "operationId": "getCustomer",
+        "responses": {}
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "listCustomers",
+        "responses": {}
+      }
+    },
+    "/private/patient/{patientID}": {
+      "parameters": [
+        {
+          "name": "patientID",
+          "in": "path",
+          "description": "The patient id",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getPatient",
+        "responses": {}
+      },
+      "put": {
+        "operationId": "updatePatient",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/episode": {
+      "post": {
+        "operationId": "createEpisode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/episode/{episodeID}": {
+      "get": {
+        "operationId": "getEpisode",
+        "parameters": [
+          {
+            "name": "episodeID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/private/episode/{episodeID}/collaboration": {
+      "get": {
+        "operationId": "getCollaboration",
+        "parameters": [
+          {
+            "name": "episodeID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {}
+      },
+      "post": {
+        "operationId": "createCollaboration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "episodeID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/private/transfer": {
+      "post": {
+        "operationId": "createTransfer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      },
+      "get": {
+        "parameters": [
+          {
+            "name": "patientID",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "operationId": "getPatientTransfers",
+        "responses": {}
+      }
+    },
+    "/private/transfer/{transferID}": {
+      "parameters": [
+        {
+          "name": "transferID",
+          "in": "path",
+          "description": "ID of the transfer dossier.",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getTransfer",
+        "responses": {}
+      },
+      "put": {
+        "operationId": "updateTransfer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      },
+      "delete": {
+        "operationId": "cancelTransfer",
+        "responses": {}
+      }
+    },
+    "/private/transfer/{transferID}/assign": {
+      "parameters": [
+        {
+          "name": "transferID",
+          "in": "path",
+          "description": "ID of the transfer dossier.",
+          "required": true
+        }
+      ],
+      "put": {
+        "operationId": "assignTransferDirect",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/transfer/{transferID}/negotiation": {
+      "parameters": [
+        {
+          "name": "transferID",
+          "in": "path",
+          "description": "ID of the transfer dossier.",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "listTransferNegotiations",
+        "responses": {}
+      },
+      "post": {
+        "operationId": "startTransferNegotiation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/transfer/{transferID}/negotiation/{negotiationID}": {
+      "parameters": [
+        {
+          "name": "transferID",
+          "in": "path",
+          "description": "ID of the transfer dossier.",
+          "required": true
+        },
+        {
+          "name": "negotiationID",
+          "in": "path",
+          "description": "ID of the transfer negotiation.",
+          "required": true
+        }
+      ],
+      "put": {
+        "operationId": "updateTransferNegotiationStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/transfer-request/{requestorDID}/{fhirTaskID}": {
+      "parameters": [
+        {
+          "name": "requestorDID",
+          "in": "path",
+          "description": "DID of the care organizaton that requests the transfer.",
+          "required": true
+        },
+        {
+          "name": "fhirTaskID",
+          "in": "path",
+          "description": "ID of the FHIR transfer task at the care organization that requests the transfer.",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getTransferRequest",
+        "responses": {}
+      },
+      "post": {
+        "operationId": "changeTransferRequestState",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/patients": {
+      "get": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false
+          }
+        ],
+        "operationId": "getPatients",
+        "responses": {}
+      },
+      "post": {
+        "operationId": "newPatient",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/network/organizations": {
+      "get": {
+        "operationId": "searchOrganizations",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true
+          },
+          {
+            "name": "didServiceType",
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "discoveryServiceType",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/private/network/inbox": {
+      "get": {
+        "operationId": "getInbox",
+        "responses": {}
+      }
+    },
+    "/private/network/inbox/info": {
+      "get": {
+        "operationId": "getInboxInfo",
+        "responses": {}
+      }
+    },
+    "/private/reports/{patientID}": {
+      "parameters": [
+        {
+          "name": "patientID",
+          "in": "path",
+          "description": "The patient ID",
+          "required": true
+        }
+      ],
+      "get": {
+        "parameters": [
+          {
+            "name": "episodeID",
+            "in": "query",
+            "required": false
+          }
+        ],
+        "operationId": "getReports",
+        "responses": {}
+      },
+      "post": {
+        "operationId": "createReport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/private/dossier/{patientID}": {
+      "get": {
+        "operationId": "getDossier",
+        "parameters": [
+          {
+            "name": "patientID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/private/dossier": {
+      "post": {
+        "operationId": "createDossier",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
+    "/external/transfer/notify/{taskID}": {
+      "post": {
+        "operationId": "notifyTransferUpdate",
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/internal/customer/{customerID}/task/{taskID}": {
+      "parameters": [
+        {
+          "name": "customerID",
+          "in": "path",
+          "description": "ID of the customer.",
+          "required": true
+        },
+        {
+          "name": "taskID",
+          "in": "path",
+          "description": "ID of the task.",
+          "required": true
+        }
+      ],
+      "put": {
+        "operationId": "taskUpdate",
+        "responses": {}
+      }
+    }
+  },
+  "components": {},
+  "servers": [
+    {
+      "url": "/web"
+    }
+  ]
+}

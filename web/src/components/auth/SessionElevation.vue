@@ -69,13 +69,13 @@ export default {
       // showing the user the returned URL (which is the consent page) in an IFrame,
       // then polling the server for the result of the authentication session.
       this.$api.authenticateWithEmployeeID()
-          .then(session => {
-            if (!session.sessionPtr.url) {
+          .then(result => {
+            if (!result.sessionPtr.url) {
               throw "No URL returned by server";
             }
-            this.employeeIDSessionURL = session.sessionPtr.url;
+            this.employeeIDSessionURL = result.data.sessionPtr.url;
             this.employeeIDResultPoller = setInterval(() => {
-              this.$api.getEmployeeIDAuthenticationResult({sessionToken: session.sessionID})
+              this.$api.getEmployeeIDAuthenticationResult({sessionToken: result.data.sessionID})
                   .then((sessionResult) => {
                     clearInterval(this.employeeIDResultPoller);
                     if (sessionResult.token) {
@@ -107,10 +107,9 @@ export default {
       console.log("elevate with Dummy")
       this.$api.authenticateWithDummy()
           .then((res) => {
-            console.log(res)
-            return this.$api.getDummyAuthenticationResult({sessionToken: res.sessionID})
-                .then((responseData) => {
-                  this.onElevationSuccess(responseData.token)
+            return this.$api.getDummyAuthenticationResult({sessionToken: res.data.sessionID})
+                .then((result) => {
+                  this.onElevationSuccess(result.data.token)
                 })
                 .catch(err => console.log(err))
           })

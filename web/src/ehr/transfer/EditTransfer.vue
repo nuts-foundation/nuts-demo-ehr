@@ -155,9 +155,9 @@ export default {
     },
     searchOrganizations(query) {
       this.$api.searchOrganizations({query: query, discoveryServiceType: "eoverdracht_dev3", didServiceType: "eOverdracht-receiver"})
-          .then((organizations) => {
+          .then((result) => {
             // Only show organizations that we aren't already negotiating with
-            this.organizations = organizations.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
+            this.organizations = result.data.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
           })
           .catch(error => this.$status.error(error))
     },
@@ -176,12 +176,11 @@ export default {
 
       const negotiation = {
         transferID: this.transfer.id,
-        body: {
-          organizationDID: this.requestedOrganization.did
-        }
       };
 
-      this.$api.assignTransferDirect(negotiation)
+      this.$api.assignTransferDirect(negotiation, {
+        organizationDID: this.requestedOrganization.did
+      })
           .then(() => {
             this.requestedOrganization = null
             this.$store.commit("statusUpdate", "Patient transfer assigned")
@@ -198,12 +197,11 @@ export default {
 
       const negotiation = {
         transferID: this.transfer.id,
-        body: {
-          organizationDID: this.requestedOrganization.did
-        }
       };
 
-      this.$api.startTransferNegotiation(negotiation)
+      this.$api.startTransferNegotiation(negotiation, {
+        organizationDID: this.requestedOrganization.did
+      })
           .then(() => {
             this.requestedOrganization = null
             this.fetchTransfer(this.transfer.id)
@@ -213,11 +211,10 @@ export default {
     },
     assignNegotiation(negotiation) {
       this.state = 'assigning'
-      this.$api.updateTransferNegotiationStatus({
-        transferID: negotiation.transferID,
-        negotiationID: negotiation.id,
-        body: {status: 'in-progress'}
-      })
+      this.$api.updateTransferNegotiationStatus(
+          {transferID: negotiation.transferID, negotiationID: negotiation.id},
+          {status: 'in-progress'}
+      )
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
           .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
@@ -225,11 +222,10 @@ export default {
     cancelNegotiation(negotiation) {
       this.state = 'cancelling';
 
-      this.$api.updateTransferNegotiationStatus({
-        transferID: negotiation.transferID,
-        negotiationID: negotiation.id,
-        body: {status: 'cancelled'}
-      })
+      this.$api.updateTransferNegotiationStatus(
+          {transferID: negotiation.transferID, negotiationID: negotiation.id},
+          {status: 'cancelled'}
+      )
           .then(() => this.fetchTransferNegotiations(this.transfer.id))
           .catch(error => this.$status.error(error))
           .finally(() => this.state = 'done')
@@ -241,8 +237,8 @@ export default {
         transferID: this.transfer.id,
       }
       this.$api.cancelTransfer(cancelRequest)
-          .then(transfer => {
-            this.transfer = transfer
+          .then(result => {
+            this.transfer = result.data
             return this.fetchTransferNegotiations(this.transfer.id)
           })
           .then(() => {
@@ -253,14 +249,13 @@ export default {
     updateTransfer() {
       const updateRequest = {
         transferID: this.transfer.id,
-        body: {
-          description: this.transfer.description,
-          transferDate: this.transfer.transferDate,
-        }
-      };
-      this.$api.updateTransfer(updateRequest)
-          .then(transfer => {
-            this.transfer = transfer
+      }
+      this.$api.updateTransfer(updateRequest, {
+        description: this.transfer.description,
+        transferDate: this.transfer.transferDate,
+      })
+          .then(result => {
+            this.transfer = result.data
             this.$status.status("Transfer updated")
           })
           .catch(error => this.$status.error(error))
@@ -268,13 +263,13 @@ export default {
     },
     fetchTransfer(id) {
       this.$api.getTransfer({transferID: id})
-          .then(transfer => this.transfer = transfer)
+          .then(result => this.transfer = result.data)
           .then(() => this.fetchTransferNegotiations(id))
           .catch(error => this.$status.error(error))
     },
     fetchTransferNegotiations(transferID) {
       return this.$api.listTransferNegotiations({transferID: transferID})
-          .then(negotiations => this.negotiations = negotiations)
+          .then(result => this.negotiations = result.data)
           .catch(error => this.$status.error(error))
     }
   },

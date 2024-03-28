@@ -105,31 +105,29 @@ export default {
     },
     fetchEpisode(episodeID) {
       this.$api.getEpisode({episodeID})
-          .then(episode => this.episode = episode)
+          .then(result => this.episode = result.data)
           .catch(e => this.$status.error(e))
     },
     fetchReports(patientID, episodeID) {
       this.$api.getReports({patientID, episodeID})
-          .then(reports => this.reports = reports)
+          .then(result => this.reports = result.data)
           .catch(e => this.$status.error(e))
     },
     fetchCollaborations(episodeID) {
       this.$api.getCollaboration({episodeID})
-          .then(collaborations => this.collaborations = collaborations)
+          .then(result => this.collaborations = result.data)
           .catch(e => this.$status.error(e))
     },
     chooseCollaboration(collaboration) {
       const episodeID = this.$route.params.episodeID
 
-      this.$api.createCollaboration({episodeID, body: {sender: {did: collaboration.did}}})
+      this.$api.createCollaboration({episodeID: episodeID}, {sender: {did: collaboration.did}})
           .then(() => this.fetchCollaborations(episodeID))
           .catch(error => this.$status.error(error))
     },
     searchOrganizations(query) {
-      this.$api.searchOrganizations({query: query, didServiceType: "zorginzage-demo"})
-          .then((organizations) => {
-            this.organizations = organizations
-          })
+      this.$api.searchOrganizations({query: query, discoveryServiceType: 'zorginzage-demo', didServiceType: "zorginzage-demo"})
+          .then((result) => this.organizations = result.data)
           .catch(error => this.$status.error(error))
     },
   },

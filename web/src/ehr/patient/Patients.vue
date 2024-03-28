@@ -88,7 +88,7 @@ export default {
         params.name = this.query
       }
       this.$api.getPatients(params)
-          .then((response) => this.patients = response)
+          .then((result) => this.patients = result.data)
           .catch(error => this.$status.error(error))
           .finally(() => {
             this.$nextTick(() => setTimeout(() => this.state = 'done', 10));

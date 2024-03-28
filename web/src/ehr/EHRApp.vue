@@ -145,7 +145,7 @@ export default {
   methods: {
     fetchData() {
       this.$api.getInboxInfo()
-          .then((response) => this.inboxInfo = response)
+          .then((result) => this.inboxInfo = result.data)
           .catch(error => this.$status.error(error))
     },
   },

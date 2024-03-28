@@ -59,10 +59,7 @@ export default {
         episodeID: this.$route.params.episodeID,
       };
 
-      this.$api.createReport({
-        body: payload,
-        patientID,
-      })
+      this.$api.createReport({patientID: patientID}, payload)
       this.$router.push({name: 'ehr.patient.episode.edit', params: {id: this.$route.params.id}})
     },
   },

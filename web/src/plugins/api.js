@@ -29,36 +29,6 @@ function wrapClientCall(client, functionName, apiOptions, router) {
                     }
                 }
             })
-
-        // TODO: Might have to handle the old functionality as well:
-        // return client[functionName](parameters).then((response) => {
-        //     return response.json()
-        //         .then((json) => {
-        //             if (response.ok) {
-        //                 return Promise.resolve(json)
-        //             } else {
-        //                 if (apiOptions.forbiddenRoute && response.status === 401) {
-        //                     return router.push(apiOptions.forbiddenRoute)
-        //                 } else {
-        //                     return Promise.reject(json.error)
-        //                 }
-        //             }
-        //         }).catch(reason => {
-        //             // Handle 404 since it does not have content and the response.json() will fail.
-        //             if (response.status === 404) {
-        //                 return Promise.reject(reason)
-        //             }
-        //             // Handle 204 since it does not have content and the response.json() will fail.
-        //             if (response.status === 204) {
-        //                 return Promise.resolve(response)
-        //             }
-        //             // Handle 201 since it might not have content and the response.json() will fail.
-        //             if (response.status === 201) {
-        //                 return Promise.resolve(response)
-        //             }
-        //             return Promise.reject(reason)
-        //         })
-        // })
     }
 }
 

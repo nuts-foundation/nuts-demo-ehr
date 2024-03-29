@@ -380,26 +380,41 @@
         "responses": {}
       }
     },
-    "/private/network/organizations": {
-      "get": {
+    "/private/network/discovery": {
+      "post": {
         "operationId": "searchOrganizations",
-        "parameters": [
-          {
-            "name": "query",
-            "in": "query",
-            "required": true
-          },
-          {
-            "name": "didServiceType",
-            "in": "query",
-            "required": false
-          },
-          {
-            "name": "discoveryServiceType",
-            "in": "query",
-            "required": true
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
           }
-        ],
+        },
+        "responses": {}
+      }
+    },
+    "/private/network/patient": {
+      "parameters": [
+        {
+          "name": "patientSSN",
+          "in": "query",
+          "description": "The patient's SSN",
+          "required": true
+        },
+        {
+          "name": "remotePartyDID",
+          "in": "query",
+          "description": "The DID of the remote party.",
+          "required": true
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "description": "The OAuth2 scope to request.",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getRemotePatient",
         "responses": {}
       }
     },
@@ -484,6 +499,32 @@
         "responses": {}
       }
     },
+    "/internal/acl/{tenantDID}/{authorizedDID}": {
+      "parameters": [
+        {
+          "name": "tenantDID",
+          "in": "path",
+          "description": "The DID of the tenant who owns the resources",
+          "required": true,
+          "content": {
+            "plain/text": {}
+          }
+        },
+        {
+          "name": "authorizedDID",
+          "in": "path",
+          "description": "The DID of the authorized party",
+          "required": true,
+          "content": {
+            "plain/text": {}
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getACL",
+        "responses": {}
+      }
+    },
     "/internal/customer/{customerID}/task/{taskID}": {
       "parameters": [
         {
@@ -508,7 +549,7 @@
   "components": {},
   "servers": [
     {
-      "url": "/web"
+      "url": "./web"
     }
   ]
 }

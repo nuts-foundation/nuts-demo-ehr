@@ -592,41 +592,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
-  /private/network/organizations:
-    get:
+  /private/network/discovery:
+    # Search has become a POST instead of GET, since it uses an object (query) as input,
+    # which OpenAPI Codegenerator does not handle properly for GET operations.
+    post:
       description: Searches for other care organizations on Nuts Network.
       operationId: searchOrganizations
-      parameters:
-        - name: query
-          in: query
-          description: Keyword for finding care organizations.
-          required: true
-          schema:
-            type: string
-        - name: didServiceType
-          in: query
-          description: >
-            Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own.
-            If not supplied, care organizations aren't filtered on service.
-          required: false
-          schema:
-            type: string
-        - name: discoveryServiceType
-          in: query
-          description: >
-            Filters other care organizations on the Nuts Network on service, only returning care organizations that registered for the given service at a discovery server.
-          required: true
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: >
+                    The search query, key-value string properties. E.g.:
+                    'credentialSubject.organization.name: Ziekenhuis'
+                discoveryServiceID:
+                  description: >
+                    Filters other care organizations on the Nuts Network, only returning care organizations that registered for the given Discovery Service.
+                    It false, it will search on all Discovery Services.
+                  type: string
+                didServiceType:
+                  description: >
+                    Filters other care organizations on the Nuts Network on service, only returning care organizations have a service in their DID Document which' type matches the given didServiceType and not including your own.
+                    If not supplied, care organizations aren't filtered on service.
+                  type: string
+                excludeOwn:
+                  description: >
+                    If true, the current care organization is excluded from the search results.
+                    Defaults to false.
+                  type: boolean
       responses:
         200:
           description: Search successful.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Organization"
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: object
+
+  /private/network/patient:
+    parameters:
+      - name: patientSSN
+        in: query
+        description: The patient's SSN
+        required: true
+        schema:
+          type: string
+      - name: remotePartyDID
+        in: query
+        description: The DID of the remote party.
+        required: true
+        schema:
+          type: string
+      - name: scope
+        in: query
+        description: The OAuth2 scope to request.
+        required: true
+        schema:
+          type: string
+    get:
+      description: Load the medical records of a patient at a remote XIS.
+      operationId: getRemotePatient
+      responses:
+        200:
+          description: The patient's medical records from the remote XIS.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemotePatientFile"
+
 
   /private/network/inbox:
     get:
@@ -693,11 +738,8 @@ paths:
             schema:
               $ref: "#/components/schemas/Report"
       responses:
-        200:
+        204:
           description: The creation of the new report is completed
-          content:
-            applaction/json:
-              schema:
   /private/dossier/{patientID}:
     get:
       description: Get list of dossiers for a patient
@@ -754,6 +796,45 @@ paths:
         204:
           description: Notification processed successfully.
 
+  /internal/acl/{tenantDID}/{authorizedDID}:
+    parameters:
+      - name: tenantDID
+        in: path
+        description: The DID of the tenant who owns the resources
+        required: true
+        content:
+          plain/text:
+            schema:
+              type: string
+              example: did:web:example.com
+      - name: authorizedDID
+        in: path
+        description: The DID of the authorized party
+        required: true
+        content:
+          plain/text:
+            schema:
+              type: string
+              example: did:web:example.com
+    get:
+      description: |
+        Get all resource/operation combinations the authorized party was granted access to by the tenant.
+        
+        When a collaboration is initiated in the application, it registers the related FHIR resources on the ACL.
+        The Policy Decision Point (PDP) can then use this ACL to make authorization decisions.
+        An example consumer of this endpoint is Open Policy Agent using http.send()
+      operationId: getACL
+      responses:
+        200:
+          description: The ACL for the tenant and authorized party
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
   /internal/customer/{customerID}/task/{taskID}:
     parameters:
       - name: customerID
@@ -951,6 +1032,7 @@ components:
         - name
         - city
         - did
+        - discoveryServices
       properties:
         name:
           description: Name of the care organization.
@@ -961,6 +1043,12 @@ components:
         did:
           description: Decentralized Identifier which uniquely identifies the care organization on the Nuts Network.
           type: string
+        discoveryServices:
+          description: >
+            List of Discovery Services the care organization is registered with.
+          type: array
+          items:
+            type: string
     CreateTransferNegotiationRequest:
       description: An request object to create a new transfer negotiation.
       type: object
@@ -1205,6 +1293,19 @@ components:
         status:
           description: State of the transfer request. Maps to FHIR task state.
           type: string
+    RemotePatientFile:
+      description: A patient file from a remote XIS.
+      required:
+        - patient
+        - observations
+      properties:
+        patient:
+          $ref: '#/components/schemas/Patient'
+        observations:
+          description: List of FHIR Observation resources for the patient.
+          type: array
+          items:
+            type: object
     Report:
       required:
         - id
@@ -1289,4 +1390,4 @@ security:
   - bearerAuth: [ ] # Apply Bearer Auth to all endpoints
 
 servers:
-  - url: "/web"
+  - url: "./web"

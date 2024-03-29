@@ -21,6 +21,7 @@ import NewEpisode from './ehr/episode/New.vue'
 import EditEpisode from './ehr/episode/Edit.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
+import ViewRemotePatient from "./ehr/patient/ViewRemotePatient.vue"
 import NewDossier from "./ehr/patient/dossier/New.vue"
 import NewTransfer from "./ehr/transfer/NewTransfer.vue"
 import EditTransfer from "./ehr/transfer/EditTransfer.vue"
@@ -87,6 +88,11 @@ const routes = [
         path: 'patients/new',
         name: 'ehr.patients.new',
         component: NewPatient
+      },
+      {
+        path: 'patients/remote',
+        name: 'ehr.patients.remote',
+        component: ViewRemotePatient
       },
       {
         path: 'elevate',

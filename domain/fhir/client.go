@@ -65,6 +65,7 @@ type Client interface {
 	CreateOrUpdate(ctx context.Context, resource interface{}) error
 	ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error
 	ReadOne(ctx context.Context, path string, result interface{}) error
+	BuildRequestURI(fhirResourcePath string) *url.URL
 }
 
 type httpClient struct {
@@ -80,8 +81,8 @@ func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) er
 	if err != nil {
 		return fmt.Errorf("unable to determine resource path: %w", err)
 	}
-	requestURI := h.buildRequestURI(resourcePath)
-	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Put(requestURI)
+	requestURI := h.BuildRequestURI(resourcePath)
+	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Put(requestURI.String())
 	if err != nil {
 		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", requestURI, err)
 	}
@@ -123,9 +124,9 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 }
 
 func (h httpClient) getResource(ctx context.Context, path string, params map[string]string) (gjson.Result, error) {
-	url := h.buildRequestURI(path)
+	url := h.BuildRequestURI(path)
 	logrus.Debugf("Performing FHIR request with url: %s", url)
-	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(url)
+	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(url.String())
 	if err != nil {
 		return gjson.Result{}, err
 	}
@@ -140,7 +141,7 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 	return gjson.ParseBytes(body), nil
 }
 
-func (h httpClient) buildRequestURI(fhirResourcePath string) string {
+func (h httpClient) BuildRequestURI(fhirResourcePath string) *url.URL {
 	if !h.multiTenancyEnabled {
 		return buildRequestURI(h.url, "", fhirResourcePath)
 	}
@@ -165,9 +166,8 @@ func resolveResourcePath(resource interface{}) (string, error) {
 	return resourceType + "/" + resourceID, nil
 }
 
-func buildRequestURI(baseURL string, tenant string, resourcePath string) string {
+func buildRequestURI(baseURL string, tenant string, resourcePath string) *url.URL {
 	parsedBaseURL, _ := url.Parse(baseURL)
-	parsedBaseURL.Path = path.Join("/", parsedBaseURL.Path, tenant, resourcePath)
-
-	return parsedBaseURL.String()
+	parsedBaseURL, _ = parsedBaseURL.Parse(path.Join("/", parsedBaseURL.Path, tenant, resourcePath))
+	return parsedBaseURL
 }

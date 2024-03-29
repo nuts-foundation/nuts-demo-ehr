@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nuts-foundation/nuts-node/vcr/credential"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 )
 
@@ -45,51 +43,31 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 		return cached, nil
 	}
 
-	query := client.GetNutsCredentialTemplate(*credential.NutsOrganizationCredentialTypeURI)
-	query.CredentialSubject = []interface{}{
-		map[string]string{
-			"id": organizationDID,
-		},
-	}
-	credentials, err := r.client.FindCredentials(ctx, query, false)
+	searchResults, err := r.client.SearchDiscoveryService(ctx, map[string]string{
+		"credentialSubject.id": organizationDID,
+	}, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if len(credentials) == 0 {
-		return nil, errors.New("organization not found")
-	}
-	// filter on credentialType. With JSONLD, the NutsOrganizationCredential only adds context but does not "select" anything.
-	// This will break when multiple types of credentials can be used!
-	j := 0
-	for _, cred := range credentials {
-		found := false
-		for _, t := range cred.Type {
-			if t.String() == "NutsOrganizationCredential" {
-				found = true
-			}
-		}
-		if found {
-			credentials[j] = cred
-			j++
-		}
-	}
-	credentials = credentials[:j]
 
-	if len(credentials) > 1 {
+	// find a search result that yields organization_name and organization_city
+	var results []nuts.NutsOrganization
+	for _, searchResult := range searchResults {
+		if searchResult.Details.Name == "" {
+			continue
+		}
+		results = append(results, searchResult.NutsOrganization)
+	}
+
+	if len(results) > 1 {
 		// TODO: Get latest issued VC, or maybe all of them?
 		return nil, errors.New("multiple organizations found (not supported yet)")
 	}
-	var results []nuts.NutsOrganization
-	err = credentials[0].UnmarshalCredentialSubject(&results)
-	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal NutsOrganizationCredential subject: %w", err)
+	if len(results) == 0 {
+		return nil, fmt.Errorf("organization not found on any Discovery Service: %s", organizationDID)
 	}
-	if len(results) != 1 {
-		return nil, errors.New("expected exactly 1 subject in NutsOrganizationCredential")
-	}
-	result := results[0]
-	r.toCache(result)
-	return &result, nil
+	r.toCache(results[0])
+	return &results[0], nil
 }
 
 func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error) {

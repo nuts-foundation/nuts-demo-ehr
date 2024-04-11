@@ -30,9 +30,9 @@ func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID int, dossier 
 
 func (dbDossier sqlDossier) MarshalToDomainDossier() (*types.Dossier, error) {
 	return &types.Dossier{
-		Id:        types.ObjectID(dbDossier.ID),
+		Id:        dbDossier.ID,
 		Name:      dbDossier.Name,
-		PatientID: types.ObjectID(dbDossier.PatientID),
+		PatientID: dbDossier.PatientID,
 	}, nil
 }
 

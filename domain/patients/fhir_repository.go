@@ -82,7 +82,7 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id st
 	}
 	fhirClient := r.fhirClientFactory(fhir.WithTenant(customerID))
 	updatedFHIRPatient := ToFHIRPatient(*updatedDomainPatient)
-	return updatedDomainPatient, fhirClient.CreateOrUpdate(ctx, updatedFHIRPatient)
+	return updatedDomainPatient, fhirClient.CreateOrUpdate(ctx, updatedFHIRPatient, nil)
 }
 
 func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties types.PatientProperties) (*types.Patient, error) {
@@ -90,7 +90,7 @@ func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, p
 	if err != nil {
 		return nil, err
 	}
-	err = r.fhirClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, ToFHIRPatient(*patient))
+	err = r.fhirClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, ToFHIRPatient(*patient), nil)
 	if err != nil {
 		return nil, err
 	}

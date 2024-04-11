@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/sharedcareplan"
 	openapiTypes "github.com/oapi-codegen/runtime/types"
 
 	"io"
@@ -216,6 +217,17 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		return fhir.InitializeTenant(config.FHIR.Server.Address, strconv.Itoa(tenant))
 	}
 
+	// Shared Care Plan
+	var scpService *sharedcareplan.Service
+	if config.SharedCarePlanning.Enabled() {
+		scpRepository, err := sharedcareplan.NewRepository(sqlDB)
+		if err != nil {
+			log.Fatal(err)
+		}
+		scpFHIRClient := fhir.NewFactory(fhir.WithURL(config.SharedCarePlanning.CarePlanService.FHIRBaseURL))()
+		scpService = &sharedcareplan.Service{DossierRepository: dossierRepository, PatientRepository: patientRepository, Repository: scpRepository, FHIRClient: scpFHIRClient}
+	}
+
 	if config.LoadTestPatients {
 		allCustomers, err := customerRepository.All()
 		if err != nil {
@@ -250,6 +262,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		TransferReceiverService: transferReceiverService,
 		TransferReceiverRepo:    transferReceiverRepo,
 		ZorginzageService:       domain.ZorginzageService{NutsClient: nodeClient},
+		SharedCarePlanService:   scpService,
 		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
 		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry, aclRepository),
 		TenantInitializer:       tenantInitializer,

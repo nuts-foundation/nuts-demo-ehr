@@ -60,14 +60,15 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	Credentials     Credentials `koanf:"credentials"`
-	TLS             TLSConfig   `koanf:"tls"`
-	Verbosity       string      `koanf:"verbosity"`
-	HTTPPort        int         `koanf:"port"`
-	NutsNodeAddress string      `koanf:"nutsnodeaddr"`
-	FHIR            FHIR        `koanf:"fhir"`
-	CustomersFile   string      `koanf:"customersfile"`
-	Branding        Branding    `koanf:"branding"`
+	Credentials        Credentials        `koanf:"credentials"`
+	TLS                TLSConfig          `koanf:"tls"`
+	Verbosity          string             `koanf:"verbosity"`
+	HTTPPort           int                `koanf:"port"`
+	NutsNodeAddress    string             `koanf:"nutsnodeaddr"`
+	FHIR               FHIR               `koanf:"fhir"`
+	SharedCarePlanning SharedCarePlanning `koanf:"sharedcareplanning"`
+	CustomersFile      string             `koanf:"customersfile"`
+	Branding           Branding           `koanf:"branding"`
 	// Database connection string, accepts all options for the sqlite3 driver
 	// https://github.com/mattn/go-sqlite3#connection-string
 	DBConnectionString string `koanf:"dbConnectionString"`
@@ -83,6 +84,18 @@ type Config struct {
 	NutsNodeKeyPath string `koanf:"nutsnodekeypath"`
 	// NutsNodeAPIAudience sets the 'aud' in the token generation, must match with Nuts node settings.
 	NutsNodeAPIAudience string `koanf:"nutsnodeapiaudience"`
+}
+
+type SharedCarePlanning struct {
+	CarePlanService CarePlanService `koanf:"careplanservice"`
+}
+
+func (p SharedCarePlanning) Enabled() bool {
+	return p.CarePlanService.FHIRBaseURL != ""
+}
+
+type CarePlanService struct {
+	FHIRBaseURL string `koanf:"url"`
 }
 
 type FHIR struct {

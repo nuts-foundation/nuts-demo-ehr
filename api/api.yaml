@@ -240,6 +240,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/Patient"
 
+  /private/careplan:
+    post:
+      description: Create a Shared Care Plan
+      operationId: createCarePlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCarePlanRequest"
+      responses:
+        200:
+          description: The created SharedCarePlan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SharedCarePlan"
+    get:
+      parameters:
+        - name: patientID
+          in: query
+          description: The patient ID
+          required: true
+          schema:
+            type: string
+      description: Get all care plan dossiers for a patient
+      operationId: getPatientCarePlans
+      responses:
+        200:
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SharedCarePlan'
+  /private/careplan/{dossierID}:
+    parameters:
+      - name: dossierID
+        in: path
+        description: Dossier ID of the CarePlan.
+        required: true
+        schema:
+          type: string
+    get:
+      description: Get a care plan by dossier ID.
+      operationId: getCarePlan
+      responses:
+        200:
+          description: Care plan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedCarePlan'
+
   /private/episode:
     post:
       description: Create a episode
@@ -1112,7 +1167,7 @@ components:
         - carePlan
       properties:
         carePlan:
-          $ref: '#/components/schemas/CarePlan'
+          $ref: '#/components/schemas/EOverdrachtCarePlan'
         patient:
           $ref: '#/components/schemas/Patient'
         transferDate:
@@ -1120,7 +1175,18 @@ components:
           type: string
           format: date
 
-    CarePlan:
+    SharedCarePlan:
+      properties:
+        fhirCarePlan:
+          description: >
+            HL7 FHIR R4 CarePlan
+          type: object
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+
+    EOverdrachtCarePlan:
       description: >
         CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
       required:
@@ -1192,6 +1258,17 @@ components:
           type: string
         period:
           $ref: '#/components/schemas/Period'
+    CreateCarePlanRequest:
+      description: >
+        Request to create a care plan
+      required:
+        - dossierID
+        - title
+      properties:
+        dossierID:
+          $ref: '#/components/schemas/ObjectID'
+        title:
+          type: string
 
     Episode:
       description: >

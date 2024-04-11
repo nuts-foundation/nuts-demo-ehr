@@ -67,7 +67,7 @@ func AdvanceNoticeToDomainTransfer(notice AdvanceNotice) (types.TransferProperti
 
 	domainTransfer := types.TransferProperties{
 		Patient:      patient,
-		CarePlan:     types.CarePlan{PatientProblems: []types.PatientProblem{}},
+		CarePlan:     types.EOverdrachtCarePlan{PatientProblems: []types.PatientProblem{}},
 		TransferDate: openapiTypes.Date{Time: transferDate},
 	}
 
@@ -98,7 +98,7 @@ func NursingHandoffToDomainTransfer(nursingHandoff NursingHandoff) (types.Transf
 
 	domainTransfer := types.TransferProperties{
 		Patient:      patient,
-		CarePlan:     types.CarePlan{PatientProblems: []types.PatientProblem{}},
+		CarePlan:     types.EOverdrachtCarePlan{PatientProblems: []types.PatientProblem{}},
 		TransferDate: openapiTypes.Date{Time: transferDate},
 	}
 

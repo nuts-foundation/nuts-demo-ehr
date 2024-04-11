@@ -68,7 +68,7 @@ func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
 }
 
 func (b FHIRBuilder) BuildAdvanceNotice(createRequest types.CreateTransferRequest, patient *types.Patient) AdvanceNotice {
-	problems, interventions, careplan := b.buildCarePlan(createRequest.CarePlan)
+	problems, interventions, careplan := b.buildEOverdrachtCarePlan(createRequest.CarePlan)
 	administrativeData := b.buildAdministrativeData(createRequest)
 	anonymousPatient := b.buildAnonymousPatient(patient)
 
@@ -148,7 +148,7 @@ func (b FHIRBuilder) buildAdvanceNoticeComposition(patient resources.Patient, ad
 	}
 }
 
-func (b FHIRBuilder) buildCarePlan(carePlan types.CarePlan) (problems []resources.Condition, interventions []fhir.Procedure, section fhir.CompositionSection) {
+func (b FHIRBuilder) buildEOverdrachtCarePlan(carePlan types.EOverdrachtCarePlan) (problems []resources.Condition, interventions []fhir.Procedure, section fhir.CompositionSection) {
 	for _, cpPatientProblems := range carePlan.PatientProblems {
 		newProblem := b.buildConditionFromProblem(cpPatientProblems.Problem)
 		problems = append(problems, newProblem)

@@ -53,7 +53,7 @@ func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask
 		})
 	}
 
-	err := s.fhirClient.CreateOrUpdate(ctx, transferTask)
+	err := s.fhirClient.CreateOrUpdate(ctx, transferTask, nil)
 	if err != nil {
 		return domainTask, fmt.Errorf("could not create FHIR Task: %w", err)
 	}
@@ -89,7 +89,7 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 		})
 	}
 
-	err = s.fhirClient.CreateOrUpdate(ctx, transferTask)
+	err = s.fhirClient.CreateOrUpdate(ctx, transferTask, nil)
 	if err != nil {
 		return fmt.Errorf("could not update FHIR Task: %w", err)
 	}
@@ -98,26 +98,26 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 
 func (s transferService) CreateAdvanceNotice(ctx context.Context, advanceNotice AdvanceNotice) error {
 	// Save the Patient
-	err := s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Patient)
+	err := s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Patient, nil)
 	if err != nil {
 		return err
 	}
 	// Save the all the problems
 	for _, problem := range advanceNotice.Problems {
-		err = s.fhirClient.CreateOrUpdate(ctx, problem)
+		err = s.fhirClient.CreateOrUpdate(ctx, problem, nil)
 		if err != nil {
 			return err
 		}
 	}
 	// Save all the interventions
 	for _, intervention := range advanceNotice.Interventions {
-		err = s.fhirClient.CreateOrUpdate(ctx, intervention)
+		err = s.fhirClient.CreateOrUpdate(ctx, intervention, nil)
 		if err != nil {
 			return err
 		}
 	}
 	// At least save the composition
-	err = s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Composition)
+	err = s.fhirClient.CreateOrUpdate(ctx, advanceNotice.Composition, nil)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (s transferService) UpdateTaskStatus(ctx context.Context, fhirTaskID string
 
 	task.Status = fhir.ToCodePtr(newStatus)
 
-	if err := s.fhirClient.CreateOrUpdate(ctx, task); err != nil {
+	if err := s.fhirClient.CreateOrUpdate(ctx, task, nil); err != nil {
 		return fmt.Errorf(updateErr, err)
 	}
 

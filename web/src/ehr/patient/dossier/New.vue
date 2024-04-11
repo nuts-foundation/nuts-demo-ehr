@@ -5,6 +5,17 @@
       :confirm-text="null"
       :cancel-route="{name: 'ehr.patient', params: {id: this.$route.params.id}}">
     <div class="mt-2">
+      Do you want to create a new shared care plan for this patient, in which other care organization can participate?
+
+      <button
+          id="new-careplan-button"
+          @click.prevent="() => $router.push({name: 'ehr.patient.careplan.new', params: {id: this.$route.params.id}})"
+          class="btn btn-primary block mt-2">
+        New shared care plan
+      </button>
+    </div>
+
+    <div class="mt-2">
       Do you want to transfer this patient to another care organization?
       You can make a set of predetermined ZIBs available to 1 specific care organization.
 

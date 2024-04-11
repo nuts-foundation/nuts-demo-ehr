@@ -48,7 +48,7 @@ func (service *service) CreateEpisode(ctx context.Context, patientID string, req
 		Status: fhir.EpisodeStatusActive,
 	}
 
-	if err := service.fhirClient.CreateOrUpdate(ctx, episode); err != nil {
+	if err := service.fhirClient.CreateOrUpdate(ctx, episode, nil); err != nil {
 		return nil, err
 	}
 

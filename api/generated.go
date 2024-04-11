@@ -59,6 +59,15 @@ type ServerInterface interface {
 	// (GET /private)
 	CheckSession(ctx echo.Context) error
 
+	// (GET /private/careplan)
+	GetPatientCarePlans(ctx echo.Context, params GetPatientCarePlansParams) error
+
+	// (POST /private/careplan)
+	CreateCarePlan(ctx echo.Context) error
+
+	// (GET /private/careplan/{dossierID})
+	GetCarePlan(ctx echo.Context, dossierID string) error
+
 	// (GET /private/customer)
 	GetCustomer(ctx echo.Context) error
 
@@ -370,6 +379,55 @@ func (w *ServerInterfaceWrapper) CheckSession(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CheckSession(ctx)
+	return err
+}
+
+// GetPatientCarePlans converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPatientCarePlans(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPatientCarePlansParams
+	// ------------- Required query parameter "patientID" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "patientID", ctx.QueryParams(), &params.PatientID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter patientID: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPatientCarePlans(ctx, params)
+	return err
+}
+
+// CreateCarePlan converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCarePlan(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateCarePlan(ctx)
+	return err
+}
+
+// GetCarePlan converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCarePlan(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "dossierID" -------------
+	var dossierID string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dossierID", ctx.Param("dossierID"), &dossierID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dossierID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCarePlan(ctx, dossierID)
 	return err
 }
 
@@ -917,6 +975,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/internal/acl/:tenantDID/:authorizedDID", wrapper.GetACL)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)
 	router.GET(baseURL+"/private", wrapper.CheckSession)
+	router.GET(baseURL+"/private/careplan", wrapper.GetPatientCarePlans)
+	router.POST(baseURL+"/private/careplan", wrapper.CreateCarePlan)
+	router.GET(baseURL+"/private/careplan/:dossierID", wrapper.GetCarePlan)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.POST(baseURL+"/private/dossier", wrapper.CreateDossier)
 	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)

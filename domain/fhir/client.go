@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"path"
 	"strconv"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/gommon/log"
@@ -62,7 +62,8 @@ func NewFactory(defaultOpts ...ClientOpt) Factory {
 }
 
 type Client interface {
-	CreateOrUpdate(ctx context.Context, resource interface{}) error
+	Create(ctx context.Context, resource interface{}, result interface{}) error
+	CreateOrUpdate(ctx context.Context, resource interface{}, result interface{}) error
 	ReadMultiple(ctx context.Context, path string, params map[string]string, results interface{}) error
 	ReadOne(ctx context.Context, path string, result interface{}) error
 	BuildRequestURI(fhirResourcePath string) *url.URL
@@ -76,7 +77,27 @@ type httpClient struct {
 	tlsConfig           *tls.Config
 }
 
-func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) error {
+func (h httpClient) Create(ctx context.Context, resource interface{}, result interface{}) error {
+	resourcePath, err := resolveResourcePath(resource)
+	if err != nil {
+		return fmt.Errorf("unable to determine resource path: %w", err)
+	}
+	requestURI := h.BuildRequestURI(resourcePath)
+	resp, err := h.restClient.R().SetBody(resource).SetContext(ctx).Post(requestURI.String())
+	if err != nil {
+		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", requestURI, err)
+	}
+	if !resp.IsSuccess() {
+		log.Warnf("FHIR server replied: %s", resp.String())
+		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %s", requestURI, resp.StatusCode(), string(resp.Body()))
+	}
+	if result != nil {
+		return json.Unmarshal(resp.Body(), result)
+	}
+	return nil
+}
+
+func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}, result interface{}) error {
 	resourcePath, err := resolveResourcePath(resource)
 	if err != nil {
 		return fmt.Errorf("unable to determine resource path: %w", err)
@@ -89,6 +110,9 @@ func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}) er
 	if !resp.IsSuccess() {
 		log.Warnf("FHIR server replied: %s", resp.String())
 		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %s", requestURI, resp.StatusCode(), string(resp.Body()))
+	}
+	if result != nil {
+		return json.Unmarshal(resp.Body(), result)
 	}
 	return nil
 }
@@ -124,9 +148,9 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 }
 
 func (h httpClient) getResource(ctx context.Context, path string, params map[string]string) (gjson.Result, error) {
-	url := h.BuildRequestURI(path)
-	logrus.Debugf("Performing FHIR request with url: %s", url)
-	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(url.String())
+	requestURL := h.BuildRequestURI(path)
+	logrus.Debugf("Performing FHIR request with url: %s", requestURL)
+	resp, err := h.restClient.R().SetQueryParams(params).SetContext(ctx).SetHeader("Cache-Control", "no-cache").Get(requestURL.String())
 	if err != nil {
 		return gjson.Result{}, err
 	}
@@ -142,11 +166,18 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 }
 
 func (h httpClient) BuildRequestURI(fhirResourcePath string) *url.URL {
-	if !h.multiTenancyEnabled {
-		return buildRequestURI(h.url, "", fhirResourcePath)
+	var requestURL *url.URL
+	if strings.HasPrefix(fhirResourcePath, "http://") ||
+		strings.HasPrefix(fhirResourcePath, "https://") {
+		requestURL, _ = url.Parse(fhirResourcePath)
+	} else {
+		var tenant string
+		if h.multiTenancyEnabled {
+			tenant = strconv.Itoa(h.tenant)
+		}
+		return buildRequestURI(h.url, tenant, fhirResourcePath)
 	}
-
-	return buildRequestURI(h.url, strconv.Itoa(h.tenant), fhirResourcePath)
+	return requestURL
 }
 
 func resolveResourcePath(resource interface{}) (string, error) {
@@ -168,6 +199,5 @@ func resolveResourcePath(resource interface{}) (string, error) {
 
 func buildRequestURI(baseURL string, tenant string, resourcePath string) *url.URL {
 	parsedBaseURL, _ := url.Parse(baseURL)
-	parsedBaseURL, _ = parsedBaseURL.Parse(path.Join("/", parsedBaseURL.Path, tenant, resourcePath))
-	return parsedBaseURL
+	return parsedBaseURL.JoinPath(tenant, resourcePath)
 }

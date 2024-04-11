@@ -8,7 +8,7 @@ install-tools:
 gen-api:
 	npm run gen-api
 
-	oapi-codegen -generate types -package types -o domain/types/generated_types.go api/api.yaml
+	oapi-codegen -generate types -package types -exclude-schemas SharedCarePlan -o domain/types/generated_types.go api/api.yaml
 	oapi-codegen -generate server -package api -o api/generated.go api/api.yaml
 	oapi-codegen -generate client,types -package auth \
 	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \

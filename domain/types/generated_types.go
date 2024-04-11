@@ -71,11 +71,6 @@ type BaseProps struct {
 	ObjectID string `json:"ObjectID"`
 }
 
-// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
-type CarePlan struct {
-	PatientProblems []PatientProblem `json:"patientProblems"`
-}
-
 // Collaboration An object that represents the relation between an episode and a collaborator
 type Collaboration struct {
 	// EpisodeID An internal object UUID which can be used as unique identifier for entities.
@@ -89,6 +84,13 @@ type Collaboration struct {
 
 	// OrganizationName The name of the collaborator
 	OrganizationName string `json:"organizationName"`
+}
+
+// CreateCarePlanRequest Request to create a care plan
+type CreateCarePlanRequest struct {
+	// DossierID An internal object UUID which can be used as unique identifier for entities.
+	DossierID ObjectID `json:"dossierID"`
+	Title     string   `json:"title"`
 }
 
 // CreateCollaborationRequest Request to create a collaboration.
@@ -126,7 +128,7 @@ type CreateTransferNegotiationRequest struct {
 // CreateTransferRequest defines model for CreateTransferRequest.
 type CreateTransferRequest struct {
 	// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
-	CarePlan CarePlan `json:"carePlan"`
+	CarePlan EOverdrachtCarePlan `json:"carePlan"`
 
 	// DossierID An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
@@ -165,6 +167,11 @@ type Dossier struct {
 
 	// PatientID An internal object UUID which can be used as unique identifier for entities.
 	PatientID ObjectID `json:"patientID"`
+}
+
+// EOverdrachtCarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
+type EOverdrachtCarePlan struct {
+	PatientProblems []PatientProblem `json:"patientProblems"`
 }
 
 // Episode A episode is a group of care organizations that share a common care plan.
@@ -378,7 +385,7 @@ type TokenResponseStatus string
 // Transfer defines model for Transfer.
 type Transfer struct {
 	// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
-	CarePlan CarePlan `json:"carePlan"`
+	CarePlan EOverdrachtCarePlan `json:"carePlan"`
 
 	// DossierID An internal object UUID which can be used as unique identifier for entities.
 	DossierID ObjectID `json:"dossierID"`
@@ -436,8 +443,8 @@ type TransferNegotiationStatus struct {
 // TransferProperties Properties of a transfer. These values can be updated over time.
 type TransferProperties struct {
 	// CarePlan CarePlan as defined by https://decor.nictiz.nl/pub/eoverdracht/e-overdracht-html-20210510T093529/tr-2.16.840.1.113883.2.4.3.11.60.30.4.63-2021-01-27T000000.html#_2.16.840.1.113883.2.4.3.11.60.30.22.4.529_20210126000000
-	CarePlan CarePlan `json:"carePlan"`
-	Patient  Patient  `json:"patient"`
+	CarePlan EOverdrachtCarePlan `json:"carePlan"`
+	Patient  Patient             `json:"patient"`
 
 	// TransferDate Transfer date as proposed by the sending XIS. It is populated/updated by the last negotiation that was started.
 	TransferDate openapi_types.Date `json:"transferDate"`
@@ -459,6 +466,12 @@ type TransferRequest struct {
 
 	// TransferDate Requested transfer date.
 	TransferDate *openapi_types.Date `json:"transferDate,omitempty"`
+}
+
+// GetPatientCarePlansParams defines parameters for GetPatientCarePlans.
+type GetPatientCarePlansParams struct {
+	// PatientID The patient ID
+	PatientID string `form:"patientID" json:"patientID"`
 }
 
 // SearchOrganizationsJSONBody defines parameters for SearchOrganizations.
@@ -511,6 +524,9 @@ type SetCustomerJSONRequestBody = Customer
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody = PasswordAuthenticateRequest
+
+// CreateCarePlanJSONRequestBody defines body for CreateCarePlan for application/json ContentType.
+type CreateCarePlanJSONRequestBody = CreateCarePlanRequest
 
 // CreateDossierJSONRequestBody defines body for CreateDossier for application/json ContentType.
 type CreateDossierJSONRequestBody = CreateDossierRequest

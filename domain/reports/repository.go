@@ -42,7 +42,7 @@ func (repo *fhirRepository) Create(ctx context.Context, customerID int, patientI
 		return fmt.Errorf("unable to convert report to FHIR observation: %w", err)
 	}
 
-	err = repo.factory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, observation)
+	err = repo.factory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, observation, nil)
 	if err != nil {
 		return fmt.Errorf("unable to write observation to FHIR store: %w", err)
 	}

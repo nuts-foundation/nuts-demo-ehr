@@ -319,7 +319,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Save nursing handoff composition in the FHIR store
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition); err != nil {
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition, nil); err != nil {
 			return nil, err
 		}
 
@@ -658,7 +658,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 			return nil, fmt.Errorf("could not assign transfer negotiation: failed to upgrade AdvanceNotice to NursingHandoff: %w", err)
 		}
 		// Save nursing handoff composition in the FHIR store
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition); err != nil {
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition, nil); err != nil {
 			return nil, err
 		}
 		dbTransfer.FhirNursingHandoffComposition = (*string)(nursingHandoffComposition.ID)

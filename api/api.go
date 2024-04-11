@@ -6,6 +6,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/sharedcareplan"
 	"net/http"
 	"strconv"
 
@@ -55,6 +56,7 @@ type Wrapper struct {
 	TransferReceiverService receiver.TransferService
 	TransferReceiverRepo    receiver.TransferRepository
 	ZorginzageService       domain.ZorginzageService
+	SharedCarePlanService   *sharedcareplan.Service
 	FHIRService             fhir.Service
 	EpisodeService          episode.Service
 	NotificationHandler     notification.Handler

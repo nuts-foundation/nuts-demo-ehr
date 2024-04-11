@@ -151,6 +151,43 @@
         "responses": {}
       }
     },
+    "/private/careplan": {
+      "post": {
+        "operationId": "createCarePlan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      },
+      "get": {
+        "parameters": [
+          {
+            "name": "patientID",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "operationId": "getPatientCarePlans",
+        "responses": {}
+      }
+    },
+    "/private/careplan/{dossierID}": {
+      "parameters": [
+        {
+          "name": "dossierID",
+          "in": "path",
+          "description": "Dossier ID of the CarePlan.",
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "getCarePlan",
+        "responses": {}
+      }
+    },
     "/private/episode": {
       "post": {
         "operationId": "createEpisode",

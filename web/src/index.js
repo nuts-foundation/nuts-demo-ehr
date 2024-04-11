@@ -19,6 +19,8 @@ import Patient from './ehr/patient/Patient.vue'
 import PatientOverview from './ehr/patient/PatientOverview.vue'
 import NewEpisode from './ehr/episode/New.vue'
 import EditEpisode from './ehr/episode/Edit.vue'
+import NewCarePlan from './ehr/careplan/New.vue'
+import EditCarePlan from './ehr/careplan/Edit.vue'
 import NewPatient from './ehr/patient/NewPatient.vue'
 import EditPatient from "./ehr/patient/EditPatient.vue"
 import ViewRemotePatient from "./ehr/patient/ViewRemotePatient.vue"
@@ -135,6 +137,16 @@ const routes = [
               name: 'ehr.patient.episode.newReport',
               component: NewReport
             }]
+          },
+          {
+            path: 'careplan/new',
+            name: 'ehr.patient.careplan.new',
+            component: NewCarePlan,
+          },
+          {
+            path: 'careplan/edit/:dossierID',
+            name: 'ehr.patient.careplan.edit',
+            component: EditCarePlan,
           },
           {
             path: 'transfer',

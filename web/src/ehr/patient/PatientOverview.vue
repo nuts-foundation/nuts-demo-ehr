@@ -15,7 +15,7 @@
 
     <div class="dossier-list">
 
-      <table v-if="episodeDossiers.length > 0" class="min-w-full divide-y divide-gray-200">
+      <table v-if="dossierList.length > 0" class="min-w-full divide-y divide-gray-200">
         <thead>
         <tr>
           <th>Name</th>
@@ -26,7 +26,7 @@
         <tbody>
         <tr class="cursor-pointer"
             @click="openDossier(dossier)"
-            v-for="dossier in episodeDossiers">
+            v-for="dossier in dossierList">
           <td>{{ dossier.name }}</td>
           <td>{{ dossier.transfer ? dossier.transfer.status : "" }}</td>
           <td>
@@ -82,13 +82,15 @@ export default {
       loadingDossiers: false,
       dossiers: [],
       transfers: [],
+      carePlans: [],
       reports: [],
     }
   },
   computed: {
-    episodeDossiers() {
+    dossierList() {
       return this.dossiers.map((dossier) => {
         dossier.transfer = this.transfers.find(transfer => transfer.dossierID === dossier.id)
+        dossier.carePlan = this.carePlans.find(carePlan => carePlan.dossierID === dossier.id)
         return dossier
       })
     }
@@ -114,6 +116,11 @@ export default {
           .then(result => this.reports = result.data)
           .catch(error => this.$status.error(error))
     },
+    fetchCarePlans() {
+      this.$api.getPatientCarePlans({patientID: this.$route.params.id})
+          .then(result => this.carePlans = result.data)
+          .catch(error => this.$status.error(error))
+    },
     fetchTransfers() {
       this.$api.getPatientTransfers({patientID: this.$route.params.id})
           .then(result => {
@@ -132,6 +139,8 @@ export default {
       const patientID = this.$route.params.id
       if (dossier.transfer) {
         this.$router.push({name: 'ehr.patient.transfer.edit', params: {id: patientID, transferID: dossier.transfer.id}})
+      } else if (dossier.carePlan) {
+        this.$router.push({name: 'ehr.patient.careplan.edit', params: {id: patientID, dossierID: dossier.carePlan.dossierID}})
       } else {
         this.$router.push({name: 'ehr.patient.episode.edit', params: {id: patientID, episodeID: dossier.id}})
       }
@@ -141,6 +150,7 @@ export default {
     this.fetchDossiers()
     this.fetchReports()
     this.fetchTransfers()
+    this.fetchCarePlans()
   },
 }
 </script>

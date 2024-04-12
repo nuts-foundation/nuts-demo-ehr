@@ -188,6 +188,26 @@
         "responses": {}
       }
     },
+    "/private/careplan/{dossierID}/activity": {
+      "parameters": [
+        {
+          "name": "dossierID",
+          "in": "path",
+          "description": "Dossier ID of the CarePlan.",
+          "required": true
+        }
+      ],
+      "post": {
+        "operationId": "createCarePlanActivity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {}
+          }
+        },
+        "responses": {}
+      }
+    },
     "/private/episode": {
       "post": {
         "operationId": "createEpisode",

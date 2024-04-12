@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts"
+	r4 "github.com/samply/golang-fhir-models/fhir-models/fhir"
 	"time"
 )
 
@@ -17,16 +17,23 @@ type IncomingTransfer struct {
 	CreatedAt  time.Time                 `json:"createdAt"`
 }
 
+// SharedCarePlan is a HL7 FHIR R4 CarePlan
 type SharedCarePlan struct {
-	DossierID    string             `json:"dossierID"`
-	FHIRCarePlan resources.CarePlan `json:"fhirCarePlan"`
-	Participants []Organization     `json:"participants"`
+	DossierID         string             `json:"dossierID"`
+	FHIRCarePlan      r4.CarePlan        `json:"fhirCarePlan"`
+	FHIRActivityTasks map[string]r4.Task `json:"fhirActivityTasks"`
+	Participants      []Organization     `json:"participants"`
 }
 
 func FromNutsOrganization(src nuts.NutsOrganization) Organization {
 	return Organization{
-		Did:  src.ID,
-		Name: src.Details.Name,
-		City: src.Details.City,
+		Did:         src.ID,
+		Name:        src.Details.Name,
+		City:        src.Details.City,
+		Identifiers: map[string]string{},
 	}
 }
+
+type FHIRCodeableConcept = r4.CodeableConcept
+
+type FHIRIdentifier = r4.Identifier

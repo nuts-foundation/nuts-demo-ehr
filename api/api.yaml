@@ -294,6 +294,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedCarePlan'
+  /private/careplan/{dossierID}/activity:
+    parameters:
+      - name: dossierID
+        in: path
+        description: Dossier ID of the CarePlan.
+        required: true
+        schema:
+          type: string
+    post:
+      description: Creates a new activity in the care plan.
+      operationId: createCarePlanActivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCarePlanActivityRequest'
+      responses:
+        200:
+          description: Activity was added to the Care Plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedCarePlan'
 
   /private/episode:
     post:
@@ -1088,6 +1112,7 @@ components:
         - city
         - did
         - discoveryServices
+        - identifiers
       properties:
         name:
           description: Name of the care organization.
@@ -1104,6 +1129,12 @@ components:
           type: array
           items:
             type: string
+        identifiers:
+          description: >
+            List of identifiers of the care organization.
+          type: object
+          additionalProperties:
+              type: string
     CreateTransferNegotiationRequest:
       description: An request object to create a new transfer negotiation.
       type: object
@@ -1181,6 +1212,13 @@ components:
           description: >
             HL7 FHIR R4 CarePlan
           type: object
+        fhirActivityTasks:
+          description: >
+            HL7 FHIR R4 Task resources that were resolved from CarePlan.activity.
+            It's a map from Reference in the CarePlan to the Task resource.
+          type: object
+          additionalProperties:
+            type: object
         participants:
           type: array
           items:
@@ -1269,6 +1307,40 @@ components:
           $ref: '#/components/schemas/ObjectID'
         title:
           type: string
+    CreateCarePlanActivityRequest:
+      description: >
+        Request to create a care plan activity. The activity is to be fulfilled by the 'owner'.
+      required:
+        - code
+        - owner
+      properties:
+        code:
+          $ref: '#/components/schemas/FHIRCodeableConcept'
+        owner:
+          $ref: '#/components/schemas/FHIRIdentifier'
+    FHIRCodeableConcept:
+      description: >
+        A codeable concept as defined by FHIR R4.
+      required:
+        - coding
+      properties:
+        coding:
+          type: array
+          items:
+            type: object
+    FHIRIdentifier:
+      description: >
+        A identifier as defined by FHIR R4.
+      required:
+        - system
+        - value
+      properties:
+        system:
+          type: string
+        value:
+          type: string
+
+
 
     Episode:
       description: >

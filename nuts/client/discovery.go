@@ -17,6 +17,8 @@ var _ Discovery = (*HTTPClient)(nil)
 type DiscoverySearchResult struct {
 	nuts.NutsOrganization
 	ServiceID string `json:"service_id"`
+	// Fields contains the uninterpreted "fields" from the search result, that were extracted from the Verifiable Credentials.
+	Fields map[string]interface{}
 }
 
 type Discovery interface {
@@ -93,6 +95,7 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 		results = append(results, DiscoverySearchResult{
 			NutsOrganization: organizationSearchResultToDomain(searchResult),
 			ServiceID:        discoveryServiceID,
+			Fields:           searchResult.Fields,
 		})
 	}
 	return results, nil

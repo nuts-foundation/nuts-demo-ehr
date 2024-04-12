@@ -17,23 +17,26 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context) error {
 	if err := ctx.Bind(&request); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
-	organizations, err := w.NutsClient.SearchDiscoveryService(ctx.Request().Context(), request.Query, request.DiscoveryServiceID, request.DidServiceType)
+	searchResults, err := w.NutsClient.SearchDiscoveryService(ctx.Request().Context(), request.Query, request.DiscoveryServiceID, request.DidServiceType)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
 	var results = make(map[string]types.Organization, 0)
-	for _, organization := range organizations {
+	for _, searchResult := range searchResults {
 		// Hide our own organization
-		if request.ExcludeOwn != nil && *request.ExcludeOwn && organization.ID == *customer.Did {
+		if request.ExcludeOwn != nil && *request.ExcludeOwn && searchResult.ID == *customer.Did {
 			continue
 		}
-		current, exists := results[organization.ID]
+		current, exists := results[searchResult.ID]
 		if !exists {
-			current = types.FromNutsOrganization(organization.NutsOrganization)
+			current = types.FromNutsOrganization(searchResult.NutsOrganization)
 		}
-		current.DiscoveryServices = append(current.DiscoveryServices, organization.ServiceID)
-		results[organization.ID] = current
+		if ura, ok := searchResult.Fields["organization_ura"].(string); ok {
+			current.Identifiers["ura"] = ura
+		}
+		current.DiscoveryServices = append(current.DiscoveryServices, searchResult.ServiceID)
+		results[searchResult.ID] = current
 	}
 
 	return ctx.JSON(http.StatusOK, results)

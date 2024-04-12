@@ -3,12 +3,11 @@ package sharedcareplan
 import (
 	"context"
 	"fmt"
-	"github.com/monarko/fhirgo/STU3/datatypes"
-	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	r4 "github.com/samply/golang-fhir-models/fhir-models/fhir"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,30 +30,24 @@ func (s Service) Create(ctx context.Context, customerID int, dossierID string, t
 	}
 
 	// Create CarePlan at Shared Care Plan Service
-	status := datatypes.Code("active")
-	intent := datatypes.Code("proposal")
-	carePlan := resources.CarePlan{
-		Domain: resources.Domain{
-			Base: resources.Base{
-				ResourceType: "CarePlan",
-			},
-		},
-		Status: &status,
-		Intent: &intent,
-		Title:  fhir.ToStringPtr(title),
-		Subject: &datatypes.Reference{
-			Identifier: &datatypes.Identifier{System: fhir.ToUriPtr(types.BsnSystem), Value: fhir.ToStringPtr(*patient.Ssn)},
+	carePlan := r4.CarePlan{
+		Status: r4.RequestStatusActive,
+		Intent: r4.CarePlanIntentProposal,
+		Title:  &title,
+		Subject: r4.Reference{
+			Identifier: MakeIdentifier(types.BsnSystem, *patient.Ssn),
 		},
 	}
 	if err := s.FHIRClient.Create(ctx, carePlan, &carePlan); err != nil {
 		return nil, err
 	}
 	// Create SharedCarePlan record
-	reference := s.FHIRClient.BuildRequestURI(fmt.Sprintf("CarePlan/%s", *carePlan.ID)).String()
+	reference := s.FHIRClient.BuildRequestURI(fmt.Sprintf("CarePlan/%s", *carePlan.Id)).String()
 	if err := s.Repository.Create(ctx, customerID, dossierID, reference); err != nil {
 		return nil, err
 	}
 	return &types.SharedCarePlan{
+		DossierID:    dossierID,
 		FHIRCarePlan: carePlan,
 	}, nil
 }
@@ -66,7 +59,7 @@ func (s Service) AllForPatient(ctx context.Context, customerID int, patientID st
 	}
 	var result []types.SharedCarePlan
 	for _, current := range dossiers {
-		sharedCarePlan, err := s.FindByID(ctx, customerID, current.Id)
+		sharedCarePlan, err := s.FindByID(ctx, customerID, current.Id, false)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get shared care plan for dossier %s: %w", current.Id, err)
 		}
@@ -75,25 +68,21 @@ func (s Service) AllForPatient(ctx context.Context, customerID int, patientID st
 	return result, nil
 }
 
-func (s Service) FindByID(ctx context.Context, customerID int, dossierID string) (*types.SharedCarePlan, error) {
-	sharedCarePlan, err := s.Repository.FindByDossierID(ctx, customerID, dossierID)
+func (s Service) FindByID(ctx context.Context, customerID int, dossierID string, resolvefhirReferences bool) (*types.SharedCarePlan, error) {
+	sharedCarePlan, err := s.find(ctx, customerID, dossierID)
 	if err != nil {
-		return nil, err
-	}
-	carePlan := resources.CarePlan{}
-	if err := s.FHIRClient.ReadOne(ctx, sharedCarePlan.Reference, &carePlan); err != nil {
 		return nil, err
 	}
 
 	// Lookup CareTeam for filling overview of participants
-	careTeams := []resources.CareTeam{}
-	for _, careTeamRef := range carePlan.CareTeam {
+	careTeams := []r4.CareTeam{}
+	for _, careTeamRef := range sharedCarePlan.FHIRCarePlan.CareTeam {
 		if careTeamRef.Reference == nil {
 			logrus.Infof("CareTeam reference is nil, skipping")
 			continue
 		}
-		var careTeam resources.CareTeam
-		if err := s.FHIRClient.ReadOne(ctx, string(*careTeamRef.Reference), &careTeam); err != nil {
+		var careTeam r4.CareTeam
+		if err := s.FHIRClient.ReadOne(ctx, *careTeamRef.Reference, &careTeam); err != nil {
 			return nil, err
 		}
 		careTeams = append(careTeams, careTeam)
@@ -105,29 +94,135 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string)
 			if participant.OnBehalfOf == nil ||
 				participant.OnBehalfOf.Identifier == nil ||
 				participant.OnBehalfOf.Display == nil {
-				logrus.Infof("CareTeam/%s participant OnBehalfOf is invalid (missing identifier or display), skipping", *careTeam.ID)
+				logrus.Infof("CareTeam/%s participant OnBehalfOf is invalid (missing identifier or display), skipping", *careTeam.Id)
 				continue
 			}
 			if participant.OnBehalfOf.Display == nil {
-				logrus.Infof("CareTeam/%s participant has no OnBehalfOf, skipping", *careTeam.ID)
+				logrus.Infof("CareTeam/%s participant has no OnBehalfOf, skipping", *careTeam.Id)
 				continue
 			}
 			if err != nil {
 				return nil, err
 			}
 			code := fmt.Sprintf("%s|%s", *participant.OnBehalfOf.Identifier.System, *participant.OnBehalfOf.Identifier.Value)
+			organizationName := string(*participant.OnBehalfOf.Identifier.Value)
+			if participant.OnBehalfOf.Display != nil {
+				organizationName = fmt.Sprintf("%s (URA: %s)", *participant.OnBehalfOf.Display, organizationName)
+			}
 			organizationMap[code] = types.Organization{
-				Name: fmt.Sprintf("%s ( %s)", participant.OnBehalfOf.Display, code),
+				Name: organizationName,
 			}
 		}
 	}
-	result := types.SharedCarePlan{
-		DossierID:    dossierID,
-		FHIRCarePlan: carePlan,
-		Participants: make([]types.Organization, 0),
+	if resolvefhirReferences {
+		// Resolve activities to actual tasks
+		for i, activity := range sharedCarePlan.FHIRCarePlan.Activity {
+			if activity.Reference == nil || activity.Reference.Reference == nil {
+				logrus.Infof("CarePlanActivity/%d has no reference, skipping", i)
+				continue
+			}
+			var task r4.Task
+			if err := s.FHIRClient.ReadOne(ctx, *activity.Reference.Reference, &task); err != nil {
+				return nil, err
+			}
+			if task.Code == nil {
+				logrus.Infof("Task/%s has no code, skipping", *task.Id)
+				continue
+			}
+			sharedCarePlan.FHIRActivityTasks[*activity.Reference.Reference] = task
+		}
 	}
+	sharedCarePlan.Participants = make([]types.Organization, 0)
 	for _, org := range organizationMap {
-		result.Participants = append(result.Participants, org)
+		sharedCarePlan.Participants = append(sharedCarePlan.Participants, org)
 	}
-	return &result, nil
+	return sharedCarePlan, nil
+}
+
+func (s Service) CreateActivity(ctx context.Context, customerID int, dossierID string, code types.FHIRCodeableConcept, requester types.FHIRIdentifier, owner types.FHIRIdentifier) error {
+	sharedCarePlan, err := s.find(ctx, customerID, dossierID)
+	if err != nil {
+		return err
+	}
+	// Create Task, then update care plan
+	// TODO: Should be in 1 bundle with PATCHß
+	/// {
+	//  "resourceType": "Task",
+	//  "status": "requested",
+	//  "intent": "order",
+	//  "basedOn": [{
+	//    "reference": "CarePlan/{{carePlanID}}"
+	//  }],
+	//  "requester": {
+	//     "identifier": {
+	//        "system": "http://fhir.nl/fhir/NamingSystem/ura",
+	//        "value": "5000"
+	//      },
+	//    "display": "First Organization"
+	//  },
+	//  "owner": {
+	//     "identifier": {
+	//        "system": "http://fhir.nl/fhir/NamingSystem/ura",
+	//        "value": "2000"
+	//      },
+	//    "display": "Second Organization"
+	//  },
+	//  "code" : {
+	//    "coding" : [{
+	//      "system" : "http://loinc.org",
+	//      "code" : "58410-2",
+	//      "display" : "Compleet bloedbeeld panel in bloed d.m.v. geautomatiseerde telling"
+	//    }]
+	//  }
+	//}
+	carePlanRef := "CarePlan/" + *sharedCarePlan.FHIRCarePlan.Id
+	task := r4.Task{
+		Requester: &r4.Reference{
+			Identifier: &requester,
+		},
+		Owner: &r4.Reference{
+			Identifier: &owner,
+		},
+		BasedOn: []r4.Reference{
+			{
+				Reference: &carePlanRef,
+			},
+		},
+		Code:   &code,
+		Status: r4.TaskStatusRequested,
+		Intent: "order",
+	}
+	if err := s.FHIRClient.Create(ctx, task, &task); err != nil {
+		return fmt.Errorf("unable to create Task: %w", err)
+	}
+	taskRef := "Task/" + *task.Id
+	carePlan := sharedCarePlan.FHIRCarePlan
+	carePlan.Activity = append(carePlan.Activity, r4.CarePlanActivity{
+		Reference: &r4.Reference{Reference: &taskRef},
+	})
+	// This is racy! (if other parties update the plan at the same time)
+	if err := s.FHIRClient.CreateOrUpdate(ctx, carePlan, &carePlan); err != nil {
+		return fmt.Errorf("unable to update CarePlan with new activity: %w", err)
+	}
+	return nil
+}
+
+func (s Service) find(ctx context.Context, customerID int, dossierID string) (*types.SharedCarePlan, error) {
+	sharedCarePlan, err := s.Repository.FindByDossierID(ctx, customerID, dossierID)
+	if err != nil {
+		return nil, err
+	}
+	carePlan := r4.CarePlan{}
+	if err := s.FHIRClient.ReadOne(ctx, sharedCarePlan.Reference, &carePlan); err != nil {
+		return nil, err
+	}
+	return &types.SharedCarePlan{
+		DossierID:         dossierID,
+		FHIRCarePlan:      carePlan,
+		FHIRActivityTasks: map[string]r4.Task{},
+	}, nil
+}
+
+func MakeIdentifier(system, value string) *r4.Identifier {
+	return &r4.Identifier{System: &system, Value: &value}
 }

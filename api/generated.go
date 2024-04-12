@@ -68,6 +68,9 @@ type ServerInterface interface {
 	// (GET /private/careplan/{dossierID})
 	GetCarePlan(ctx echo.Context, dossierID string) error
 
+	// (POST /private/careplan/{dossierID}/activity)
+	CreateCarePlanActivity(ctx echo.Context, dossierID string) error
+
 	// (GET /private/customer)
 	GetCustomer(ctx echo.Context) error
 
@@ -428,6 +431,24 @@ func (w *ServerInterfaceWrapper) GetCarePlan(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCarePlan(ctx, dossierID)
+	return err
+}
+
+// CreateCarePlanActivity converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCarePlanActivity(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "dossierID" -------------
+	var dossierID string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dossierID", ctx.Param("dossierID"), &dossierID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dossierID: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateCarePlanActivity(ctx, dossierID)
 	return err
 }
 
@@ -978,6 +999,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/private/careplan", wrapper.GetPatientCarePlans)
 	router.POST(baseURL+"/private/careplan", wrapper.CreateCarePlan)
 	router.GET(baseURL+"/private/careplan/:dossierID", wrapper.GetCarePlan)
+	router.POST(baseURL+"/private/careplan/:dossierID/activity", wrapper.CreateCarePlanActivity)
 	router.GET(baseURL+"/private/customer", wrapper.GetCustomer)
 	router.POST(baseURL+"/private/dossier", wrapper.CreateDossier)
 	router.GET(baseURL+"/private/dossier/:patientID", wrapper.GetDossier)

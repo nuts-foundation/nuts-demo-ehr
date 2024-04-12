@@ -86,6 +86,15 @@ type Collaboration struct {
 	OrganizationName string `json:"organizationName"`
 }
 
+// CreateCarePlanActivityRequest Request to create a care plan activity. The activity is to be fulfilled by the 'owner'.
+type CreateCarePlanActivityRequest struct {
+	// Code A codeable concept as defined by FHIR R4.
+	Code FHIRCodeableConcept `json:"code"`
+
+	// Owner A identifier as defined by FHIR R4.
+	Owner FHIRIdentifier `json:"owner"`
+}
+
 // CreateCarePlanRequest Request to create a care plan
 type CreateCarePlanRequest struct {
 	// DossierID An internal object UUID which can be used as unique identifier for entities.
@@ -151,6 +160,9 @@ type Customer struct {
 
 	// Domain The email domain of the care providers employees, required for logging in.
 	Domain *string `json:"domain,omitempty"`
+
+	// URA is the UZI Registratie Abonneenummer of the customer.
+	URA *string `json:"ura,omitempty"`
 
 	// Id The internal customer ID.
 	Id int `json:"id"`
@@ -244,6 +256,9 @@ type Organization struct {
 
 	// DiscoveryServices List of Discovery Services the care organization is registered with.
 	DiscoveryServices []string `json:"discoveryServices"`
+
+	// Identifiers List of identifiers of the care organization.
+	Identifiers map[string]string `json:"identifiers"`
 
 	// Name Name of the care organization.
 	Name string `json:"name"`
@@ -527,6 +542,9 @@ type AuthenticateWithPasswordJSONRequestBody = PasswordAuthenticateRequest
 
 // CreateCarePlanJSONRequestBody defines body for CreateCarePlan for application/json ContentType.
 type CreateCarePlanJSONRequestBody = CreateCarePlanRequest
+
+// CreateCarePlanActivityJSONRequestBody defines body for CreateCarePlanActivity for application/json ContentType.
+type CreateCarePlanActivityJSONRequestBody = CreateCarePlanActivityRequest
 
 // CreateDossierJSONRequestBody defines body for CreateDossier for application/json ContentType.
 type CreateDossierJSONRequestBody = CreateDossierRequest

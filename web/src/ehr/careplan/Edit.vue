@@ -84,9 +84,6 @@
           </button>
         </div>
       </div>
-      <div>
-        <pre>{{ JSON.stringify(carePlan.fhirCarePlan, null, 2) }}</pre>
-      </div>
     </div>
   </div>
 </template>

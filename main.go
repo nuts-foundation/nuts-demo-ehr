@@ -225,7 +225,11 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 			log.Fatal(err)
 		}
 		scpFHIRClient := fhir.NewFactory(fhir.WithURL(config.SharedCarePlanning.CarePlanService.FHIRBaseURL))()
-		scpService = &sharedcareplan.Service{DossierRepository: dossierRepository, PatientRepository: patientRepository, Repository: scpRepository, FHIRClient: scpFHIRClient}
+		scpService = &sharedcareplan.Service{
+			DossierRepository: dossierRepository, PatientRepository: patientRepository,
+			Repository: scpRepository, FHIRClient: scpFHIRClient,
+			NutsClient: nodeClient,
+		}
 	}
 
 	if config.LoadTestPatients {

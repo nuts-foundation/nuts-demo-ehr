@@ -7,6 +7,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	r4 "github.com/samply/golang-fhir-models/fhir-models/fhir"
 	"github.com/sirupsen/logrus"
 )
@@ -16,6 +17,7 @@ type Service struct {
 	PatientRepository patients.Repository
 	Repository        Repository
 	FHIRClient        fhir.Client
+	NutsClient        *client.HTTPClient
 }
 
 // Create creates a new shared CarePlan on the Care Plan Service for the given dossierID.
@@ -92,22 +94,18 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string,
 		for _, participant := range careTeam.Participant {
 			// Prevent nil deref
 			if participant.OnBehalfOf == nil ||
-				participant.OnBehalfOf.Identifier == nil ||
-				participant.OnBehalfOf.Display == nil {
+				participant.OnBehalfOf.Identifier == nil {
 				logrus.Infof("CareTeam/%s participant OnBehalfOf is invalid (missing identifier or display), skipping", *careTeam.Id)
-				continue
-			}
-			if participant.OnBehalfOf.Display == nil {
-				logrus.Infof("CareTeam/%s participant has no OnBehalfOf, skipping", *careTeam.Id)
 				continue
 			}
 			if err != nil {
 				return nil, err
 			}
 			code := fmt.Sprintf("%s|%s", *participant.OnBehalfOf.Identifier.System, *participant.OnBehalfOf.Identifier.Value)
-			organizationName := string(*participant.OnBehalfOf.Identifier.Value)
-			if participant.OnBehalfOf.Display != nil {
-				organizationName = fmt.Sprintf("%s (URA: %s)", *participant.OnBehalfOf.Display, organizationName)
+			organizationName, err := s.organizationDisplayName(*participant.OnBehalfOf.Identifier.Value)
+			if err != nil {
+				logrus.Warnf("unable to resolve organization name for URA %s: %v", *participant.OnBehalfOf.Identifier.Value, err)
+				organizationName = *participant.OnBehalfOf.Identifier.Value
 			}
 			organizationMap[code] = types.Organization{
 				Name: organizationName,
@@ -139,42 +137,30 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string,
 	return sharedCarePlan, nil
 }
 
+func (s Service) organizationDisplayName(uraNummer string) (string, error) {
+	searchResults, err := s.NutsClient.SearchDiscoveryService(context.Background(), map[string]string{
+		"credentialSubject.ura": uraNummer,
+	}, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	if len(searchResults) == 0 {
+		return "", fmt.Errorf("no organization found with URA number %s", uraNummer)
+	}
+	name, ok := searchResults[0].Fields["organization_name"].(string)
+	if !ok {
+		return "", fmt.Errorf("organization with URA number %s has no organization_name", uraNummer)
+	}
+	return name + " (URA: " + uraNummer + ")", nil
+}
+
 func (s Service) CreateActivity(ctx context.Context, customerID int, dossierID string, code types.FHIRCodeableConcept, requester types.FHIRIdentifier, owner types.FHIRIdentifier) error {
 	sharedCarePlan, err := s.find(ctx, customerID, dossierID)
 	if err != nil {
 		return err
 	}
 	// Create Task, then update care plan
-	// TODO: Should be in 1 bundle with PATCHß
-	/// {
-	//  "resourceType": "Task",
-	//  "status": "requested",
-	//  "intent": "order",
-	//  "basedOn": [{
-	//    "reference": "CarePlan/{{carePlanID}}"
-	//  }],
-	//  "requester": {
-	//     "identifier": {
-	//        "system": "http://fhir.nl/fhir/NamingSystem/ura",
-	//        "value": "5000"
-	//      },
-	//    "display": "First Organization"
-	//  },
-	//  "owner": {
-	//     "identifier": {
-	//        "system": "http://fhir.nl/fhir/NamingSystem/ura",
-	//        "value": "2000"
-	//      },
-	//    "display": "Second Organization"
-	//  },
-	//  "code" : {
-	//    "coding" : [{
-	//      "system" : "http://loinc.org",
-	//      "code" : "58410-2",
-	//      "display" : "Compleet bloedbeeld panel in bloed d.m.v. geautomatiseerde telling"
-	//    }]
-	//  }
-	//}
+	// TODO: Should be in 1 bundle with PATCH
 	carePlanRef := "CarePlan/" + *sharedCarePlan.FHIRCarePlan.Id
 	task := r4.Task{
 		Requester: &r4.Reference{
@@ -189,7 +175,7 @@ func (s Service) CreateActivity(ctx context.Context, customerID int, dossierID s
 			},
 		},
 		Code:   &code,
-		Status: r4.TaskStatusRequested,
+		Status: r4.TaskStatusAccepted,
 		Intent: "order",
 	}
 	if err := s.FHIRClient.Create(ctx, task, &task); err != nil {

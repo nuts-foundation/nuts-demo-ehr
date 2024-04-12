@@ -1,5 +1,5 @@
 <template>
-  <h1>New Shared Care Plan</h1>
+  <h1>New Care Plan</h1>
   <form @submit.stop.prevent="create" novalidate>
     <div class="sticky top-0 z-10 p-3 bg-red-100 text-red-500 rounded-md shadow-sm" v-if="formErrors.length">
       <label class="text-red-500">Please correct the following error{{ formErrors.length === 0 ? '' : 's' }}:</label>
@@ -48,12 +48,16 @@ export default {
 
       this.loading = true
 
-      this.$api.createDossier(null, {patientID: this.$route.params.id, name: 'Shared Care Plan - ' + this.carePlan.title})
-          .then(result => this.$api.createCarePlan(null, {dossierID: result.data.id, title: this.carePlan.title}))
+      var dossierID = null
+      this.$api.createDossier(null, {patientID: this.$route.params.id, name: 'Care Plan (Shared) - ' + this.carePlan.title})
+          .then(result => {
+            dossierID = result.data.id
+            this.$api.createCarePlan(null, {dossierID: result.data.id, title: this.carePlan.title})
+          })
           .then(result => {
             return this.$router.push({
               name: 'ehr.patient.careplan.edit',
-              params: {dossierID: result.data.id}
+              params: {dossierID: dossierID}
             })
           })
           .catch(error => this.$status.error(error))

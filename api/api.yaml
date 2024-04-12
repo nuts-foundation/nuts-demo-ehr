@@ -858,6 +858,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dossier"
 
+  /external/careplan/notify:
+    post:
+      description: >
+        Call this endpoint to notify the EHR of a FHIR Task that was assigned to the care organization,
+        added to a Shared Care Plan.
+      operationId: notifyCarePlanUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SharedCarePlanNotifyRequest"
+      responses:
+        200:
+          description: Notification accepted
+
+
   /external/transfer/notify/{taskID}:
     post:
       description: >
@@ -956,6 +973,9 @@ components:
           description: The customer DID.
           example:
             "did:nuts:123"
+        ura:
+          type: string
+          description: The URA of the customer.
         name:
           type: string
           description: Internal name for this customer.
@@ -1307,6 +1327,17 @@ components:
           $ref: '#/components/schemas/ObjectID'
         title:
           type: string
+    SharedCarePlanNotifyRequest:
+      properties:
+        carePlanURL:
+          description: URL to the FHIR CarePlan resource that was updated.
+          type: string
+        patient:
+          description: FHIR Patient related to the CarePlan
+          type: object
+        task:
+          description: FHIR Task that was updated.
+          type: object
     CreateCarePlanActivityRequest:
       description: >
         Request to create a care plan activity. The activity is to be fulfilled by the 'owner'.

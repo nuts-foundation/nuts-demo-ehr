@@ -10,6 +10,7 @@ import (
 type GetPatientCarePlansParams = types.GetPatientCarePlansParams
 type FHIRCodeableConcept = types.FHIRCodeableConcept
 type FHIRIdentifier = types.FHIRIdentifier
+type SharedCarePlanNotifyRequest = types.SharedCarePlanNotifyRequest
 
 func (w Wrapper) CreateCarePlan(ctx echo.Context) error {
 	if w.SharedCarePlanService == nil {
@@ -72,7 +73,7 @@ func (w Wrapper) CreateCarePlanActivity(ctx echo.Context, dossierID string) erro
 	if err != nil {
 		return err
 	}
-	if customer.URA == nil {
+	if customer.Ura == nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Customer has no URA")
 	}
 	request := types.CreateCarePlanActivityRequest{}
@@ -84,7 +85,7 @@ func (w Wrapper) CreateCarePlanActivity(ctx echo.Context, dossierID string) erro
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid code")
 	}
 
-	requestor := sharedcareplan.MakeIdentifier("http://fhir.nl/fhir/NamingSystem/ura", *customer.URA)
+	requestor := sharedcareplan.MakeIdentifier("http://fhir.nl/fhir/NamingSystem/ura", *customer.Ura)
 	err = w.SharedCarePlanService.CreateActivity(ctx.Request().Context(), customer.Id, dossierID, request.Code, *requestor, request.Owner)
 	if err != nil {
 		return err
@@ -94,4 +95,40 @@ func (w Wrapper) CreateCarePlanActivity(ctx echo.Context, dossierID string) erro
 		return err
 	}
 	return ctx.JSON(http.StatusOK, result)
+}
+
+func (w Wrapper) NotifyCarePlanUpdate(ctx echo.Context) error {
+	// EHR is notified of external Task update at CarePlan
+	if w.SharedCarePlanService == nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Shared Care Planning is not enabled")
+	}
+
+	request := types.SharedCarePlanNotifyRequest{}
+	if err := ctx.Bind(&request); err != nil {
+		return err
+	}
+	if request.Task.Owner == nil || request.Task.Owner.Identifier == nil || request.Task.Owner.Identifier.System == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid owner")
+	}
+	if *request.Task.Owner.Identifier.System != "http://fhir.nl/fhir/NamingSystem/ura" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid owner system (expected 'http://fhir.nl/fhir/NamingSystem/ura')")
+	}
+	// Find customer
+	customers, err := w.CustomerRepository.All()
+	if err != nil {
+		return err
+	}
+	var customer *types.Customer
+	ura := *request.Task.Owner.Identifier.Value
+	for _, c := range customers {
+		if c.Ura != nil && *c.Ura == ura {
+			customer = &c
+			break
+		}
+	}
+	if customer == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Organization with URA "+ura+" is not a tenant on this instance")
+	}
+
+	return w.SharedCarePlanService.HandleNotify(ctx.Request().Context(), customer.Id, request.Patient, request.Task, request.CarePlanURL)
 }

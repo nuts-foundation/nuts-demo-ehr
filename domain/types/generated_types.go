@@ -161,14 +161,14 @@ type Customer struct {
 	// Domain The email domain of the care providers employees, required for logging in.
 	Domain *string `json:"domain,omitempty"`
 
-	// URA is the UZI Registratie Abonneenummer of the customer.
-	URA *string `json:"ura,omitempty"`
-
 	// Id The internal customer ID.
 	Id int `json:"id"`
 
 	// Name Internal name for this customer.
 	Name string `json:"name"`
+
+	// Ura The URA of the customer.
+	Ura *string `json:"ura,omitempty"`
 }
 
 // Dossier defines model for Dossier.
@@ -539,6 +539,9 @@ type SetCustomerJSONRequestBody = Customer
 
 // AuthenticateWithPasswordJSONRequestBody defines body for AuthenticateWithPassword for application/json ContentType.
 type AuthenticateWithPasswordJSONRequestBody = PasswordAuthenticateRequest
+
+// NotifyCarePlanUpdateJSONRequestBody defines body for NotifyCarePlanUpdate for application/json ContentType.
+type NotifyCarePlanUpdateJSONRequestBody = SharedCarePlanNotifyRequest
 
 // CreateCarePlanJSONRequestBody defines body for CreateCarePlan for application/json ContentType.
 type CreateCarePlanJSONRequestBody = CreateCarePlanRequest

@@ -1,23 +1,31 @@
 package sharedcareplan
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	r4 "github.com/samply/golang-fhir-models/fhir-models/fhir"
 	"github.com/sirupsen/logrus"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type Service struct {
 	DossierRepository dossier.Repository
 	PatientRepository patients.Repository
 	Repository        Repository
-	FHIRClient        fhir.Client
+	SCPFHIRClient     fhir.Client
 	NutsClient        *client.HTTPClient
+	LocalFHIRClient   fhir.Factory
 }
 
 // Create creates a new shared CarePlan on the Care Plan Service for the given dossierID.
@@ -40,11 +48,11 @@ func (s Service) Create(ctx context.Context, customerID int, dossierID string, t
 			Identifier: MakeIdentifier(types.BsnSystem, *patient.Ssn),
 		},
 	}
-	if err := s.FHIRClient.Create(ctx, carePlan, &carePlan); err != nil {
+	if err := s.SCPFHIRClient.Create(ctx, carePlan, &carePlan); err != nil {
 		return nil, err
 	}
 	// Create SharedCarePlan record
-	reference := s.FHIRClient.BuildRequestURI(fmt.Sprintf("CarePlan/%s", *carePlan.Id)).String()
+	reference := s.SCPFHIRClient.BuildRequestURI(fmt.Sprintf("CarePlan/%s", *carePlan.Id)).String()
 	if err := s.Repository.Create(ctx, customerID, dossierID, reference); err != nil {
 		return nil, err
 	}
@@ -84,7 +92,7 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string,
 			continue
 		}
 		var careTeam r4.CareTeam
-		if err := s.FHIRClient.ReadOne(ctx, *careTeamRef.Reference, &careTeam); err != nil {
+		if err := s.SCPFHIRClient.ReadOne(ctx, *careTeamRef.Reference, &careTeam); err != nil {
 			return nil, err
 		}
 		careTeams = append(careTeams, careTeam)
@@ -120,7 +128,7 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string,
 				continue
 			}
 			var task r4.Task
-			if err := s.FHIRClient.ReadOne(ctx, *activity.Reference.Reference, &task); err != nil {
+			if err := s.SCPFHIRClient.ReadOne(ctx, *activity.Reference.Reference, &task); err != nil {
 				return nil, err
 			}
 			if task.Code == nil {
@@ -178,7 +186,7 @@ func (s Service) CreateActivity(ctx context.Context, customerID int, dossierID s
 		Status: r4.TaskStatusAccepted,
 		Intent: "order",
 	}
-	if err := s.FHIRClient.Create(ctx, task, &task); err != nil {
+	if err := s.SCPFHIRClient.Create(ctx, task, &task); err != nil {
 		return fmt.Errorf("unable to create Task: %w", err)
 	}
 	taskRef := "Task/" + *task.Id
@@ -187,9 +195,46 @@ func (s Service) CreateActivity(ctx context.Context, customerID int, dossierID s
 		Reference: &r4.Reference{Reference: &taskRef},
 	})
 	// This is racy! (if other parties update the plan at the same time)
-	if err := s.FHIRClient.CreateOrUpdate(ctx, carePlan, &carePlan); err != nil {
+	if err := s.SCPFHIRClient.CreateOrUpdate(ctx, carePlan, &carePlan); err != nil {
 		return fmt.Errorf("unable to update CarePlan with new activity: %w", err)
 	}
+
+	// Notify Task owner
+	if *owner.Value != *requester.Value {
+		go func() {
+			logrus.Infof("Notifying Task owner %s", *owner.Value)
+			dossier, err := s.DossierRepository.FindByID(ctx, customerID, dossierID)
+			if err != nil {
+				logrus.Errorf("unable to find dossier %s: %v", dossierID, err)
+				return
+			}
+			var patient r4.Patient
+			if err = s.LocalFHIRClient(fhir.WithTenant(customerID)).ReadOne(ctx, "Patient/"+dossier.PatientID, &patient); err != nil {
+				logrus.Errorf("unable to find patient %s: %v", dossier.PatientID, err)
+				return
+			}
+			requestBody := types.NotifyCarePlanUpdateJSONRequestBody{
+				CarePlanURL: sharedCarePlan.FHIRCarePlanURL,
+				Patient:     patient,
+				Task:        task,
+			}
+			requestData, _ := json.Marshal(requestBody)
+			httpRequest, err := http.NewRequest("POST", "http://localhost:1304/web/external/careplan/notify", bytes.NewReader(requestData))
+			if err != nil {
+				logrus.Errorf("unable to create HTTP request: %v", err)
+				return
+			}
+			httpRequest.Header.Set("Content-Type", "application/json")
+			httpResponse, err := http.DefaultClient.Do(httpRequest)
+			if err != nil {
+				logrus.Errorf("unable to send HTTP request: %v", err)
+				return
+			}
+			responseData, _ := io.ReadAll(httpResponse.Body)
+			logrus.Infof("Notified Task owner %s. Status: %s, response: %s", *owner.Value, httpResponse.Status, string(responseData))
+		}()
+	}
+
 	return nil
 }
 
@@ -199,14 +244,75 @@ func (s Service) find(ctx context.Context, customerID int, dossierID string) (*t
 		return nil, err
 	}
 	carePlan := r4.CarePlan{}
-	if err := s.FHIRClient.ReadOne(ctx, sharedCarePlan.Reference, &carePlan); err != nil {
+	if err := s.SCPFHIRClient.ReadOne(ctx, sharedCarePlan.Reference, &carePlan); err != nil {
 		return nil, err
 	}
 	return &types.SharedCarePlan{
 		DossierID:         dossierID,
 		FHIRCarePlan:      carePlan,
+		FHIRCarePlanURL:   sharedCarePlan.Reference,
 		FHIRActivityTasks: map[string]r4.Task{},
 	}, nil
+}
+
+func (s Service) HandleNotify(ctx context.Context, customerID int, patientResource r4.Patient, task r4.Task, carePlanURL string) error {
+	// create patient (make sure it doesn't already exist)
+	existingPatients, err := s.PatientRepository.All(ctx, customerID, nil)
+	if err != nil {
+		return err
+	}
+	var patient *types.Patient
+	for _, p := range existingPatients {
+		if *p.Ssn == *patientResource.Identifier[0].Value {
+			patient = &p
+			break
+		}
+	}
+	if patient == nil {
+		patientProperties := types.PatientProperties{
+			Ssn: patientResource.Identifier[0].Value,
+			Dob: &openapi_types.Date{Time: time.Date(1990, 1, 12, 0, 0, 0, 0, time.Local)},
+		}
+		if patientResource.Gender != nil {
+			patientProperties.Gender = types.Gender(patientResource.Gender.String())
+		}
+		if len(patientResource.Name) > 0 {
+			patientProperties.FirstName = strings.Join(patientResource.Name[0].Given, " ")
+			if patientResource.Name[0].Family != nil {
+				patientProperties.Surname = *patientResource.Name[0].Family
+			}
+		}
+		patient, err = s.PatientRepository.NewPatient(ctx, customerID, patientProperties)
+		if err != nil {
+			return fmt.Errorf("error creating patient: %w", err)
+		}
+	}
+
+	// Create dossier, if it doesn't exist
+	existingCarePlan, _ := s.Repository.FindByCarePlanURL(ctx, customerID, carePlanURL)
+	if err != nil {
+		return fmt.Errorf("error finding shared care plan by URL: %w", err)
+	}
+	if existingCarePlan == nil {
+		// Create a dossier
+		var carePlan r4.CarePlan
+		if err := s.SCPFHIRClient.ReadOne(ctx, carePlanURL, &carePlan); err != nil {
+			return fmt.Errorf("error reading care plan: %w", err)
+		}
+		title := "<missing title>"
+		if carePlan.Title != nil {
+			title = *carePlan.Title
+		}
+		newDossier, err := s.DossierRepository.Create(ctx, customerID, title, patient.ObjectID)
+		if err != nil {
+			return fmt.Errorf("error creating dossier: %w", err)
+		}
+		// Now create a CarePlan record
+		if err := s.Repository.Create(ctx, customerID, newDossier.Id, carePlanURL); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func MakeIdentifier(system, value string) *r4.Identifier {

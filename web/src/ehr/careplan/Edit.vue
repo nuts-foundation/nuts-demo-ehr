@@ -139,7 +139,13 @@ export default {
             }
           },
       )
-        .then((result) => this.carePlan = result.data)
+        .then((result) => {
+          this.carePlan = result.data
+          this.newActivity = {
+            code: null,
+            owner: null,
+          }
+        })
         .catch(error => this.$status.error(error))
     }
   },

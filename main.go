@@ -227,7 +227,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		scpFHIRClient := fhir.NewFactory(fhir.WithURL(config.SharedCarePlanning.CarePlanService.FHIRBaseURL))()
 		scpService = &sharedcareplan.Service{
 			DossierRepository: dossierRepository, PatientRepository: patientRepository,
-			Repository: scpRepository, FHIRClient: scpFHIRClient,
+			Repository: scpRepository, SCPFHIRClient: scpFHIRClient, LocalFHIRClient: fhirClientFactory,
 			NutsClient: nodeClient,
 		}
 	}
@@ -387,6 +387,10 @@ func httpErrorHandler(err error, c echo.Context) {
 func authMiddleware(authService httpAuth.Service) echo.MiddlewareFunc {
 	config := httpAuth.Config{
 		Skipper: func(e echo.Context) bool {
+			// TODO: Make this better
+			if strings.HasPrefix(e.Request().RequestURI, "/web/external/careplan/notify") {
+				return true
+			}
 			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")
 		},
 		AccessF: func(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {

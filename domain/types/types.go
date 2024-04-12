@@ -21,8 +21,15 @@ type IncomingTransfer struct {
 type SharedCarePlan struct {
 	DossierID         string             `json:"dossierID"`
 	FHIRCarePlan      r4.CarePlan        `json:"fhirCarePlan"`
+	FHIRCarePlanURL   string             `json:"fhirCarePlanURL"`
 	FHIRActivityTasks map[string]r4.Task `json:"fhirActivityTasks"`
 	Participants      []Organization     `json:"participants"`
+}
+
+type SharedCarePlanNotifyRequest struct {
+	CarePlanURL string     `json:"carePlanURL"`
+	Patient     r4.Patient `json:"patient"`
+	Task        r4.Task    `json:"task"`
 }
 
 func FromNutsOrganization(src nuts.NutsOrganization) Organization {

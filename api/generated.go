@@ -47,6 +47,9 @@ type ServerInterface interface {
 	// (GET /customers)
 	ListCustomers(ctx echo.Context) error
 
+	// (POST /external/careplan/notify)
+	NotifyCarePlanUpdate(ctx echo.Context) error
+
 	// (POST /external/transfer/notify/{taskID})
 	NotifyTransferUpdate(ctx echo.Context, taskID string) error
 
@@ -307,6 +310,17 @@ func (w *ServerInterfaceWrapper) ListCustomers(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListCustomers(ctx)
+	return err
+}
+
+// NotifyCarePlanUpdate converts echo context to params.
+func (w *ServerInterfaceWrapper) NotifyCarePlanUpdate(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.NotifyCarePlanUpdate(ctx)
 	return err
 }
 
@@ -992,6 +1006,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/auth/openid4vp/:token", wrapper.GetOpenID4VPAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)
 	router.GET(baseURL+"/customers", wrapper.ListCustomers)
+	router.POST(baseURL+"/external/careplan/notify", wrapper.NotifyCarePlanUpdate)
 	router.POST(baseURL+"/external/transfer/notify/:taskID", wrapper.NotifyTransferUpdate)
 	router.GET(baseURL+"/internal/acl/:tenantDID/:authorizedDID", wrapper.GetACL)
 	router.PUT(baseURL+"/internal/customer/:customerID/task/:taskID", wrapper.TaskUpdate)

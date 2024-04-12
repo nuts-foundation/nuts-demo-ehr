@@ -55,6 +55,10 @@ func (r Repository) Create(ctx context.Context, customerID int, dossierID string
 	return nil
 }
 
+func (r Repository) FindByCarePlan() {
+
+}
+
 func (r Repository) FindByDossierID(ctx context.Context, customerID int, dossierID string) (*SharedCarePlan, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
@@ -63,6 +67,20 @@ func (r Repository) FindByDossierID(ctx context.Context, customerID int, dossier
 	dbCarePlan := sqlSharedCarePlan{}
 	const query = `SELECT * FROM shared_careplan WHERE customer_id = :customer_id AND dossier_id = :dossier_id`
 	err = tx.Get(&dbCarePlan, query, customerID, dossierID)
+	if err != nil {
+		return nil, err
+	}
+	return r.sqlToDomain(dbCarePlan), nil
+}
+
+func (r Repository) FindByCarePlanURL(ctx context.Context, customerID int, carePlanURL string) (*SharedCarePlan, error) {
+	tx, err := sqlUtil.GetTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dbCarePlan := sqlSharedCarePlan{}
+	const query = `SELECT * FROM shared_careplan WHERE customer_id = :customer_id AND reference = :reference`
+	err = tx.Get(&dbCarePlan, query, customerID, carePlanURL)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,7 @@ module github.com/nuts-foundation/nuts-demo-ehr
 go 1.22
 
 require (
-	github.com/avast/retry-go/v4 v4.5.1
+	github.com/avast/retry-go/v4 v4.6.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0

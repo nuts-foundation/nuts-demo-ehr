@@ -33,4 +33,4 @@ gen-api:
 	  -o nuts/client/vdr_v2/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v2.yaml
 	oapi-codegen -generate client,types -package iam \
 	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
-	  -o nuts/client/iam/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/iam.yaml
+	  -o nuts/client/iam/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v2.yaml

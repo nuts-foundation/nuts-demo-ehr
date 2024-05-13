@@ -50,7 +50,7 @@ func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string
 }
 
 func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID string, didServiceType *string) ([]DiscoverySearchResult, error) {
-	queryAsMap := make(map[string]interface{}, 0)
+	queryAsMap := make(map[string]string, 0)
 	for key, value := range query {
 		queryAsMap[key] = value
 	}

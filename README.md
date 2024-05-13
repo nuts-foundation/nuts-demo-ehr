@@ -89,16 +89,6 @@ It's important to configure the Nuts node address in the `server.config.yaml`. T
 nutsnodeaddr: "http://localhost:1323"
 ```
 
-When using IRMA for authentication, the Nuts node will generate a QR code with an URL in it. This URL must be publicly accessible.
-It can be configured IN THE NUTS NODE configuration file:
-
-```yaml
-auth:
-  publicurl: http://5d6670ee3d46.eu.ngrok.io
-```
-
-The above example uses [ngrok](https://ngrok.io) to proxy a ngrok URL to localhost:1323.
-
 ## Technology Stack
 
 Frontend framework is vue.js 3.x

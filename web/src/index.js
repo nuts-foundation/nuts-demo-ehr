@@ -7,7 +7,6 @@ import App from './App.vue'
 import EHRApp from './ehr/EHRApp.vue'
 import Login from './Login.vue'
 import PasswordAuthentication from './components/auth/PasswordAuthentication.vue'
-import IRMALogin from './components/auth/IRMALogin.vue'
 import OpenID4VPLogin from './components/auth/OpenID4VPAuthentication.vue'
 import Logout from './Logout.vue'
 import Close from './Close.vue'
@@ -31,7 +30,6 @@ import TransferRequest from "./ehr/inbox/TransferRequest.vue"
 import Inbox from "./ehr/inbox/Inbox.vue"
 import Settings from "./ehr/Settings.vue"
 import Components from "./Components.vue"
-import Elevation from "./components/auth/SessionElevation.vue"
 import NewReport from "./ehr/patient/dossier/NewReport.vue"
 
 const routes = [
@@ -56,12 +54,6 @@ const routes = [
     name: 'auth.passwd',
     path: '/auth/passwd/',
     component: PasswordAuthentication,
-    props: route => ({redirectPath: route.query.redirect})
-  },
-  {
-    name: 'auth.irma',
-    path: '/auth/irma/',
-    component: IRMALogin,
     props: route => ({redirectPath: route.query.redirect})
   },
   {
@@ -95,12 +87,6 @@ const routes = [
         path: 'patients/remote',
         name: 'ehr.patients.remote',
         component: ViewRemotePatient
-      },
-      {
-        path: 'elevate',
-        name: 'ehr.elevate',
-        component: Elevation,
-        props: route => ({redirectPath: route.query.redirect})
       },
       {
         path: 'patient/:id',
@@ -169,7 +155,6 @@ const routes = [
         path: 'inbox',
         name: 'ehr.inbox',
         component: Inbox,
-        meta: {requiresElevation: true}
       },
       {
         path: 'settings',
@@ -196,14 +181,6 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth === true) {
     if (!localStorage.getItem("session")) {
       return next({name: 'login', props: true, query: {redirect: to.path}})
-    }
-  }
-  if (to.meta.requiresElevation === true) {
-    let sessionStr = localStorage.getItem("session")
-    let rawToken = atob(sessionStr.split('.')[1])
-    let token = JSON.parse(rawToken)
-    if (!token["elv"]) {
-      return next({name: 'ehr.elevate', props: true, query: {redirect: to.path}})
     }
   }
   next()

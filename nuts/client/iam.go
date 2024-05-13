@@ -21,8 +21,12 @@ func (c HTTPClient) CreateAuthenticationRequest(customerDID string) (*nutsIamCli
 	resp, err := c.iam().RequestUserAccessToken(ctx, customerDID, nutsIamClient.RequestUserAccessTokenJSONRequestBody{
 		RedirectUri: "http://localhost:1304/#/close",
 		Scope:       "test",
-		UserId:      "test",
-		Verifier:    customerDID,
+		PreauthorizedUser: &nutsIamClient.UserDetails{
+			Id:   "12345",
+			Name: "John Doe",
+			Role: "Verpleegkundige niveau 4",
+		},
+		Verifier: customerDID,
 	})
 
 	if err != nil {

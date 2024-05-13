@@ -83,9 +83,9 @@ func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd strin
 // CreateCustomerJWT creates a JWT that only stores the customer ID.
 func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	t := openid.New()
-	t.Set(jwt.IssuedAtKey, time.Now())
-	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
-	t.Set(CustomerID, customerId)
+	_ = t.Set(jwt.IssuedAtKey, time.Now())
+	_ = t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
+	_ = t.Set(CustomerID, customerId)
 
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }

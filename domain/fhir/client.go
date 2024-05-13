@@ -74,7 +74,6 @@ type httpClient struct {
 	url                 string
 	tenant              int
 	multiTenancyEnabled bool
-	tlsConfig           *tls.Config
 }
 
 func (h httpClient) Create(ctx context.Context, resource interface{}, result interface{}) error {

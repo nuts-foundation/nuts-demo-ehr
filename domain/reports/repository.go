@@ -26,7 +26,7 @@ type fhirRepository struct {
 	factory fhir.Factory
 }
 
-func NewFHIRRepository(factory fhir.Factory) *fhirRepository {
+func NewFHIRRepository(factory fhir.Factory) Repository {
 	return &fhirRepository{
 		factory: factory,
 	}

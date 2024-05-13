@@ -67,8 +67,3 @@ func ToIDPtr(str string) *datatypes.ID {
 	result := datatypes.ID(str)
 	return &result
 }
-
-func toCodePtr(str string) *datatypes.Code {
-	result := datatypes.Code(str)
-	return &result
-}

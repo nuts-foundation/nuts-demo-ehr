@@ -49,66 +49,6 @@
         "responses": {}
       }
     },
-    "/auth/irma/session": {
-      "post": {
-        "operationId": "authenticateWithIRMA",
-        "responses": {}
-      }
-    },
-    "/auth/irma/session/{sessionToken}/result": {
-      "parameters": [
-        {
-          "name": "sessionToken",
-          "in": "path",
-          "description": "IRMA session ID",
-          "required": true
-        }
-      ],
-      "get": {
-        "operationId": "getIRMAAuthenticationResult",
-        "responses": {}
-      }
-    },
-    "/auth/employeeid/session": {
-      "post": {
-        "operationId": "authenticateWithEmployeeID",
-        "responses": {}
-      }
-    },
-    "/auth/employeeid/session/{sessionToken}/result": {
-      "parameters": [
-        {
-          "name": "sessionToken",
-          "in": "path",
-          "description": "EmployeeID means session ID",
-          "required": true
-        }
-      ],
-      "get": {
-        "operationId": "getEmployeeIDAuthenticationResult",
-        "responses": {}
-      }
-    },
-    "/auth/dummy": {
-      "post": {
-        "operationId": "authenticateWithDummy",
-        "responses": {}
-      }
-    },
-    "/auth/dummy/session/{sessionToken}/result": {
-      "parameters": [
-        {
-          "name": "sessionToken",
-          "in": "path",
-          "description": "Dummy session ID",
-          "required": true
-        }
-      ],
-      "get": {
-        "operationId": "getDummyAuthenticationResult",
-        "responses": {}
-      }
-    },
     "/private": {
       "get": {
         "operationId": "checkSession",

@@ -59,13 +59,6 @@ module.exports = {
       'vue': 'vue/dist/vue.runtime.esm-bundler.js'
       // 'vue': 'vue/dist/vue.esm-bundler.js'
     },
-    fallback: {
-      // due to irma dep on eventsource
-      "url": require.resolve("url/"),
-      "http": false,
-      "https": false,
-      "util": require.resolve("util/"),
-    }
   },
   module: {
     rules: [

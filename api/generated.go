@@ -17,24 +17,6 @@ type ServerInterface interface {
 	// (POST /auth)
 	SetCustomer(ctx echo.Context) error
 
-	// (POST /auth/dummy)
-	AuthenticateWithDummy(ctx echo.Context) error
-
-	// (GET /auth/dummy/session/{sessionToken}/result)
-	GetDummyAuthenticationResult(ctx echo.Context, sessionToken string) error
-
-	// (POST /auth/employeeid/session)
-	AuthenticateWithEmployeeID(ctx echo.Context) error
-
-	// (GET /auth/employeeid/session/{sessionToken}/result)
-	GetEmployeeIDAuthenticationResult(ctx echo.Context, sessionToken string) error
-
-	// (POST /auth/irma/session)
-	AuthenticateWithIRMA(ctx echo.Context) error
-
-	// (GET /auth/irma/session/{sessionToken}/result)
-	GetIRMAAuthenticationResult(ctx echo.Context, sessionToken string) error
-
 	// (POST /auth/openid4vp)
 	CreateAuthorizationRequest(ctx echo.Context) error
 
@@ -166,93 +148,6 @@ func (w *ServerInterfaceWrapper) SetCustomer(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.SetCustomer(ctx)
-	return err
-}
-
-// AuthenticateWithDummy converts echo context to params.
-func (w *ServerInterfaceWrapper) AuthenticateWithDummy(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.AuthenticateWithDummy(ctx)
-	return err
-}
-
-// GetDummyAuthenticationResult converts echo context to params.
-func (w *ServerInterfaceWrapper) GetDummyAuthenticationResult(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "sessionToken" -------------
-	var sessionToken string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "sessionToken", ctx.Param("sessionToken"), &sessionToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
-	}
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetDummyAuthenticationResult(ctx, sessionToken)
-	return err
-}
-
-// AuthenticateWithEmployeeID converts echo context to params.
-func (w *ServerInterfaceWrapper) AuthenticateWithEmployeeID(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.AuthenticateWithEmployeeID(ctx)
-	return err
-}
-
-// GetEmployeeIDAuthenticationResult converts echo context to params.
-func (w *ServerInterfaceWrapper) GetEmployeeIDAuthenticationResult(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "sessionToken" -------------
-	var sessionToken string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "sessionToken", ctx.Param("sessionToken"), &sessionToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
-	}
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetEmployeeIDAuthenticationResult(ctx, sessionToken)
-	return err
-}
-
-// AuthenticateWithIRMA converts echo context to params.
-func (w *ServerInterfaceWrapper) AuthenticateWithIRMA(ctx echo.Context) error {
-	var err error
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.AuthenticateWithIRMA(ctx)
-	return err
-}
-
-// GetIRMAAuthenticationResult converts echo context to params.
-func (w *ServerInterfaceWrapper) GetIRMAAuthenticationResult(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "sessionToken" -------------
-	var sessionToken string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "sessionToken", ctx.Param("sessionToken"), &sessionToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sessionToken: %s", err))
-	}
-
-	ctx.Set(BearerAuthScopes, []string{})
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetIRMAAuthenticationResult(ctx, sessionToken)
 	return err
 }
 
@@ -961,12 +856,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.POST(baseURL+"/auth", wrapper.SetCustomer)
-	router.POST(baseURL+"/auth/dummy", wrapper.AuthenticateWithDummy)
-	router.GET(baseURL+"/auth/dummy/session/:sessionToken/result", wrapper.GetDummyAuthenticationResult)
-	router.POST(baseURL+"/auth/employeeid/session", wrapper.AuthenticateWithEmployeeID)
-	router.GET(baseURL+"/auth/employeeid/session/:sessionToken/result", wrapper.GetEmployeeIDAuthenticationResult)
-	router.POST(baseURL+"/auth/irma/session", wrapper.AuthenticateWithIRMA)
-	router.GET(baseURL+"/auth/irma/session/:sessionToken/result", wrapper.GetIRMAAuthenticationResult)
 	router.POST(baseURL+"/auth/openid4vp", wrapper.CreateAuthorizationRequest)
 	router.GET(baseURL+"/auth/openid4vp/:token", wrapper.GetOpenID4VPAuthenticationResult)
 	router.POST(baseURL+"/auth/passwd", wrapper.AuthenticateWithPassword)

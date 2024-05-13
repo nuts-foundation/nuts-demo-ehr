@@ -47,8 +47,6 @@
 </style>
 
 <script>
-import irma from "@privacybydesign/irma-frontend";
-import irmaLogo from './img/irma-logo.png';
 
 export default {
   props: ['redirectPath'],
@@ -58,7 +56,6 @@ export default {
       customers: [],
       selectedCustomerID: null,
       selectedCustomer: null,
-      irmaLogo: irmaLogo,
     }
   },
   created() {

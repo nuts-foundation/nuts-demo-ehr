@@ -4,7 +4,6 @@
 package discovery
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,12 +19,6 @@ import (
 const (
 	JwtBearerAuthScopes = "jwtBearerAuth.Scopes"
 )
-
-// PresentationsResponse defines model for PresentationsResponse.
-type PresentationsResponse struct {
-	Entries []VerifiablePresentation `json:"entries"`
-	Tag     string                   `json:"tag"`
-}
 
 // SearchResult defines model for SearchResult.
 type SearchResult struct {
@@ -60,18 +53,10 @@ type ServiceDefinition struct {
 // VerifiablePresentation Verifiable Presentation
 type VerifiablePresentation = externalRef0.VerifiablePresentation
 
-// GetPresentationsParams defines parameters for GetPresentations.
-type GetPresentationsParams struct {
-	Tag *string `form:"tag,omitempty" json:"tag,omitempty"`
-}
-
 // SearchPresentationsParams defines parameters for SearchPresentations.
 type SearchPresentationsParams struct {
-	Query *map[string]interface{} `form:"query,omitempty" json:"query,omitempty"`
+	Query *map[string]string `form:"query,omitempty" json:"query,omitempty"`
 }
-
-// RegisterPresentationJSONRequestBody defines body for RegisterPresentation for application/json ContentType.
-type RegisterPresentationJSONRequestBody = VerifiablePresentation
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -146,14 +131,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// GetPresentations request
-	GetPresentations(ctx context.Context, serviceID string, params *GetPresentationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RegisterPresentationWithBody request with any body
-	RegisterPresentationWithBody(ctx context.Context, serviceID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	RegisterPresentation(ctx context.Context, serviceID string, body RegisterPresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetServices request
 	GetServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -168,42 +145,6 @@ type ClientInterface interface {
 
 	// ActivateServiceForDID request
 	ActivateServiceForDID(ctx context.Context, serviceID string, did string, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) GetPresentations(ctx context.Context, serviceID string, params *GetPresentationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetPresentationsRequest(c.Server, serviceID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RegisterPresentationWithBody(ctx context.Context, serviceID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRegisterPresentationRequestWithBody(c.Server, serviceID, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RegisterPresentation(ctx context.Context, serviceID string, body RegisterPresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRegisterPresentationRequest(c.Server, serviceID, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
 }
 
 func (c *Client) GetServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -264,109 +205,6 @@ func (c *Client) ActivateServiceForDID(ctx context.Context, serviceID string, di
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewGetPresentationsRequest generates requests for GetPresentations
-func NewGetPresentationsRequest(server string, serviceID string, params *GetPresentationsParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceID", runtime.ParamLocationPath, serviceID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/discovery/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Tag != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "tag", runtime.ParamLocationQuery, *params.Tag); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewRegisterPresentationRequest calls the generic RegisterPresentation builder with application/json body
-func NewRegisterPresentationRequest(server string, serviceID string, body RegisterPresentationJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewRegisterPresentationRequestWithBody(server, serviceID, "application/json", bodyReader)
-}
-
-// NewRegisterPresentationRequestWithBody generates requests for RegisterPresentation with any type of body
-func NewRegisterPresentationRequestWithBody(server string, serviceID string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceID", runtime.ParamLocationPath, serviceID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/discovery/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
 }
 
 // NewGetServicesRequest generates requests for GetServices
@@ -609,14 +447,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// GetPresentationsWithResponse request
-	GetPresentationsWithResponse(ctx context.Context, serviceID string, params *GetPresentationsParams, reqEditors ...RequestEditorFn) (*GetPresentationsResponse, error)
-
-	// RegisterPresentationWithBodyWithResponse request with any body
-	RegisterPresentationWithBodyWithResponse(ctx context.Context, serviceID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterPresentationResponse, error)
-
-	RegisterPresentationWithResponse(ctx context.Context, serviceID string, body RegisterPresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterPresentationResponse, error)
-
 	// GetServicesWithResponse request
 	GetServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetServicesResponse, error)
 
@@ -631,79 +461,6 @@ type ClientWithResponsesInterface interface {
 
 	// ActivateServiceForDIDWithResponse request
 	ActivateServiceForDIDWithResponse(ctx context.Context, serviceID string, did string, reqEditors ...RequestEditorFn) (*ActivateServiceForDIDResponse, error)
-}
-
-type GetPresentationsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *PresentationsResponse
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r GetPresentationsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetPresentationsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type RegisterPresentationResponse struct {
-	Body                      []byte
-	HTTPResponse              *http.Response
-	ApplicationproblemJSON400 *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-	ApplicationproblemJSONDefault *struct {
-		// Detail A human-readable explanation specific to this occurrence of the problem.
-		Detail string `json:"detail"`
-
-		// Status HTTP statuscode
-		Status float32 `json:"status"`
-
-		// Title A short, human-readable summary of the problem type.
-		Title string `json:"title"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r RegisterPresentationResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RegisterPresentationResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
 }
 
 type GetServicesResponse struct {
@@ -898,32 +655,6 @@ func (r ActivateServiceForDIDResponse) StatusCode() int {
 	return 0
 }
 
-// GetPresentationsWithResponse request returning *GetPresentationsResponse
-func (c *ClientWithResponses) GetPresentationsWithResponse(ctx context.Context, serviceID string, params *GetPresentationsParams, reqEditors ...RequestEditorFn) (*GetPresentationsResponse, error) {
-	rsp, err := c.GetPresentations(ctx, serviceID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetPresentationsResponse(rsp)
-}
-
-// RegisterPresentationWithBodyWithResponse request with arbitrary body returning *RegisterPresentationResponse
-func (c *ClientWithResponses) RegisterPresentationWithBodyWithResponse(ctx context.Context, serviceID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterPresentationResponse, error) {
-	rsp, err := c.RegisterPresentationWithBody(ctx, serviceID, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRegisterPresentationResponse(rsp)
-}
-
-func (c *ClientWithResponses) RegisterPresentationWithResponse(ctx context.Context, serviceID string, body RegisterPresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterPresentationResponse, error) {
-	rsp, err := c.RegisterPresentation(ctx, serviceID, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRegisterPresentationResponse(rsp)
-}
-
 // GetServicesWithResponse request returning *GetServicesResponse
 func (c *ClientWithResponses) GetServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetServicesResponse, error) {
 	rsp, err := c.GetServices(ctx, reqEditors...)
@@ -967,99 +698,6 @@ func (c *ClientWithResponses) ActivateServiceForDIDWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseActivateServiceForDIDResponse(rsp)
-}
-
-// ParseGetPresentationsResponse parses an HTTP response from a GetPresentationsWithResponse call
-func ParseGetPresentationsResponse(rsp *http.Response) (*GetPresentationsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetPresentationsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest PresentationsResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRegisterPresentationResponse parses an HTTP response from a RegisterPresentationWithResponse call
-func ParseRegisterPresentationResponse(rsp *http.Response) (*RegisterPresentationResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RegisterPresentationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Detail A human-readable explanation specific to this occurrence of the problem.
-			Detail string `json:"detail"`
-
-			// Status HTTP statuscode
-			Status float32 `json:"status"`
-
-			// Title A short, human-readable summary of the problem type.
-			Title string `json:"title"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseGetServicesResponse parses an HTTP response from a GetServicesWithResponse call

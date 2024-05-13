@@ -23,7 +23,6 @@ import (
 const MaxSessionAge = time.Hour
 const CustomerID = "cid"
 const SessionID = "sid"
-const Elevated = "elv"
 
 type Auth struct {
 	// sessions maps session identifiers to VPs
@@ -81,7 +80,7 @@ func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd strin
 	return result
 }
 
-// CreateCustomerJWT creates a JWT that only stores the customer ID. This is required for the IRMA flow.
+// CreateCustomerJWT creates a JWT that only stores the customer ID.
 func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.IssuedAtKey, time.Now())
@@ -129,7 +128,7 @@ func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId int, session string, elevated bool) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId int, session string) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.SubjectKey, organizationName)
 	t.Set("usi", userName)
@@ -137,7 +136,6 @@ func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId
 	t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
 	t.Set(CustomerID, customerId)
 	t.Set(SessionID, session)
-	t.Set(Elevated, elevated)
 
 	return jwt.Sign(t, jwa.ES256, auth.sessionKey)
 }
@@ -147,7 +145,6 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		protectedPaths := []string{
 			"/web/private",
-			"/web/auth/employeeid/session", // EmployeeID auth means require authenticated session for employee info
 		}
 		for _, path := range protectedPaths {
 			if strings.HasPrefix(ctx.Request().RequestURI, path) {
@@ -189,19 +186,6 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	}
 	token := auth.createSession(customerID, userInfo)
 	return token, userInfo, nil
-}
-
-func (auth *Auth) Elevate(sessionID string, presentation auth.VerifiablePresentation) error {
-	auth.mux.Lock()
-	defer auth.mux.Unlock()
-
-	session, found := auth.sessions[sessionID]
-	if !found {
-		return errors.New("session not found")
-	}
-	session.Presentation = &presentation
-	auth.sessions[sessionID] = session
-	return nil
 }
 
 func (auth *Auth) createSession(customerID int, userInfo UserInfo) string {

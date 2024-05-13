@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -96,6 +95,9 @@ func (w Wrapper) UpdateTransfer(ctx echo.Context, transferID string) error {
 		t.TransferDate = updateRequest.TransferDate
 		return t, nil
 	})
+	if err != nil {
+		return err
+	}
 
 	transfer, err := w.TransferSenderService.GetTransferByID(ctx.Request().Context(), cid, transferID)
 	if err != nil {
@@ -257,17 +259,4 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	}
 
 	return ctx.NoContent(http.StatusAccepted)
-}
-
-func (w Wrapper) findNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {
-	negotiations, err := w.TransferSenderRepo.ListNegotiations(ctx, customerID, transferID)
-	if err != nil {
-		return nil, err
-	}
-	for _, curr := range negotiations {
-		if string(curr.Id) == negotiationID {
-			return &curr, nil
-		}
-	}
-	return nil, errors.New("transfer negotiation not found")
 }

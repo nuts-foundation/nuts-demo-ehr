@@ -167,7 +167,9 @@ func generateSessionKey() (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 	block := pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}
-	pem.Encode(log.Writer(), &block)
+	if err := pem.Encode(log.Writer(), &block); err != nil {
+		return nil, err
+	}
 
 	return key, nil
 }

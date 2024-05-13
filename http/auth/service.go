@@ -30,14 +30,6 @@ type authService struct {
 	client *nutsAuthClient.ClientWithResponses
 }
 
-func fromStringPtr(ptr *string) (output string) {
-	if ptr != nil {
-		output = *ptr
-	}
-
-	return
-}
-
 func NewService(server string) (Service, error) {
 	authClient, err := nutsAuthClient.NewClientWithResponses(server)
 	if err != nil {

@@ -58,8 +58,6 @@ const assetPath = "web/dist"
 //go:embed web/dist/*
 var embeddedFiles embed.FS
 
-const apiTimeout = 10 * time.Second
-
 func getFileSystem(useFS bool) http.FileSystem {
 	if useFS {
 		logrus.Info("using live mode")
@@ -134,7 +132,7 @@ func createServer() *echo.Echo {
 	server.Logger.SetLevel(log2.DEBUG)
 	server.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		if !ctx.Response().Committed {
-			ctx.Response().Write([]byte(err.Error()))
+			_, _ = ctx.Response().Write([]byte(err.Error()))
 			ctx.Echo().Logger.Error(err)
 		}
 	}
@@ -357,7 +355,7 @@ func httpErrorHandler(err error, c echo.Context) {
 		code = he.Code
 		msg = he.Message
 		if he.Internal != nil {
-			err = fmt.Errorf("%v, %v", err, he.Internal)
+			msg = fmt.Sprintf("%v, %v", err, he.Internal)
 		}
 	} else {
 		msg = err.Error()
@@ -410,7 +408,7 @@ func (cb *fhirBinder) Bind(i interface{}, c echo.Context) (err error) {
 	}
 
 	if strings.Contains(c.Request().Header.Get("Content-Type"), "application/fhir+json") {
-		var bytes = make([]byte, 0)
+		var bytes []byte
 		if bytes, err = io.ReadAll(c.Request().Body); err != nil {
 			return
 		}

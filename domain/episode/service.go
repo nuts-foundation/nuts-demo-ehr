@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
-	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/sirupsen/logrus"
 	"net/url"
 	"strings"
@@ -46,7 +45,6 @@ type service struct {
 	factory       fhir.Factory
 	auth          auth.Service
 	aclRepository *acl.Repository
-	nutsClient    nutsClient.HTTPClient
 	registry      registry.OrganizationRegistry
 	vcr           registry.VerifiableCredentialRegistry
 }
@@ -166,7 +164,7 @@ func (service *service) GetCollaborations(ctx context.Context, customerDID, doss
 
 	var collaborations []types.Collaboration
 
-	for authorizedDID, _ := range authorizedDIDs {
+	for authorizedDID := range authorizedDIDs {
 		org, err := service.registry.Get(ctx, authorizedDID)
 		if err != nil {
 			logrus.WithError(err).Warn("Error looking up episode collaborator organization")

@@ -1,0 +1,79 @@
+{
+  "id": "urn:nuts.nl:usecase:eOverdrachtDemo2024",
+  "endpoint": "https://node.left.local/discovery/urn:nuts.nl:usecase:eOverdrachtDemo2024",
+  "presentation_max_validity": 36000,
+  "presentation_definition": {
+    "format": {
+      "ldp_vc": {
+        "proof_type": [
+          "JsonWebSignature2020"
+        ]
+      },
+      "ldp_vp": {
+        "proof_type": [
+          "JsonWebSignature2020"
+        ]
+      },
+      "jwt_vc": {
+        "alg": [
+          "ES256"
+        ]
+      },
+      "jwt_vp": {
+        "alg": [
+          "ES256"
+        ]
+      }
+    },
+    "id": "pd_any_care_organization",
+    "name": "Care organization",
+    "purpose": "Finding a care organization for authorizing access to medical metadata",
+    "input_descriptors": [
+      {
+        "id": "id_nuts_care_organization_cred",
+        "constraints": {
+          "fields": [
+            {
+              "path": [
+                "$.type"
+              ],
+              "filter": {
+                "type": "string",
+                "const": "NutsOrganizationCredential"
+              }
+            },
+            {
+              "path": [
+                "$.issuer"
+              ],
+              "filter": {
+                "type": "string",
+                "enum": ["did:web:left.local:iam:left", "did:web:right.local:iam:right"]
+              }
+            },
+            {
+              "id": "organization_name",
+              "path": [
+                "$.credentialSubject.organization.name",
+                "$.credentialSubject[0].organization.name"
+              ],
+              "filter": {
+                "type": "string"
+              }
+            },
+            {
+              "id": "organization_city",
+              "path": [
+                "$.credentialSubject.organization.city",
+                "$.credentialSubject[0].organization.city"
+              ],
+              "filter": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -12,4 +12,10 @@ auth:
   irma:
     autoupdateschemas: false
 policy:
-  directory: /opt/nuts/policies
+  directory: /nuts/policies
+discovery:
+  definitions:
+    directory: /nuts/discovery
+  server:
+    ids:
+      - urn:nuts.nl:usecase:eOverdrachtDemo2024

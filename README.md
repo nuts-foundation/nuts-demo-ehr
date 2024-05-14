@@ -107,7 +107,10 @@ CSS framework is https://tailwindcss.com
 - execute `make docker`
 
 ### After complete wipe of data
-- add did: `docker exec nuts-demo-ehr-node-left-1 curl --location 'localhost:8081/internal/vdr/v2/did' --header 'Content-Type: application/json' --data '{"tenant": "left"}'`
+- use https://admin.left.local and add did:web:left.local:iam:left
+- issue an NutsOrganizationCredential for this DID from this DID
+- use https://admin.right.local and add did:web:right.local:iam:right
+- issue an NutsOrganizationCredential for this DID from this DID
 - add did: `docker exec nuts-demo-ehr-node-right-1 curl --location 'localhost:8081/internal/vdr/v2/did' --header 'Content-Type: application/json' --data '{"tenant": "right"}'`
 
 ### Run

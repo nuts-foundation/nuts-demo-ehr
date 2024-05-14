@@ -5,6 +5,10 @@ services:
     depends_on:
       - node-left
       - node-right
+      - admin-left
+      - admin-right
+      - demo-left
+      - demo-right
     ports:
       - 80:80
       - 443:443
@@ -14,17 +18,19 @@ services:
   node-left: &node
     image: nutsfoundation/nuts-node:master
     environment:
-      NUTS_CONFIGFILE: /opt/nuts/nuts.yaml
+      NUTS_CONFIGFILE: /nuts/nuts.yaml
     volumes:
-      - "./docker-compose/left/config/node/nuts.yaml:/opt/nuts/nuts.yaml"
+      - "./docker-compose/left/config/node/nuts.yaml:/nuts/nuts.yaml"
       - "./docker-compose/left/data/node:/nuts/data"
-      - "./docker-compose/left/data/node/policies:/opt/nuts/policies"
+      - "./docker-compose/left/config/node/policies:/nuts/policies"
+      - "./docker-compose/left/config/node/discovery:/nuts/discovery"
   node-right:
     <<: *node
     volumes:
-      - "./docker-compose/right/config/node/nuts.yaml:/opt/nuts/nuts.yaml"
+      - "./docker-compose/right/config/node/nuts.yaml:/nuts/nuts.yaml"
       - "./docker-compose/right/data/node:/nuts/data"
-      - "./docker-compose/right/data/node/policies:/opt/nuts/policies"
+      - "./docker-compose/right/config/node/policies:/nuts/policies"
+      - "./docker-compose/right/config/node/discovery:/nuts/discovery"
   admin-left: &admin
     image: nutsfoundation/nuts-admin:main
     environment:

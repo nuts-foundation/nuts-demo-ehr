@@ -103,7 +103,7 @@ CSS framework is https://tailwindcss.com
 
 - execute `./generate.sh` in `docker-compose/lb/tls/`
 - load `docker-compose/lb/tls/ca.pem` into keychain/local certs
-- add `left.local`, `node.left.local`, `right.local` and `node.right.local` to `/etc/hosts` (127.0.0.1)
+- add `left.local`, `node.left.local`, `admin.left.local`, `right.local`, `admin.right.local`  and `node.right.local` to `/etc/hosts` (127.0.0.1)
 - execute `make docker`
 
 ### After complete wipe of data

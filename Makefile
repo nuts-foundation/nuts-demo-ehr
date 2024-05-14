@@ -5,6 +5,9 @@ run-generators: gen-api
 install-tools:
 	go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0
 
+docker:
+	docker build -t nutsfoundation/nuts-demo-ehr:main .
+
 gen-api:
 	npm run gen-api
 

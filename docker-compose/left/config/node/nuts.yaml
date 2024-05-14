@@ -1,0 +1,15 @@
+url: https://node.left.local
+verbosity: debug
+strictmode: false
+internalratelimiter: false
+http:
+  log: metadata-and-body
+  internal:
+    address: :8081
+auth:
+  contractvalidators:
+    - dummy
+  irma:
+    autoupdateschemas: false
+policy:
+  directory: /opt/nuts/policies

@@ -96,3 +96,20 @@ Frontend framework is vue.js 3.x
 Icons are from https://heroicons.com
 
 CSS framework is https://tailwindcss.com
+
+## WIP: complete docker compose setup with 2 instances
+
+### After clone
+
+- execute `./generate.sh` in `docker-compose/lb/tls/`
+- load `docker-compose/lb/tls/ca.pem` into keychain/local certs
+- add `left.local`, `node.left.local`, `right.local` and `node.right.local` to `/etc/hosts` (127.0.0.1)
+- execute `make docker`
+
+### After complete wipe of data
+- add did: `docker exec nuts-demo-ehr-node-left-1 curl --location 'localhost:8081/internal/vdr/v2/did' --header 'Content-Type: application/json' --data '{"tenant": "left"}'`
+- add did: `docker exec nuts-demo-ehr-node-right-1 curl --location 'localhost:8081/internal/vdr/v2/did' --header 'Content-Type: application/json' --data '{"tenant": "right"}'`
+
+### Run
+- docker compose up
+- goto: `https://left.local` and `https://right.local`

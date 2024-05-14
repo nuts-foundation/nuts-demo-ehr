@@ -1,0 +1,58 @@
+version: "3.9"
+services:
+  lb:
+    image: nginx:1.25.1
+    depends_on:
+      - node-left
+      - node-right
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "./docker-compose/lb/config/nginx.conf:/etc/nginx/nginx.conf"
+      - "./docker-compose/lb/tls:/etc/nginx/ssl:ro"
+  node-left: &node
+    image: nutsfoundation/nuts-node:master
+    environment:
+      NUTS_CONFIGFILE: /opt/nuts/nuts.yaml
+    volumes:
+      - "./docker-compose/left/config/node/nuts.yaml:/opt/nuts/nuts.yaml"
+      - "./docker-compose/left/data/node:/nuts/data"
+      - "./docker-compose/left/data/node/policies:/opt/nuts/policies"
+  node-right:
+    <<: *node
+    volumes:
+      - "./docker-compose/right/config/node/nuts.yaml:/opt/nuts/nuts.yaml"
+      - "./docker-compose/right/data/node:/nuts/data"
+      - "./docker-compose/right/data/node/policies:/opt/nuts/policies"
+  demo-left: &demo
+    image: nutsfoundation/nuts-demo-ehr:main
+    volumes:
+      - "./docker-compose/left/config/demo/server.config.yaml:/app/server.config.yaml"
+      - "./docker-compose/left/config/demo/customers.json:/app/customers.json"
+      - "./docker-compose/left/data/demo:/app/data"
+    depends_on:
+      - hapi-left
+      - node-right
+  hapi-left: &hapi
+    image: hapiproject/hapi:v5.5.2
+    environment:
+      hapi.fhir.fhir_version: DSTU3
+      hapi.fhir.partitioning.allow_references_across_partitions: "false"
+    expose:
+      - 8080
+    volumes:
+      - "./docker-compose/left/data/hapi:/usr/local/tomcat/target"
+  demo-right:
+    <<: *demo
+    volumes:
+      - "./docker-compose/right/config/demo/server.config.yaml:/app/server.config.yaml"
+      - "./docker-compose/right/config/demo/customers.json:/app/customers.json"
+      - "./docker-compose/right/data/demo:/app/data"
+    depends_on:
+      - hapi-right
+      - node-right
+  hapi-right:
+    <<: *hapi
+    volumes:
+      - "./docker-compose/right/data/hapi:/usr/local/tomcat/target"

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	jwt2 "github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -51,7 +50,17 @@ type UserInfo struct {
 type JWTCustomClaims struct {
 	CustomerID int    `json:"cis"`
 	SessionID  string `json:"sid"`
-	jwt2.StandardClaims
+	JWTStandardClaims
+}
+
+type JWTStandardClaims struct {
+	Audience  string `json:"aud,omitempty"`
+	ExpiresAt int64  `json:"exp,omitempty"`
+	Id        string `json:"jti,omitempty"`
+	IssuedAt  int64  `json:"iat,omitempty"`
+	Issuer    string `json:"iss,omitempty"`
+	NotBefore int64  `json:"nbf,omitempty"`
+	Subject   string `json:"sub,omitempty"`
 }
 
 func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd string) *Auth {

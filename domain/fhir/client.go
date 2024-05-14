@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
@@ -87,7 +86,7 @@ func (h httpClient) Create(ctx context.Context, resource interface{}, result int
 		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", requestURI, err)
 	}
 	if !resp.IsSuccess() {
-		log.Warnf("FHIR server replied: %s", resp.String())
+		logrus.Warnf("FHIR server replied: %s", resp.String())
 		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %s", requestURI, resp.StatusCode(), string(resp.Body()))
 	}
 	if result != nil {
@@ -107,7 +106,7 @@ func (h httpClient) CreateOrUpdate(ctx context.Context, resource interface{}, re
 		return fmt.Errorf("unable to write FHIR resource (path=%s): %w", requestURI, err)
 	}
 	if !resp.IsSuccess() {
-		log.Warnf("FHIR server replied: %s", resp.String())
+		logrus.Warnf("FHIR server replied: %s", resp.String())
 		return fmt.Errorf("unable to write FHIR resource (path=%s,http-status=%d): %s", requestURI, resp.StatusCode(), string(resp.Body()))
 	}
 	if result != nil {
@@ -127,7 +126,7 @@ func (h httpClient) ReadMultiple(ctx context.Context, path string, params map[st
 	}
 	err = json.Unmarshal([]byte(resourcesJSON), results)
 	if err != nil {
-		log.Warnf("FHIR server replied: %s", raw.String())
+		logrus.Warnf("FHIR server replied: %s", raw.String())
 		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, results, err)
 	}
 	return nil
@@ -140,7 +139,7 @@ func (h httpClient) ReadOne(ctx context.Context, path string, result interface{}
 	}
 	err = json.Unmarshal([]byte(raw.String()), &result)
 	if err != nil {
-		log.Warnf("FHIR server replied: %s", raw.String())
+		logrus.Warnf("FHIR server replied: %s", raw.String())
 		return fmt.Errorf("unable to unmarshal FHIR result (path=%s,target-type=%T): %w", path, result, err)
 	}
 	return nil
@@ -155,7 +154,7 @@ func (h httpClient) getResource(ctx context.Context, path string, params map[str
 	}
 
 	if !resp.IsSuccess() {
-		log.Warnf("FHIR server replied: %s", resp.String())
+		logrus.Warnf("FHIR server replied: %s", resp.String())
 		return gjson.Result{}, fmt.Errorf("unable to read FHIR resource (path=%s,http-status=%d)", path, resp.StatusCode())
 	}
 

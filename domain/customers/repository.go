@@ -3,8 +3,8 @@ package customers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/gommon/log"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	"github.com/sirupsen/logrus"
 	"os"
 	"sort"
 )
@@ -22,7 +22,7 @@ type jsonFileRepo struct {
 func NewJsonFileRepository(filepath string) Repository {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
 	if err != nil {
-		log.Warnf("Could not open cusomers file (path=%s), it still needs to be created: %s", filepath, err)
+		logrus.Warnf("Could not open cusomers file (path=%s), it still needs to be created: %s", filepath, err)
 		// But allow to proceed, since it is shared with nuts-registry-admin-demo, which creates it.
 		// In Docker environments, it might not be there yet if demo-ehr starts first.
 	} else {

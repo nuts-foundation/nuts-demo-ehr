@@ -3,9 +3,9 @@ package transfer
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/labstack/gommon/log"
 )
 
 // Notifier defines the API for notifying a remote care organization that an eOverdracht FHIR task has been updated,
@@ -32,11 +32,11 @@ func (f FireAndForgetNotifier) Notify(token, endpoint string) error {
 	}
 
 	if !response.IsSuccess() {
-		log.Warnf("Server response: %s", response.String())
+		logrus.Warnf("Server response: %s", response.String())
 		return fmt.Errorf("eOverdracht notification endpoint returned non-OK error code (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 	}
 
-	log.Debugf("eOverdracht notification successful sent (status-code=%d,url=%s)", response.StatusCode(), endpoint)
+	logrus.Debugf("eOverdracht notification successful sent (status-code=%d,url=%s)", response.StatusCode(), endpoint)
 
 	return nil
 }

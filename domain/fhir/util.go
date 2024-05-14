@@ -2,20 +2,9 @@ package fhir
 
 import (
 	"github.com/monarko/fhirgo/STU3/datatypes"
-	"github.com/tidwall/gjson"
 )
 
 const DateTimeLayout = "2006-01-02T15:04:05-07:00"
-
-func Filter(resources []gjson.Result, predicate func(resource gjson.Result) bool) []gjson.Result {
-	var result []gjson.Result
-	for _, resource := range resources {
-		if predicate(resource) {
-			result = append(result, resource)
-		}
-	}
-	return result
-}
 
 func ToIntegerPtr(input int) *datatypes.Integer {
 	result := datatypes.Integer(int32(input))

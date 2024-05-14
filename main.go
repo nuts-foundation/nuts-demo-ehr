@@ -26,7 +26,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	log2 "github.com/labstack/gommon/log"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nuts-foundation/nuts-demo-ehr/api"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
@@ -120,7 +119,7 @@ func createServer() *echo.Echo {
 		return ctx.Request().RequestURI == "/status"
 	}
 	server.Use(middleware.LoggerWithConfig(loggerConfig))
-	server.Logger.SetLevel(log2.DEBUG)
+	server.Logger.SetLevel(1)
 	server.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		if !ctx.Response().Committed {
 			_, _ = ctx.Response().Write([]byte(err.Error()))

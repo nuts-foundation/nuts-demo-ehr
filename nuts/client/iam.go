@@ -12,7 +12,10 @@ import (
 type Iam interface {
 	CreateAuthenticationRequest(customerDID string) (*nutsIamClient.RedirectResponseWithID, error)
 	GetAuthenticationResult(token string) (*nutsIamClient.TokenResponse, error)
+	IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsIamClient.TokenIntrospectionResponse, error)
 }
+
+var _ Iam = HTTPClient{}
 
 func (c HTTPClient) CreateAuthenticationRequest(customerDID string) (*nutsIamClient.RedirectResponseWithID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -89,7 +92,23 @@ func (c HTTPClient) RequestServiceAccessToken(ctx context.Context, relyingPartyD
 		return "", fmt.Errorf("unable to get access token: %s", detail)
 	}
 	return tokenResponse.JSON200.AccessToken, nil
+}
 
+func (c HTTPClient) IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsIamClient.TokenIntrospectionResponse, error) {
+	response, err := c.iam().IntrospectAccessTokenWithFormdataBody(ctx, nutsIamClient.IntrospectAccessTokenFormdataRequestBody{
+		Token: accessToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+	introspectResponse, err := nutsIamClient.ParseIntrospectAccessTokenResponse(response)
+	if err != nil {
+		return nil, err
+	}
+	if introspectResponse.JSON200 == nil {
+		return nil, fmt.Errorf("unable to introspect access token")
+	}
+	return introspectResponse.JSON200, nil
 }
 
 func (c HTTPClient) iam() nutsIamClient.ClientInterface {

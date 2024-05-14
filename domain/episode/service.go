@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/sirupsen/logrus"
 	"net/url"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir/zorginzage"
 	reports "github.com/nuts-foundation/nuts-demo-ehr/domain/reports"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
@@ -43,14 +43,14 @@ func parseAuthCredentialSubject(authCredential vc.VerifiableCredential) (*regist
 
 type service struct {
 	factory       fhir.Factory
-	auth          auth.Service
+	nutsClient    *client.HTTPClient
 	aclRepository *acl.Repository
 	registry      registry.OrganizationRegistry
 	vcr           registry.VerifiableCredentialRegistry
 }
 
-func NewService(factory fhir.Factory, auth auth.Service, registry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, aclRepository *acl.Repository) Service {
-	return &service{factory: factory, auth: auth, registry: registry, vcr: vcr, aclRepository: aclRepository}
+func NewService(factory fhir.Factory, nutsClient *client.HTTPClient, registry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, aclRepository *acl.Repository) Service {
+	return &service{factory: factory, nutsClient: nutsClient, registry: registry, vcr: vcr, aclRepository: aclRepository}
 }
 
 func parseEpisodeOfCareID(authCredential vc.VerifiableCredential) (string, error) {
@@ -215,7 +215,8 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, fmt.Errorf("error while searching organization :%w", err)
 	}
 
-	accessToken, err := service.auth.RequestAccessToken(ctx, customerDID, issuer, zorginzage.ServiceName, []vc.VerifiableCredential{credentials[0]}, nil)
+	// TODO: Should be user access token?
+	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, customerDID, issuer, zorginzage.ServiceName)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (service *service) GetReports(ctx context.Context, customerDID, patientSSN 
 		return nil, err
 	}
 
-	fhirClient := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))()
+	fhirClient := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken))()
 
 	fhirEpisode := &fhir.EpisodeOfCare{}
 	err = fhirClient.ReadOne(ctx, "/EpisodeOfCare/"+episodeOfCareID, fhirEpisode)

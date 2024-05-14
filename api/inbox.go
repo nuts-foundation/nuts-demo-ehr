@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -17,15 +16,11 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 	if err != nil {
 		return err
 	}
-	if session.Presentation == nil {
-		return errors.New("unable to get transfer request without elevation")
-	}
 
 	transferRequest, err := w.TransferReceiverService.GetTransferRequest(
 		ctx.Request().Context(),
 		session.CustomerID,
 		requestorDID,
-		*session.Presentation,
 		fhirTaskID,
 	)
 	if err != nil {

@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 
 	"github.com/monarko/fhirgo/STU3/resources"
-	"github.com/nuts-foundation/go-did/vc"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
@@ -27,7 +25,7 @@ type Handler interface {
 }
 
 type handler struct {
-	auth                   auth.Service
+	nutsClient             *nutsClient.HTTPClient
 	localFHIRClientFactory fhir.Factory
 	transferService        receiver.TransferService
 	registry               registry.OrganizationRegistry
@@ -35,14 +33,14 @@ type handler struct {
 }
 
 func NewHandler(
-	auth auth.Service,
+	nutsClient *nutsClient.HTTPClient,
 	localFHIRClientFactory fhir.Factory,
 	transferReceiverService receiver.TransferService,
 	registry registry.OrganizationRegistry,
 	vcr registry.VerifiableCredentialRegistry,
 ) Handler {
 	return &handler{
-		auth:                   auth,
+		nutsClient:             nutsClient,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferService:        transferReceiverService,
 		registry:               registry,
@@ -76,13 +74,13 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 		return errors.New("no NutsAuthorizationCredential found to retrieve the Task resource")
 	}
 
-	accessToken, err := service.auth.RequestAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender", []vc.VerifiableCredential{credentials[0]}, nil)
+	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender")
 	if err != nil {
 		return err
 	}
 
 	task := &resources.Task{}
-	client := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken.AccessToken))
+	client := fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken))
 
 	// FIXME: add query params to filter on the owner so to only process the customer addressed in the notification
 	err = client().ReadOne(ctx, taskPath, &task)

@@ -1,17 +1,15 @@
 package api
 
 import (
-	"errors"
 	"fmt"
+	"github.com/monarko/fhirgo/STU3/datatypes"
+	"github.com/monarko/fhirgo/STU3/resources"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
-
-	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
-	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
-	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
@@ -200,35 +198,30 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
-	rawToken := ctx.Get(httpAuth.AccessToken)
-	if rawToken == nil {
-		// should have been caught by security filter
-		return errors.New("missing access-token")
-	}
-	token, ok := rawToken.(nutsAuthClient.TokenIntrospectionResponse)
-	if !ok {
-		// should have been caught by security filter
-		return errors.New("missing access-token")
-	}
+	// TODO: These need to come from token introspection
+	panic("not implemented, TODO")
+	var customerDID *string
+	var senderDID *string
 
-	senderDID := token.Sub
-	if senderDID == nil {
-		return errors.New("missing 'sub' in access-token")
-	}
-	customerDID := token.Iss
-	if customerDID == nil {
-		return errors.New("missing 'Iss' in access-token")
-	}
-
+	codeError := datatypes.Code("error")
+	codeInvalid := datatypes.Code("invalid")
+	severityError := datatypes.Code("error")
 	customer, err := w.CustomerRepository.FindByDID(*customerDID)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, &proxy.OperationOutcome{
-			Text: "an error occurred",
-			Issue: &proxy.Issue{
-				Code:     "error",
-				Severity: "error",
-				Details: &proxy.IssueDetails{
-					Text: err.Error(),
+
+		return ctx.JSON(http.StatusInternalServerError, &resources.OperationOutcome{
+			Domain: resources.Domain{
+				Text: &datatypes.Narrative{
+					Div: fhir.ToStringPtr("an error occurred"),
+				},
+			},
+			Issue: []resources.OperationOutcomeIssue{
+				{
+					Code:     &codeError,
+					Severity: &severityError,
+					Details: &datatypes.CodeableConcept{
+						Text: fhir.ToStringPtr(err.Error()),
+					},
 				},
 			},
 		})
@@ -237,13 +230,19 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	if customer == nil {
 		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
 
-		return ctx.JSON(http.StatusNotFound, &proxy.OperationOutcome{
-			Text: "taskOwner unknown on this server",
-			Issue: &proxy.Issue{
-				Code:     "invalid",
-				Severity: "error",
-				Details: &proxy.IssueDetails{
-					Text: fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", *senderDID),
+		return ctx.JSON(http.StatusNotFound, &resources.OperationOutcome{
+			Domain: resources.Domain{
+				Text: &datatypes.Narrative{
+					Div: fhir.ToStringPtr("taskOwner unknown on this server"),
+				},
+			},
+			Issue: []resources.OperationOutcomeIssue{
+				{
+					Code:     &codeInvalid,
+					Severity: &codeError,
+					Details: &datatypes.CodeableConcept{
+						Text: fhir.ToStringPtr(fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", *senderDID)),
+					},
 				},
 			},
 		})

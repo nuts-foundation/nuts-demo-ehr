@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/iam"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,7 +18,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
-	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 )
 
 const MaxSessionAge = time.Hour
@@ -35,7 +35,7 @@ type Auth struct {
 }
 
 type Session struct {
-	Presentation *auth.VerifiablePresentation
+	Presentation *iam.VerifiablePresentation
 	CustomerID   int
 	StartTime    time.Time
 	UserInfo     UserInfo

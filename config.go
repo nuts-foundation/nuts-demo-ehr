@@ -46,10 +46,6 @@ func defaultConfig() Config {
 		Verbosity:       defaultLogLevel,
 		FHIR: FHIR{
 			Server: defaultHAPIFHIRServer,
-			Proxy: FHIRProxy{
-				Enable: true,
-				Path:   "/fhir",
-			},
 		},
 		CustomersFile:      defaultCustomerFile,
 		Credentials:        Credentials{Password: "demo"},
@@ -100,7 +96,6 @@ type CarePlanService struct {
 
 type FHIR struct {
 	Server FHIRServer `koanf:"server"`
-	Proxy  FHIRProxy  `koanf:"proxy"`
 }
 
 type FHIRServer struct {
@@ -110,11 +105,6 @@ type FHIRServer struct {
 
 func (server FHIRServer) SupportsMultiTenancy() bool {
 	return server.Type == "hapi-multi-tenant"
-}
-
-type FHIRProxy struct {
-	Enable bool   `koanf:"enable"`
-	Path   string `koanf:"path"`
 }
 
 type Credentials struct {

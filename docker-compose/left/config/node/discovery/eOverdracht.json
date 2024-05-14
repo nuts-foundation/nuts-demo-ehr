@@ -1,7 +1,7 @@
 {
   "id": "urn:nuts.nl:usecase:eOverdrachtDemo2024",
-  "endpoint": "https://node.left.local/discovery/urn:nuts.nl:usecase:eOverdrachtDemo2024",
-  "presentation_max_validity": 36000,
+  "endpoint": "http://node-left:8080/discovery/urn:nuts.nl:usecase:eOverdrachtDemo2024",
+  "presentation_max_validity": 240,
   "presentation_definition": {
     "format": {
       "ldp_vc": {
@@ -48,7 +48,7 @@
               ],
               "filter": {
                 "type": "string",
-                "enum": ["did:web:left.local:iam:left", "did:web:right.local:iam:right"]
+                "enum": ["did:web:node.left.local:iam:left", "did:web:node.right.local:iam:right"]
               }
             },
             {

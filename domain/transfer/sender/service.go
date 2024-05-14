@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"strings"
 	"time"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 )
 
@@ -50,7 +50,7 @@ type TransferService interface {
 
 type service struct {
 	transferRepo           TransferRepository
-	auth                   auth.Service
+	nutsClient             *nutsClient.HTTPClient
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
 	customerRepo           customers.Repository
 	dossierRepo            dossier.Repository
@@ -60,9 +60,9 @@ type service struct {
 	notifier               transfer.Notifier
 }
 
-func NewTransferService(authService auth.Service, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
+func NewTransferService(nutsClient *nutsClient.HTTPClient, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
-		auth:                   authService,
+		nutsClient:             nutsClient,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferRepo:           transferRepository,
 		customerRepo:           customerRepository,
@@ -572,7 +572,7 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 		return err
 	}
 
-	tokenResponse, err := s.auth.RequestAccessToken(ctx, *customer.Did, organizationDID, transfer.ReceiverServiceName, nil, nil)
+	tokenResponse, err := s.nutsClient.RequestServiceAccessToken(ctx, *customer.Did, organizationDID, transfer.ReceiverServiceName)
 	if err != nil {
 		return err
 	}
@@ -587,7 +587,7 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 
 	return retry.Do(
 		func() error {
-			return s.notifier.Notify(tokenResponse.AccessToken, endpoint)
+			return s.notifier.Notify(tokenResponse, endpoint)
 		},
 		retry.LastErrorOnly(true),
 		retry.Attempts(60),

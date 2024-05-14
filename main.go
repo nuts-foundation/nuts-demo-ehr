@@ -8,7 +8,6 @@ import (
 	"embed"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
@@ -19,7 +18,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -42,11 +40,8 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/receiver"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer/sender"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
-	httpAuth "github.com/nuts-foundation/nuts-demo-ehr/http/auth"
-	"github.com/nuts-foundation/nuts-demo-ehr/http/proxy"
 	"github.com/nuts-foundation/nuts-demo-ehr/internal/keyring"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
-	nutsAuthClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/auth"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
 	"github.com/nuts-foundation/nuts-demo-ehr/sql"
 
@@ -107,10 +102,6 @@ func main() {
 
 	registerEHR(server, config, customerRepository, vcRegistry, &nodeClient)
 
-	if config.FHIR.Proxy.Enable {
-		registerFHIRProxy(server, config, customerRepository, vcRegistry)
-	}
-
 	// Start server
 	server.Logger.Fatal(server.Start(fmt.Sprintf(":%d", config.HTTPPort)))
 }
@@ -141,31 +132,6 @@ func createServer() *echo.Echo {
 	return server
 }
 
-func registerFHIRProxy(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry) {
-	authService, err := httpAuth.NewService(config.NutsNodeAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fhirURL, err := url.Parse(config.FHIR.Server.Address)
-	if err != nil {
-		log.Fatal(err)
-	}
-	proxyServer := proxy.NewServer(authService, customerRepository, vcRegistry, *fhirURL, config.FHIR.Proxy.Path, config.FHIR.Server.SupportsMultiTenancy())
-
-	// set security filter
-	server.Use(proxyServer.AuthMiddleware())
-
-	server.Any(config.FHIR.Proxy.Path+"/*", func(c echo.Context) error {
-		// For all non-Task updates, logic is performed by middleware
-
-		// For the Task update it does not proxy the call but forwards it to here.
-		// The request is altered to /web/internal/{customerID}/Task/{ID}
-		server.ServeHTTP(c.Response(), c.Request())
-		return nil
-	}, proxyServer.Handler)
-}
-
 func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry, nodeClient *nutsClient.HTTPClient) {
 	var passwd string
 	if config.Credentials.Empty() {
@@ -179,13 +145,9 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	sqlDB := sqlx.MustConnect("sqlite3", config.DBConnectionString)
 	sqlDB.SetMaxOpenConns(1)
 
-	authService, err := httpAuth.NewService(config.NutsNodeAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	fhirNotifier := transfer.FireAndForgetNotifier{}
 	var tlsClientConfig *tls.Config
+	var err error
 	if config.TLS.Client.IsConfigured() {
 		log.Println("Configuring TLS client certificate for calls to remote Nuts Nodes and FHIR servers.")
 		if tlsClientConfig, err = config.TLS.Client.Load(); err != nil {
@@ -205,8 +167,8 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferSenderRepo := sender.NewTransferRepository(sqlDB)
 	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)
-	transferSenderService := sender.NewTransferService(authService, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry, fhirNotifier)
-	transferReceiverService := receiver.NewTransferService(authService, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry, fhirNotifier)
+	transferSenderService := sender.NewTransferService(nodeClient, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry, fhirNotifier)
+	transferReceiverService := receiver.NewTransferService(nodeClient, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry, fhirNotifier)
 	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil
@@ -262,17 +224,14 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		ZorginzageService:       domain.ZorginzageService{NutsClient: nodeClient},
 		SharedCarePlanService:   scpService,
 		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
-		EpisodeService:          episode.NewService(fhirClientFactory, authService, orgRegistry, vcRegistry, aclRepository),
+		EpisodeService:          episode.NewService(fhirClientFactory, nodeClient, orgRegistry, vcRegistry, aclRepository),
 		TenantInitializer:       tenantInitializer,
-		NotificationHandler:     notification.NewHandler(authService, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
+		NotificationHandler:     notification.NewHandler(nodeClient, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
 	}
 
 	// JWT checking for correct claims
 	server.Use(auth.JWTHandler)
 	server.Use(sql.Transactional(sqlDB))
-
-	// for requests that require Nuts AccessToken
-	server.Use(authMiddleware(authService))
 
 	api.RegisterHandlersWithBaseURL(server, apiWrapper, "/web")
 
@@ -376,26 +335,6 @@ func httpErrorHandler(err error, c echo.Context) {
 			c.Logger().Error(err)
 		}
 	}
-}
-
-func authMiddleware(authService httpAuth.Service) echo.MiddlewareFunc {
-	config := httpAuth.Config{
-		Skipper: func(e echo.Context) bool {
-			return !strings.HasPrefix(e.Request().RequestURI, "/web/external/")
-		},
-		AccessF: func(ctx echo.Context, request *http.Request, token *nutsAuthClient.TokenIntrospectionResponse) error {
-			service := token.Service
-			if service == nil {
-				return errors.New("access-token doesn't contain 'service' claim")
-			}
-			if *service != "eOverdracht-receiver" {
-				return fmt.Errorf("access-token contains incorrect 'service' claim: %s, must be eOverdracht-receiver", *service)
-			}
-
-			return nil
-		},
-	}
-	return httpAuth.SecurityFilter{Auth: authService}.AuthWithConfig(config)
 }
 
 type fhirBinder struct{}

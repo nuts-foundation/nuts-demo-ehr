@@ -117,7 +117,7 @@ func (s Service) FindByID(ctx context.Context, customerID int, dossierID string)
 			}
 			code := fmt.Sprintf("%s|%s", *participant.OnBehalfOf.Identifier.System, *participant.OnBehalfOf.Identifier.Value)
 			organizationMap[code] = types.Organization{
-				Name: fmt.Sprintf("%s ( %s)", participant.OnBehalfOf.Display, code),
+				Name: fmt.Sprintf("%s ( %s)", *participant.OnBehalfOf.Display, code),
 			}
 		}
 	}

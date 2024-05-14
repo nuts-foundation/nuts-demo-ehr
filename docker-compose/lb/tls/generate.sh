@@ -5,6 +5,8 @@ openssl req -x509 -new -nodes -key ca.key -sha256 -days 1825 -out ca.pem -subj "
 # Generate key/certs for all domains by calling issue-cert.sh
 ./issue-cert.sh left.local
 ./issue-cert.sh node.left.local
+./issue-cert.sh admin.left.local
 ./issue-cert.sh right.local
 ./issue-cert.sh node.right.local
+./issue-cert.sh admin.right.local
 

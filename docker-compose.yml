@@ -25,6 +25,14 @@ services:
       - "./docker-compose/right/config/node/nuts.yaml:/opt/nuts/nuts.yaml"
       - "./docker-compose/right/data/node:/nuts/data"
       - "./docker-compose/right/data/node/policies:/opt/nuts/policies"
+  admin-left: &admin
+    image: nutsfoundation/nuts-admin:main
+    environment:
+      NUTS_NODE_ADDRESS: http://node-left:8081
+  admin-right:
+    <<: *admin
+    environment:
+      NUTS_NODE_ADDRESS: http://node-right:8081
   demo-left: &demo
     image: nutsfoundation/nuts-demo-ehr:main
     volumes:
@@ -33,6 +41,15 @@ services:
       - "./docker-compose/left/data/demo:/app/data"
     depends_on:
       - hapi-left
+      - node-right
+  demo-right:
+    <<: *demo
+    volumes:
+      - "./docker-compose/right/config/demo/server.config.yaml:/app/server.config.yaml"
+      - "./docker-compose/right/config/demo/customers.json:/app/customers.json"
+      - "./docker-compose/right/data/demo:/app/data"
+    depends_on:
+      - hapi-right
       - node-right
   hapi-left: &hapi
     image: hapiproject/hapi:v5.5.2
@@ -43,15 +60,6 @@ services:
       - 8080
     volumes:
       - "./docker-compose/left/data/hapi:/usr/local/tomcat/target"
-  demo-right:
-    <<: *demo
-    volumes:
-      - "./docker-compose/right/config/demo/server.config.yaml:/app/server.config.yaml"
-      - "./docker-compose/right/config/demo/customers.json:/app/customers.json"
-      - "./docker-compose/right/data/demo:/app/data"
-    depends_on:
-      - hapi-right
-      - node-right
   hapi-right:
     <<: *hapi
     volumes:

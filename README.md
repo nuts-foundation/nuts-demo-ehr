@@ -99,6 +99,14 @@ CSS framework is https://tailwindcss.com
 
 ## WIP: complete docker compose setup with 2 instances
 
+# Nodes need to find each other by external URL because they need to resolve the web:did
+Solution: handout 172.17.0.2 to loadbalancer
+Set default range to:
+networks:
+    default:
+        ipam:
+            config:
+                - subnet: 172.17.0.0/16
 ### After clone
 
 - execute `./generate.sh` in `docker-compose/lb/tls/`
@@ -111,7 +119,8 @@ CSS framework is https://tailwindcss.com
 - issue an NutsOrganizationCredential for this DID from this DID
 - use https://admin.right.local and add did:web:right.local:iam:right
 - issue an NutsOrganizationCredential for this DID from this DID
-- add did: `docker exec nuts-demo-ehr-node-right-1 curl --location 'localhost:8081/internal/vdr/v2/did' --header 'Content-Type: application/json' --data '{"tenant": "right"}'`
+- enable services
+- wait
 
 ### Run
 - docker compose up

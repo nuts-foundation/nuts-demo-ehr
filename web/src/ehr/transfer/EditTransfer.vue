@@ -160,12 +160,12 @@ export default {
     searchOrganizations(query) {
       this.$api.searchOrganizations(null, {
         query: {'credentialSubject.organization.name': query + '*'},
-        discoveryServiceType: "eoverdracht_dev3",
+        discoveryServiceID: "urn:nuts.nl:usecase:eOverdrachtDemo2024",
         didServiceType: "eOverdracht-receiver",
         excludeOwn: true
       }).then((result) => {
-        // Only show organizations that we aren't already negotiating with
-        this.organizations = result.data.filter(i => this.negotiations.filter(n => i.did === n.organizationDID).length === 0)
+        console.log(result)
+        this.organizations = Object.values(result.data)
       }).catch(error => this.$status.error(error))
     },
     assignOrganization() {

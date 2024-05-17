@@ -16,3 +16,5 @@ policy:
 discovery:
   definitions:
     directory: /nuts/discovery
+  client:
+    refresh_interval: 1m

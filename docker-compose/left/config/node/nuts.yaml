@@ -16,6 +16,8 @@ policy:
 discovery:
   definitions:
     directory: /nuts/discovery
+  client:
+    refresh_interval: 1m
   server:
     ids:
       - urn:nuts.nl:usecase:eOverdrachtDemo2024

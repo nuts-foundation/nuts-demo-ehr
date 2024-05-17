@@ -3,11 +3,14 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/nuts-foundation/go-did/did"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts"
 	nutsDiscoveryClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client/discovery"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vdr_v2"
+	"github.com/oapi-codegen/runtime"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -35,14 +38,14 @@ func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string
 		var err error
 		serviceIDs, err = c.getDiscoveryServices(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get discovery services: %w", err)
 		}
 	}
 	searchResults := make([]DiscoverySearchResult, 0)
 	for _, serviceID := range serviceIDs {
 		currResults, err := c.searchDiscoveryService(ctx, query, serviceID, didServiceType)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get service participants for %s, %s: %w", serviceID, *didServiceType, err)
 		}
 		searchResults = append(searchResults, currResults...)
 	}
@@ -50,15 +53,22 @@ func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string
 }
 
 func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID string, didServiceType *string) ([]DiscoverySearchResult, error) {
-	queryAsMap := make(map[string]string, 0)
+	queryAsMap := make(map[string]interface{}, 0)
 	for key, value := range query {
 		queryAsMap[key] = value
 	}
-	params := nutsDiscoveryClient.SearchPresentationsParams{Query: &queryAsMap}
 
-	resp, err := c.discovery().SearchPresentations(ctx, discoveryServiceID, &params)
+	// replace generated code with own client call to avoid oapi runtime bug
+	client := c.discovery().(*nutsDiscoveryClient.ClientWithResponses).ClientInterface.(*nutsDiscoveryClient.Client)
+	req, err := newSearchPresentationsRequest(client.Server, discoveryServiceID, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to construct SearchPresentationsRequest: %w", err)
+	}
+	req = req.WithContext(ctx)
+
+	resp, err := client.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query discovery services: %w", err)
 	}
 	respData, err := testAndReadResponse(http.StatusOK, resp)
 	if err != nil {
@@ -66,7 +76,7 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 	}
 	response := make([]nutsDiscoveryClient.SearchResult, 0)
 	if err := json.Unmarshal(respData, &response); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal result from discovery services: %w", err)
 	}
 
 	// resolve all DIDs from .subjectId and filter on given didServiceType if given
@@ -76,7 +86,7 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 			// parse did and convert did:web to url
 			doc, err := c.resolveDID(ctx, searchResult.SubjectId)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to resolve DID %s: %w", searchResult.SubjectId, err)
 			}
 			// check if the didServiceType is in the service array
 			serviceFound := false
@@ -96,6 +106,46 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 		})
 	}
 	return results, nil
+}
+
+// newSearchPresentationsRequest is a replacement for the generated one which has a bug.
+func newSearchPresentationsRequest(server string, serviceID string, params map[string]string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceID", runtime.ParamLocationPath, serviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/internal/discovery/v1/%s", pathParam0)
+	//if operationPath[0] == '/' {
+	//	operationPath = "." + operationPath
+	//}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+	for k, v := range params {
+		queryValues.Add(k, v)
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 func (c HTTPClient) resolveDID(ctx context.Context, didStr string) (*did.Document, error) {

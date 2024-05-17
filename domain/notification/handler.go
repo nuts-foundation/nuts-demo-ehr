@@ -2,7 +2,6 @@ package notification
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 
@@ -57,22 +56,23 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 
 	taskPath := fmt.Sprintf("/Task/%s", notification.TaskID)
 
-	credentials, err := service.vcr.FindAuthorizationCredentials(
-		ctx,
-		&registry.VCRSearchParams{
-			PurposeOfUse: transfer.SenderServiceName,
-			Issuer:       notification.SenderDID,
-			SubjectID:    notification.CustomerDID,
-			ResourcePath: taskPath,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	if len(credentials) == 0 {
-		return errors.New("no NutsAuthorizationCredential found to retrieve the Task resource")
-	}
+	// no longer needed
+	//credentials, err := service.vcr.FindAuthorizationCredentials(
+	//	ctx,
+	//	&registry.VCRSearchParams{
+	//		PurposeOfUse: transfer.SenderServiceName,
+	//		Issuer:       notification.SenderDID,
+	//		SubjectID:    notification.CustomerDID,
+	//		ResourcePath: taskPath,
+	//	},
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if len(credentials) == 0 {
+	//	return errors.New("no NutsAuthorizationCredential found to retrieve the Task resource")
+	//}
 
 	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerDID, notification.SenderDID, "eOverdracht-sender")
 	if err != nil {

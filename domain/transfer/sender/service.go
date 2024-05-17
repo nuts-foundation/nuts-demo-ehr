@@ -210,13 +210,14 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 			})
 		}
 
-		if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
-			ID:           organizationDID,
-			PurposeOfUse: transfer.SenderServiceName,
-			Resources:    authorizedResources,
-		}); err != nil {
-			return nil, err
-		}
+		// no longer needed
+		//if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
+		//	ID:           organizationDID,
+		//	PurposeOfUse: transfer.SenderServiceName,
+		//	Resources:    authorizedResources,
+		//}); err != nil {
+		//	return nil, err
+		//}
 
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
@@ -371,13 +372,14 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
-		if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
-			ID:           negotiation.OrganizationDID,
-			PurposeOfUse: transfer.SenderServiceName,
-			Resources:    authorizedResources,
-		}); err != nil {
-			return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
-		}
+		// no longer needed
+		//if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
+		//	ID:           negotiation.OrganizationDID,
+		//	PurposeOfUse: transfer.SenderServiceName,
+		//	Resources:    authorizedResources,
+		//}); err != nil {
+		//	return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
+		//}
 
 		notifications = append(notifications, &notification{
 			customer:        customer,
@@ -676,9 +678,10 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 			return nil, fmt.Errorf("could not create FHIR task: %w", err)
 		}
 
-		if err := s.createAuthCredentials(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
-			return nil, err
-		}
+		// no longer needed to create auth creds
+		//if err := s.createAuthCredentials(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
+		//	return nil, err
+		//}
 
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {

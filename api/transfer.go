@@ -199,14 +199,13 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
 	// TODO: These need to come from token introspection
-	panic("not implemented, TODO")
-	var customerDID *string
-	var senderDID *string
+	senderDID := ctx.Request().Header.Get("X-Client-DID")
+	customerDID := ctx.Request().Header.Get("X-Resource-DID")
 
 	codeError := datatypes.Code("error")
 	codeInvalid := datatypes.Code("invalid")
 	severityError := datatypes.Code("error")
-	customer, err := w.CustomerRepository.FindByDID(*customerDID)
+	customer, err := w.CustomerRepository.FindByDID(customerDID)
 	if err != nil {
 
 		return ctx.JSON(http.StatusInternalServerError, &resources.OperationOutcome{
@@ -228,7 +227,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	}
 
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", *senderDID)
+		logrus.Warnf("Received transfer notification for unknown customer DID: %s", senderDID)
 
 		return ctx.JSON(http.StatusNotFound, &resources.OperationOutcome{
 			Domain: resources.Domain{
@@ -241,7 +240,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 					Code:     &codeInvalid,
 					Severity: &codeError,
 					Details: &datatypes.CodeableConcept{
-						Text: fhir.ToStringPtr(fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", *senderDID)),
+						Text: fhir.ToStringPtr(fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", senderDID)),
 					},
 				},
 			},
@@ -250,8 +249,8 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
 		TaskID:      taskID,
-		SenderDID:   *senderDID,
-		CustomerDID: *customerDID,
+		SenderDID:   senderDID,
+		CustomerDID: customerDID,
 		CustomerID:  customer.Id,
 	}); err != nil {
 		return err

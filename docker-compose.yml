@@ -1,14 +1,12 @@
 version: "3.9"
 services:
   lb:
-    image: nginx:1.25.1
+    image: &nginx-img nginx:1.25.1
     depends_on:
-      - node-left
-      - node-right
+      - pep-left
+      - pep-right
       - admin-left
       - admin-right
-      - demo-left
-      - demo-right
     networks:
       demo:
         ipv4_address: 172.90.10.2
@@ -18,6 +16,31 @@ services:
     volumes:
       - "./docker-compose/lb/config/nginx.conf:/etc/nginx/nginx.conf"
       - "./docker-compose/lb/tls:/etc/nginx/ssl:ro"
+      - "./docker-compose/lb/socket:/tmp/sockets"
+  pep-left:
+    image: *nginx-img
+    depends_on:
+      - demo-left
+      - node-left
+    networks:
+      demo:
+        ipv4_address: 172.90.10.11
+    volumes:
+      - "./docker-compose/left/config/pep/nginx.conf:/etc/nginx/nginx.conf"
+      - "./docker-compose/lb/socket:/tmp/sockets"
+      - "./docker-compose/left/config/pep/oauth2.js:/etc/nginx/js/oauth2.js"
+  pep-right:
+    image: *nginx-img
+    depends_on:
+      - demo-right
+      - node-right
+    networks:
+      demo:
+        ipv4_address: 172.90.10.12
+    volumes:
+      - "./docker-compose/right/config/pep/nginx.conf:/etc/nginx/nginx.conf"
+      - "./docker-compose/lb/socket:/tmp/sockets"
+      - "./docker-compose/right/config/pep/oauth2.js:/etc/nginx/js/oauth2.js"
   node-left: &node
     image: nutsfoundation/nuts-node:master
     environment:

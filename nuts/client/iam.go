@@ -72,9 +72,13 @@ func (c HTTPClient) GetAuthenticationResult(token string) (*nutsIamClient.TokenR
 }
 
 func (c HTTPClient) RequestServiceAccessToken(ctx context.Context, relyingPartyDID, authorizationServerDID string, scope string) (string, error) {
+	// bearer for now
+	bearer := "Bearer"
+
 	response, err := c.iam().RequestServiceAccessToken(ctx, relyingPartyDID, nutsIamClient.RequestServiceAccessTokenJSONRequestBody{
-		Scope:    scope,
-		Verifier: authorizationServerDID,
+		Scope:     scope,
+		Verifier:  authorizationServerDID,
+		TokenType: (*nutsIamClient.ServiceAccessTokenRequestTokenType)(&bearer),
 	})
 	if err != nil {
 		return "", err

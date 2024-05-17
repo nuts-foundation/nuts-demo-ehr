@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
@@ -198,9 +200,18 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
-	// TODO: These need to come from token introspection
-	senderDID := ctx.Request().Header.Get("X-Client-DID")
-	customerDID := ctx.Request().Header.Get("X-Resource-DID")
+	// The PEP added introspection result to the X-Userinfo header
+	introspectionResult := ctx.Request().Header.Get("X-Userinfo")
+	//log.Errorf("X-Userinfo: %s", introspectionResult)
+
+	if introspectionResult == "" {
+		return errors.New("missing X-Userinfo header")
+	}
+	target := map[string]interface{}{}
+	_ = json.Unmarshal([]byte(introspectionResult), &target)
+	// client_id for senderDID and sub for customerDID
+	senderDID := target["client_id"].(string)
+	customerDID := target["sub"].(string)
 
 	codeError := datatypes.Code("error")
 	codeInvalid := datatypes.Code("invalid")

@@ -109,7 +109,7 @@ func (w Wrapper) AuthenticateWithPassword(ctx echo.Context) error {
 	return ctx.JSON(200, types.SessionToken{Token: string(token)})
 }
 
-func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context) error {
+func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context, params CreateAuthorizationRequestParams) error {
 	customerID, err := w.APIAuth.GetCustomerIDFromHeader(ctx)
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
-	response, err := w.NutsClient.CreateAuthenticationRequest(*customer.Did)
+	response, err := w.NutsClient.CreateAuthenticationRequest(*customer.Did, params.Verifier, params.Scope, params.RedirectUri)
 	if err != nil {
 		return err
 	}

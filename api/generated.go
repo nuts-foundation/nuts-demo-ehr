@@ -18,7 +18,7 @@ type ServerInterface interface {
 	SetCustomer(ctx echo.Context) error
 
 	// (POST /auth/openid4vp)
-	CreateAuthorizationRequest(ctx echo.Context) error
+	CreateAuthorizationRequest(ctx echo.Context, params CreateAuthorizationRequestParams) error
 
 	// (GET /auth/openid4vp/{token})
 	GetOpenID4VPAuthenticationResult(ctx echo.Context, token string) error
@@ -108,10 +108,10 @@ type ServerInterface interface {
 	CreateTransfer(ctx echo.Context) error
 
 	// (GET /private/transfer-request/{requestorDID}/{fhirTaskID})
-	GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error
+	GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string, params GetTransferRequestParams) error
 
 	// (POST /private/transfer-request/{requestorDID}/{fhirTaskID})
-	ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string) error
+	ChangeTransferRequestState(ctx echo.Context, requestorDID string, fhirTaskID string, params ChangeTransferRequestStateParams) error
 
 	// (DELETE /private/transfer/{transferID})
 	CancelTransfer(ctx echo.Context, transferID string) error
@@ -157,8 +157,31 @@ func (w *ServerInterfaceWrapper) CreateAuthorizationRequest(ctx echo.Context) er
 
 	ctx.Set(BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateAuthorizationRequestParams
+	// ------------- Required query parameter "verifier" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "verifier", ctx.QueryParams(), &params.Verifier)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter verifier: %s", err))
+	}
+
+	// ------------- Required query parameter "scope" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "scope", ctx.QueryParams(), &params.Scope)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter scope: %s", err))
+	}
+
+	// ------------- Required query parameter "redirect_uri" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "redirect_uri", ctx.QueryParams(), &params.RedirectUri)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter redirect_uri: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.CreateAuthorizationRequest(ctx)
+	err = w.Handler.CreateAuthorizationRequest(ctx, params)
 	return err
 }
 
@@ -662,8 +685,17 @@ func (w *ServerInterfaceWrapper) GetTransferRequest(ctx echo.Context) error {
 
 	ctx.Set(BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTransferRequestParams
+	// ------------- Required query parameter "token" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "token", ctx.QueryParams(), &params.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter token: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetTransferRequest(ctx, requestorDID, fhirTaskID)
+	err = w.Handler.GetTransferRequest(ctx, requestorDID, fhirTaskID, params)
 	return err
 }
 
@@ -688,8 +720,17 @@ func (w *ServerInterfaceWrapper) ChangeTransferRequestState(ctx echo.Context) er
 
 	ctx.Set(BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ChangeTransferRequestStateParams
+	// ------------- Required query parameter "token" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "token", ctx.QueryParams(), &params.Token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter token: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.ChangeTransferRequestState(ctx, requestorDID, fhirTaskID)
+	err = w.Handler.ChangeTransferRequestState(ctx, requestorDID, fhirTaskID, params)
 	return err
 }
 

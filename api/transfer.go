@@ -61,7 +61,7 @@ func (w Wrapper) GetTransfer(ctx echo.Context, transferID string) error {
 	return ctx.JSON(http.StatusOK, transfer)
 }
 
-func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requesterDID string, fhirTaskID string) error {
+func (w Wrapper) ChangeTransferRequestState(ctx echo.Context, requesterDID string, fhirTaskID string, params ChangeTransferRequestStateParams) error {
 	updateRequest := &types.TransferNegotiationStatus{}
 	err := ctx.Bind(updateRequest)
 	if err != nil {

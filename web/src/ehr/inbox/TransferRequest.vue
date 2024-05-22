@@ -143,16 +143,19 @@ export default {
     return {
       state: 'init',
       transferRequest: null,
+      token: null,
     }
   },
   created() {
-    this.fetchData()
+    // when successfully authenticated, fetchData is called
+    this.authenticate()
   },
   methods: {
-    fetchData() {
+    fetchData(token) {
       this.$api.getTransferRequest({
         requestorDID: this.$route.params.requestorDID,
-        fhirTaskID: this.$route.params.fhirTaskID
+        fhirTaskID: this.$route.params.fhirTaskID,
+        token: token
       })
           .then((result) => this.transferRequest = result.data)
           .catch(error => this.$status.error(error))
@@ -184,7 +187,47 @@ export default {
     },
     reject() {
       alert('Not implemented yet.')
-    }
+    },
+    authenticate() {
+      // the other side
+      const requestorDID = this.$route.params.requestorDID
+      // set closingUrl to the current root domain appended with #/close
+      const closingUrl = window.location.origin + "/#/close"
+      this.$api.createAuthorizationRequest({verifier: requestorDID, scope: "eOverdracht-sender", redirect_uri: closingUrl})
+          .then(result => {
+            // show a popup using the redirect URL
+            window.open(result.data.redirect_uri, "_blank", "width=400,height=600")
+            console.log("session_id: " + result.data.session_id)
+
+            // let's poll the server for the result
+            // loop and call every 1 second
+            const session_id = result.data.session_id
+            let interval = setInterval(() => {
+              this.$api.getOpenID4VPAuthenticationResult({token: session_id})
+                  .then(result => {
+                    // check if result.data.access_token is available
+                    if (result.data.access_token) {
+                      clearInterval(interval)
+                      console.log("OpenID4VP authentication successful")
+                      console.log("AccessToken: " + result.data.access_token)
+                      this.fetchData(result.data.access_token)
+                    }
+                  })
+                  .catch(error => {
+                    console.log("OpenID4VP authentication failed: " + error)
+                    //this.loginError = response
+                  })
+            }, 20)
+
+            // todo: continue to fetch data using the access token
+            //localStorage.setItem("session", responseData.token)
+            //this.redirectAfterLogin()
+          })
+          .catch(error => {
+            console.log("OpenID4VP authentication failed: " + error)
+            this.loginError = error
+          })
+    },
   }
 }
 </script>

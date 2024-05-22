@@ -468,6 +468,18 @@ type TransferRequest struct {
 	TransferDate *openapi_types.Date `json:"transferDate,omitempty"`
 }
 
+// CreateAuthorizationRequestParams defines parameters for CreateAuthorizationRequest.
+type CreateAuthorizationRequestParams struct {
+	// Verifier The DID of the verifier
+	Verifier string `form:"verifier" json:"verifier"`
+
+	// Scope The oauth scope
+	Scope string `form:"scope" json:"scope"`
+
+	// RedirectUri The URL to redirect the user to after the authorization.
+	RedirectUri string `form:"redirect_uri" json:"redirect_uri"`
+}
+
 // GetPatientCarePlansParams defines parameters for GetPatientCarePlans.
 type GetPatientCarePlansParams struct {
 	// PatientID The patient ID
@@ -517,6 +529,18 @@ type GetReportsParams struct {
 type GetPatientTransfersParams struct {
 	// PatientID The patient ID
 	PatientID string `form:"patientID" json:"patientID"`
+}
+
+// GetTransferRequestParams defines parameters for GetTransferRequest.
+type GetTransferRequestParams struct {
+	// Token The access token
+	Token string `form:"token" json:"token"`
+}
+
+// ChangeTransferRequestStateParams defines parameters for ChangeTransferRequestState.
+type ChangeTransferRequestStateParams struct {
+	// Token The access token
+	Token string `form:"token" json:"token"`
 }
 
 // SetCustomerJSONRequestBody defines body for SetCustomer for application/json ContentType.

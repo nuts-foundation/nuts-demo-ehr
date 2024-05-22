@@ -10,8 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type GetTransferRequestParams types.GetTransferRequestParams
+type ChangeTransferRequestStateParams types.ChangeTransferRequestStateParams
+
 // GetTransferRequest handles requests to receive a transfer request.
-func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string) error {
+func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirTaskID string, params GetTransferRequestParams) error {
 	session, err := w.getSession(ctx)
 	if err != nil {
 		return err
@@ -22,6 +25,7 @@ func (w Wrapper) GetTransferRequest(ctx echo.Context, requestorDID string, fhirT
 		session.CustomerID,
 		requestorDID,
 		fhirTaskID,
+		params.Token,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to get transferRequest: %w", err)

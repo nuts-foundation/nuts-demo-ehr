@@ -13,9 +13,6 @@ gen-api:
 
 	oapi-codegen -generate types -package types -exclude-schemas SharedCarePlan -o domain/types/generated_types.go api/api.yaml
 	oapi-codegen -generate server -package api -o api/generated.go api/api.yaml
-	oapi-codegen -generate client,types -package auth \
-	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
-	  -o nuts/client/auth/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v1.yaml
 	oapi-codegen -generate client,types -package common -exclude-schemas VerifiableCredential,VerifiablePresentation,DID,DIDDocument -generate types,skip-prune -o nuts/client/common/generated.go https://nuts-node.readthedocs.io/en/latest/_static/common/ssi_types.yaml
 	oapi-codegen -generate client,types -package discovery \
 	   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \

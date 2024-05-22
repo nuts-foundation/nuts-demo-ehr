@@ -8,7 +8,7 @@ export default {
   mounted() {
     // close window after 2 seconds
     window.opener = self;
-    setTimeout(window.close, 2000)
+    setTimeout(window.close, 20)
   }
 }
 </script>

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/iam"
 	"net/http"
 	"strings"
@@ -62,6 +63,8 @@ type JWTStandardClaims struct {
 	NotBefore int64  `json:"nbf,omitempty"`
 	Subject   string `json:"sub,omitempty"`
 }
+
+type CreateAuthorizationRequestParams types.CreateAuthorizationRequestParams
 
 func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd string) *Auth {
 	result := &Auth{

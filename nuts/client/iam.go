@@ -10,26 +10,27 @@ import (
 )
 
 type Iam interface {
-	CreateAuthenticationRequest(customerDID string) (*nutsIamClient.RedirectResponseWithID, error)
+	CreateAuthenticationRequest(customerDID string, verifierDID string, scope string, redirectUri string) (*nutsIamClient.RedirectResponseWithID, error)
 	GetAuthenticationResult(token string) (*nutsIamClient.TokenResponse, error)
 	IntrospectAccessToken(ctx context.Context, accessToken string) (*nutsIamClient.TokenIntrospectionResponse, error)
 }
 
 var _ Iam = HTTPClient{}
 
-func (c HTTPClient) CreateAuthenticationRequest(customerDID string) (*nutsIamClient.RedirectResponseWithID, error) {
+func (c HTTPClient) CreateAuthenticationRequest(customerDID string, verifierDID string, scope string, redirectUri string) (*nutsIamClient.RedirectResponseWithID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
+	tokenType := nutsIamClient.UserAccessTokenRequestTokenTypeBearer
 	resp, err := c.iam().RequestUserAccessToken(ctx, customerDID, nutsIamClient.RequestUserAccessTokenJSONRequestBody{
-		RedirectUri: "http://localhost:1304/#/close",
-		Scope:       "test",
+		RedirectUri: redirectUri,
+		Scope:       scope,
 		PreauthorizedUser: &nutsIamClient.UserDetails{
 			Id:   "12345",
 			Name: "John Doe",
 			Role: "Verpleegkundige niveau 4",
 		},
-		Verifier: customerDID,
+		TokenType: &tokenType,
+		Verifier:  verifierDID,
 	})
 
 	if err != nil {

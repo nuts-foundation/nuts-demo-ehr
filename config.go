@@ -61,6 +61,7 @@ type Config struct {
 	Verbosity          string             `koanf:"verbosity"`
 	HTTPPort           int                `koanf:"port"`
 	NutsNodeAddress    string             `koanf:"nutsnodeaddr"`
+	NutsPIPAddress     string             `koanf:"nutspipaddr"`
 	FHIR               FHIR               `koanf:"fhir"`
 	SharedCarePlanning SharedCarePlanning `koanf:"sharedcareplanning"`
 	CustomersFile      string             `koanf:"customersfile"`

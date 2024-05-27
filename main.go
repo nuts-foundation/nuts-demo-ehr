@@ -12,6 +12,7 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/acl"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/sharedcareplan"
+	nutspxp "github.com/nuts-foundation/nuts-demo-ehr/nutspxp/client"
 	openapiTypes "github.com/oapi-codegen/runtime/types"
 
 	"io"
@@ -94,12 +95,12 @@ func main() {
 
 	// init node API nutsClient
 	nodeClient := nutsClient.HTTPClient{NutsNodeAddress: config.NutsNodeAddress, Authorizer: authorizer}
-	vcRegistry := registry.NewVerifiableCredentialRegistry(&nodeClient)
+	pipClient := nutspxp.HTTPClient{PIPAddress: config.NutsPIPAddress}
 	customerRepository := customers.NewJsonFileRepository(config.CustomersFile)
 
 	server := createServer()
 
-	registerEHR(server, config, customerRepository, vcRegistry, &nodeClient)
+	registerEHR(server, config, customerRepository, &nodeClient, pipClient)
 
 	// Start server
 	server.Logger.Fatal(server.Start(fmt.Sprintf(":%d", config.HTTPPort)))
@@ -131,7 +132,7 @@ func createServer() *echo.Echo {
 	return server
 }
 
-func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, vcRegistry registry.VerifiableCredentialRegistry, nodeClient *nutsClient.HTTPClient) {
+func registerEHR(server *echo.Echo, config Config, customerRepository customers.Repository, nodeClient *nutsClient.HTTPClient, pipClient nutspxp.Client) {
 	var passwd string
 	if config.Credentials.Empty() {
 		passwd = generateAuthenticationPassword(config)
@@ -166,8 +167,8 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	dossierRepository := dossier.NewSQLiteDossierRepository(dossier.Factory{}, sqlDB)
 	transferSenderRepo := sender.NewTransferRepository(sqlDB)
 	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)
-	transferSenderService := sender.NewTransferService(nodeClient, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, vcRegistry, fhirNotifier)
-	transferReceiverService := receiver.NewTransferService(nodeClient, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, vcRegistry, fhirNotifier)
+	transferSenderService := sender.NewTransferService(nodeClient, pipClient, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, fhirNotifier)
+	transferReceiverService := receiver.NewTransferService(nodeClient, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, fhirNotifier)
 	tenantInitializer := func(tenant int) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil
@@ -223,9 +224,9 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 		ZorginzageService:       domain.ZorginzageService{NutsClient: nodeClient},
 		SharedCarePlanService:   scpService,
 		FHIRService:             fhir.Service{ClientFactory: fhirClientFactory},
-		EpisodeService:          episode.NewService(fhirClientFactory, nodeClient, orgRegistry, vcRegistry, aclRepository),
+		EpisodeService:          episode.NewService(fhirClientFactory, nodeClient, orgRegistry, aclRepository),
 		TenantInitializer:       tenantInitializer,
-		NotificationHandler:     notification.NewHandler(nodeClient, fhirClientFactory, transferReceiverService, orgRegistry, vcRegistry),
+		NotificationHandler:     notification.NewHandler(nodeClient, fhirClientFactory, transferReceiverService, orgRegistry),
 	}
 
 	// JWT checking for correct claims

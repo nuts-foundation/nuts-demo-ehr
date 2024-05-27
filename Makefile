@@ -18,10 +18,6 @@ gen-api:
 	   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
 	   -exclude-schemas SearchVCRequest,CredentialSubject \
 	   -o nuts/client/discovery/generated.go https://nuts-node.readthedocs.io/en/latest/_static/discovery/v1.yaml
-	oapi-codegen -generate client,types -package vcr \
-	   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
-	   -exclude-schemas SearchVCRequest,CredentialSubject \
-	   -o nuts/client/vcr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vcr/vcr_v2.yaml
 	oapi-codegen -generate client,types -package didman \
 	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
 	  -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
@@ -34,3 +30,5 @@ gen-api:
 	oapi-codegen -generate client,types -package iam \
 	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
 	  -o nuts/client/iam/generated.go https://nuts-node.readthedocs.io/en/latest/_static/auth/v2.yaml
+	oapi-codegen -generate client,types -package pip \
+      -o nutspxp/client/pip/generated.go https://raw.githubusercontent.com/nuts-foundation/nuts-pxp/main/oas/pip.yaml

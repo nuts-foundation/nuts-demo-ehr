@@ -11,7 +11,7 @@ function introspectAccessToken(r) {
     r.subrequest("/_oauth2_introspect",
         { method: "POST", body: token},
         function(reply) {
-            if (reply.status == 200) {
+            if (reply.status === 200) {
                 var introspection = JSON.parse(reply.responseBody);
                 if (introspection.active) {
                     //dpop(r, introspection.cnf)

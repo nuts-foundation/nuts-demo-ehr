@@ -28,7 +28,6 @@ type handler struct {
 	localFHIRClientFactory fhir.Factory
 	transferService        receiver.TransferService
 	registry               registry.OrganizationRegistry
-	vcr                    registry.VerifiableCredentialRegistry
 }
 
 func NewHandler(
@@ -36,14 +35,12 @@ func NewHandler(
 	localFHIRClientFactory fhir.Factory,
 	transferReceiverService receiver.TransferService,
 	registry registry.OrganizationRegistry,
-	vcr registry.VerifiableCredentialRegistry,
 ) Handler {
 	return &handler{
 		nutsClient:             nutsClient,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferService:        transferReceiverService,
 		registry:               registry,
-		vcr:                    vcr,
 	}
 }
 

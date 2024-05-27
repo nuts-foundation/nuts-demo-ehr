@@ -4,15 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"strings"
 	"time"
 
 	"github.com/avast/retry-go/v4"
-
-	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
-	"github.com/sirupsen/logrus"
-
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/customers"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/dossier"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
@@ -20,7 +15,11 @@ import (
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/patients"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
+	nutsClient "github.com/nuts-foundation/nuts-demo-ehr/nuts/client"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/registry"
+	"github.com/nuts-foundation/nuts-demo-ehr/nutspxp/client"
+	sqlUtil "github.com/nuts-foundation/nuts-demo-ehr/sql"
+	"github.com/sirupsen/logrus"
 )
 
 type TransferService interface {
@@ -51,25 +50,25 @@ type TransferService interface {
 type service struct {
 	transferRepo           TransferRepository
 	nutsClient             *nutsClient.HTTPClient
+	pipClient              nutspxp.Client
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
 	customerRepo           customers.Repository
 	dossierRepo            dossier.Repository
 	patientRepo            patients.Repository
 	registry               registry.OrganizationRegistry
-	vcr                    registry.VerifiableCredentialRegistry
 	notifier               transfer.Notifier
 }
 
-func NewTransferService(nutsClient *nutsClient.HTTPClient, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
+func NewTransferService(nutsClient *nutsClient.HTTPClient, pipClient nutspxp.Client, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, dossierRepo dossier.Repository, patientRepo patients.Repository, organizationRegistry registry.OrganizationRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
 		nutsClient:             nutsClient,
+		pipClient:              pipClient,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferRepo:           transferRepository,
 		customerRepo:           customerRepository,
 		dossierRepo:            dossierRepo,
 		patientRepo:            patientRepo,
 		registry:               organizationRegistry,
-		vcr:                    vcr,
 		notifier:               notifier,
 	}
 }
@@ -183,17 +182,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		}
 
 		// Build the list of resources for the authorization credential:
-		authorizedResources := []registry.Resource{
-			{
-				Path:       fmt.Sprintf("/Task/%s", transferTask.ID),
-				Operations: []string{"read", "update"},
-			},
-			{
-				Path:           compositionPath,
-				Operations:     []string{"read", "document"},
-				UserContext:    true,
-				AssuranceLevel: assuranceLevelLow(),
-			},
+		authorizedResources := map[string]interface{}{
+			fmt.Sprintf("/Task/%s", transferTask.ID): []string{"GET"},
+			compositionPath:                          []string{"GET"},
 		}
 
 		// A list to store all the paths to FHIR resources associated with this advance notice
@@ -202,22 +193,11 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		// Include subject reference (patient)
 		resourcePaths = append(resourcePaths, fhir.FromStringPtr(composition.Subject.Reference))
 		for _, path := range resourcePaths {
-			authorizedResources = append(authorizedResources, registry.Resource{
-				Path:           path,
-				Operations:     []string{"read", "document"},
-				UserContext:    true,
-				AssuranceLevel: assuranceLevelLow(),
-			})
+			authorizedResources[path] = []string{"GET"}
 		}
-
-		// no longer needed
-		//if err := s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
-		//	ID:           organizationDID,
-		//	PurposeOfUse: transfer.SenderServiceName,
-		//	Resources:    authorizedResources,
-		//}); err != nil {
-		//	return nil, err
-		//}
+		if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, *customer.Did, authorizedResources); err != nil {
+			return nil, fmt.Errorf("could not create PIP data: %w", err)
+		}
 
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
@@ -338,15 +318,12 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 		}
 
 		// Revoke the old AuthorizationCredential for the Task and AdvanceNotice
-		if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
+		if err = s.pipClient.DeletePIPData(negotiation.TaskID); err != nil {
 			return nil, fmt.Errorf("unable to confirm negotiation: could not revoke advance notice authorization credential: %w", err)
 		}
 
-		authorizedResources := []registry.Resource{
-			{
-				Path:       fmt.Sprintf("/Task/%s", negotiation.TaskID),
-				Operations: []string{"read", "update"},
-			},
+		authorizedResources := map[string]interface{}{
+			fmt.Sprintf("/Task/%s", negotiation.TaskID): []string{"GET"},
 		}
 		compositionPath := fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(compositionID))
 		// Add paths of resources of both the advance notice and the nursing handoff
@@ -362,24 +339,13 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			if _, exists := processedPaths[path]; exists {
 				continue
 			}
-			authorizedResources = append(authorizedResources, registry.Resource{
-				Path:           path,
-				Operations:     []string{"read", "document"},
-				UserContext:    true,
-				AssuranceLevel: assuranceLevelLow(),
-			})
+			authorizedResources[path] = []string{"GET"}
 			processedPaths[path] = struct{}{}
 		}
 
-		// Create a new AuthorizationCredential for the Task, AdvanceNotice and NursingHandoff
-		// no longer needed
-		//if err = s.vcr.CreateAuthorizationCredential(ctx, *customer.Did, &registry.NutsAuthorizationCredentialSubject{
-		//	ID:           negotiation.OrganizationDID,
-		//	PurposeOfUse: transfer.SenderServiceName,
-		//	Resources:    authorizedResources,
-		//}); err != nil {
-		//	return nil, fmt.Errorf("unable to confirm negotiation: could not create authorization credential: %w", err)
-		//}
+		if err := s.pipClient.AddPIPData(negotiation.TaskID, negotiation.OrganizationDID, transfer.SenderServiceName, *customer.Did, authorizedResources); err != nil {
+			return nil, fmt.Errorf("could not create PIP data: %w", err)
+		}
 
 		notifications = append(notifications, &notification{
 			customer:        customer,
@@ -506,10 +472,8 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 			return nil, err
 		}
 
-		// reconstruct composition path
-		compositionPath := fmt.Sprintf("/Composition/%s", *transferRecord.FhirNursingHandoffComposition)
 		// revoke authorization credential
-		if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, compositionPath); err != nil {
+		if err = s.pipClient.DeletePIPData(negotiation.TaskID); err != nil {
 			return nil, err
 		}
 
@@ -555,8 +519,7 @@ func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiat
 		return nil, nil, err
 	}
 
-	// revoke credential, find by AdvanceNotice
-	if err = s.vcr.RevokeAuthorizationCredential(ctx, transfer.SenderServiceName, negotiation.OrganizationDID, advanceNoticePath); err != nil {
+	if err = s.pipClient.DeletePIPData(negotiation.TaskID); err != nil {
 		return nil, nil, err
 	}
 
@@ -678,10 +641,10 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 			return nil, fmt.Errorf("could not create FHIR task: %w", err)
 		}
 
-		// no longer needed to create auth creds
-		//if err := s.createAuthCredentials(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
-		//	return nil, err
-		//}
+		// store auth in pip
+		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
+			return nil, err
+		}
 
 		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
@@ -710,27 +673,13 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 	return negotiation, err
 }
 
-// createAuthCredentials creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
-func (s service) createAuthCredentials(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string) error {
-	// Create an Auth Credential for the Task
-	authorizedTask := s.taskForNursingHandoff(transferTask.ID)
-	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &registry.NutsAuthorizationCredentialSubject{
-		ID:           organizationDID,
-		PurposeOfUse: transfer.SenderServiceName,
-		Resources:    authorizedTask,
-	}); err != nil {
-		return err
-	}
-
+// createAuthorizations creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
+func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string) error {
 	// Build the list of resources for the authorization credential:
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
-
-	if err := s.vcr.CreateAuthorizationCredential(ctx, customerDID, &registry.NutsAuthorizationCredentialSubject{
-		ID:           organizationDID,
-		PurposeOfUse: transfer.SenderServiceName,
-		Resources:    authorizedResources,
-	}); err != nil {
-		return err
+	authorizedResources[fmt.Sprintf("/Task/%s", transferTask.ID)] = []string{"GET", "PUT"}
+	if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customerDID, authorizedResources); err != nil {
+		return fmt.Errorf("could not create PIP data: %w", err)
 	}
 	return nil
 }
@@ -754,39 +703,15 @@ func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID i
 	return &nursingHandoffComposition, err
 }
 
-func (s service) taskForNursingHandoff(taskID string) []registry.Resource {
-	return []registry.Resource{
-		{
-			Path:       fmt.Sprintf("/Task/%s", taskID),
-			Operations: []string{"read", "update"},
-		},
-	}
-}
-
-func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) []registry.Resource {
-	authorizedResources := []registry.Resource{
-		{
-			Path:           fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)),
-			Operations:     []string{"read", "document"},
-			UserContext:    true,
-			AssuranceLevel: assuranceLevelLow(),
-		},
-		{
-			Path:           fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)),
-			Operations:     []string{"read"},
-			UserContext:    true,
-			AssuranceLevel: assuranceLevelLow(),
-		},
+func (s service) resourcesForNursingHandoff(nursingHandoffComposition *fhir.Composition) map[string]interface{} {
+	authorizedResources := map[string]interface{}{
+		fmt.Sprintf("/Composition/%s", fhir.FromIDPtr(nursingHandoffComposition.ID)):        []string{"GET"},
+		fmt.Sprintf("/%s", fhir.FromStringPtr(nursingHandoffComposition.Subject.Reference)): []string{"GET"},
 	}
 	// Add paths of resources of both the advance notice and the nursing handoff
 	resourcePaths := resourcePathsFromSection(nursingHandoffComposition.Section, []string{})
 	for _, path := range resourcePaths {
-		authorizedResources = append(authorizedResources, registry.Resource{
-			Path:           path,
-			Operations:     []string{"read"},
-			UserContext:    true,
-			AssuranceLevel: assuranceLevelLow(),
-		})
+		authorizedResources[path] = []string{"GET"}
 	}
 	return authorizedResources
 }

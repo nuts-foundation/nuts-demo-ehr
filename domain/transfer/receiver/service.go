@@ -26,17 +26,15 @@ type service struct {
 	localFHIRClientFactory fhir.Factory // client for interacting with the local FHIR server
 	customerRepo           customers.Repository
 	registry               registry.OrganizationRegistry
-	vcr                    registry.VerifiableCredentialRegistry
 }
 
-func NewTransferService(nutsClient *client.HTTPClient, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, vcr registry.VerifiableCredentialRegistry, notifier transfer.Notifier) TransferService {
+func NewTransferService(nutsClient *client.HTTPClient, localFHIRClientFactory fhir.Factory, transferRepository TransferRepository, customerRepository customers.Repository, organizationRegistry registry.OrganizationRegistry, notifier transfer.Notifier) TransferService {
 	return &service{
 		nutsClient:             nutsClient,
 		localFHIRClientFactory: localFHIRClientFactory,
 		transferRepo:           transferRepository,
 		customerRepo:           customerRepository,
 		registry:               organizationRegistry,
-		vcr:                    vcr,
 		notifier:               notifier,
 	}
 }

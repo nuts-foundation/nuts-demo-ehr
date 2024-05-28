@@ -22,6 +22,7 @@ services:
     depends_on:
       - demo-left
       - node-left
+      - pip-left
     networks:
       demo:
         ipv4_address: 172.90.10.11
@@ -34,6 +35,7 @@ services:
     depends_on:
       - demo-right
       - node-right
+      - pip-right
     networks:
       demo:
         ipv4_address: 172.90.10.12

@@ -642,7 +642,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 		}
 
 		// store auth in pip
-		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID); err != nil {
+		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID, customerID); err != nil {
 			return nil, err
 		}
 
@@ -674,10 +674,19 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 }
 
 // createAuthorizations creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
-func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string) error {
+func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string, customerID int) error {
+	prefix := fmt.Sprintf("/fhir/%d", customerID)
 	// Build the list of resources for the authorization credential:
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
 	authorizedResources[fmt.Sprintf("/Task/%s", transferTask.ID)] = []string{"GET", "PUT"}
+	// Add prefix to all paths
+	for path, methods := range authorizedResources {
+		// if not already prefixed
+		if !strings.HasPrefix(path, prefix) {
+			authorizedResources[prefix+path] = methods
+			delete(authorizedResources, path)
+		}
+	}
 	if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customerDID, authorizedResources); err != nil {
 		return fmt.Errorf("could not create PIP data: %w", err)
 	}

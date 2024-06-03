@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   lb:
     image: &nginx-img nginx:1.25.1

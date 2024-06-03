@@ -1,0 +1,7 @@
+nutsnodeaddr: http://node-left:8081
+nutspipaddr: http://pip-left:8080
+customersfile: ./customers.json
+fhir:
+  server:
+    type: hapi-multi-tenant
+    address: http://hapi-left:8080/fhir

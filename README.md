@@ -100,13 +100,13 @@ CSS framework is https://tailwindcss.com
 ## WIP: complete docker compose setup with 2 instances
 
 # Nodes need to find each other by external URL because they need to resolve the web:did
-Solution: handout 172.17.0.2 to loadbalancer
+Solution: handout 172.90.0.2 to loadbalancer
 Set default range to:
 networks:
     default:
         ipam:
             config:
-                - subnet: 172.17.0.0/16
+                - subnet: 172.90.0.0/16
 ### After clone
 
 - execute `./generate.sh` in `docker-compose/lb/tls/`

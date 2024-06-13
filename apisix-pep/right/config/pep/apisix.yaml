@@ -1,0 +1,44 @@
+routes:
+  - id: demo_public
+    uri: /*
+    upstream_id: demo
+  - id: fhir_server
+    uri: /fhir/*
+    upstream_id: fhir
+    plugin_config_id: introspect-and-opa
+  - id: demo_authorized
+    uri: /web/external/transfer/notify/*
+    upstream_id: demo
+    plugin_config_id: introspect-and-opa
+upstreams:
+  - id: demo
+    nodes:
+      demo-right:1304: 1
+    type: roundrobin
+  - id: fhir
+    nodes:
+      hapi-right:8080: 1
+    type: roundrobin
+#  - id: node-internal
+#    nodes:
+#      node-right:8081: 1
+#    type: roundrobin
+#  - id: pip
+#    nodes:
+#      pip-right:8080: 1
+#    type: roundrobin
+plugin_configs:
+  - id: introspect-and-opa
+    plugins:
+      openid-connect:
+        client_id: none
+        client_secret: none
+        discovery: none
+        introspection_endpoint: "http://node-right:8081/internal/auth/v2/accesstoken/introspect"
+        bearer_only: true
+        realm: "go-nuts"
+        introspection_endpoint_auth_method: none
+      opa:
+        host: "http://pip-right:8080"
+        policy: apisix
+#END

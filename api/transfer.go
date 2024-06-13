@@ -1,13 +1,16 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/monarko/fhirgo/STU3/datatypes"
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
-	"net/http"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
@@ -208,7 +211,17 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 		return errors.New("missing X-Userinfo header")
 	}
 	target := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(introspectionResult), &target)
+	if strings.HasPrefix(introspectionResult, "ey") {
+		// APISIX adds the X-Userinfo header base64 encoded
+		introspectionResultJSON, err := base64.URLEncoding.DecodeString(introspectionResult)
+		if err != nil {
+			return fmt.Errorf("parse X-Userinfo as base64: %w", err)
+		}
+		_ = json.Unmarshal(introspectionResultJSON, &target)
+	} else {
+		// Our custom NGINX solution adds introspection results as is to the X-Userinfo header
+		_ = json.Unmarshal([]byte(introspectionResult), &target)
+	}
 	// client_id for senderDID and sub for customerDID
 	senderDID := target["client_id"].(string)
 	customerDID := target["sub"].(string)

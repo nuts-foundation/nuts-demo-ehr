@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -201,14 +202,25 @@ func (w Wrapper) UpdateTransferNegotiationStatus(ctx echo.Context, transferID st
 func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	// This gets called by a transfer sending XIS to inform the local node there's FHIR tasks to be retrieved.
 	// The PEP added introspection result to the X-Userinfo header
-	introspectionResult := ctx.Request().Header.Get("X-Userinfo")
-	//log.Errorf("X-Userinfo: %s", introspectionResult)
-
-	if introspectionResult == "" {
+	b64IntrospectionResult := ctx.Request().Header.Get("X-Userinfo")
+	//log.Errorf("X-Userinfo: %s", b64IntrospectionResult)
+	if b64IntrospectionResult == "" {
 		return errors.New("missing X-Userinfo header")
 	}
+
+	// b64 -> json string
+	introspectionResult, err := base64.URLEncoding.DecodeString(b64IntrospectionResult)
+	if err != nil {
+		return fmt.Errorf("failed to base64 decode X-Userinfo header: %w", err)
+	}
+
+	// json string -> map
 	target := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(introspectionResult), &target)
+	err = json.Unmarshal(introspectionResult, &target)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal X-Userinfo header: %w", err)
+	}
+
 	// client_id for senderDID and sub for customerDID
 	senderDID := target["client_id"].(string)
 	customerDID := target["sub"].(string)

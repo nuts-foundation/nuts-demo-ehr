@@ -113,8 +113,10 @@ networks:
 - load `docker-compose/lb/tls/ca.pem` into keychain/local certs
 - add `left.local`, `node.left.local`, `admin.left.local`, `right.local`, `admin.right.local`  and `node.right.local` to `/etc/hosts` (127.0.0.1)
 - execute `make docker`
+- execute `./setup.sh` (this will also start all containers in the docker-compose setup)
 
-### After complete wipe of data
+### setup.sh
+the setup script executes the following steps:
 - use https://admin.left.local and add did:web:left.local:iam:left
 - issue an NutsOrganizationCredential for this DID from this DID
 - use https://admin.right.local and add did:web:right.local:iam:right
@@ -133,4 +135,4 @@ docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/inter
 
 ### Run
 - docker compose up
-- goto: `https://left.local` and `https://right.local`
+- goto: https://left.local and https://right.local

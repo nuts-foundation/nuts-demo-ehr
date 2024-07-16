@@ -1,7 +1,7 @@
 #
 # Build frontend
 #
-FROM node:15-alpine as frontend-builder
+FROM node:15-alpine AS frontend-builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -12,7 +12,7 @@ RUN npm run build
 #
 # Build backend
 #
-FROM golang:1.22-alpine as backend-builder
+FROM golang:1.22-alpine AS backend-builder
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -22,8 +22,8 @@ RUN apk update \
             gcc \
             musl-dev
 
-ENV GO111MODULE on
-ENV GOPATH /
+ENV GO111MODULE=on
+ENV GOPATH=/
 
 RUN mkdir /app && cd /app
 WORKDIR /app

@@ -14,3 +14,7 @@ demo-ehr.db
 
 nuts-demo-ehr
 
+docker-compose/left/data/*/*
+docker-compose/right/data/*/*
+docker-compose/left/config/demo/customers.json
+docker-compose/right/config/demo/customers.json

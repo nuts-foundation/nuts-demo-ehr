@@ -22,12 +22,6 @@ echo "DID_LEFT: $DID_LEFT"
 echo "DID_RIGHT: $DID_RIGHT"
 
 echo "----------------------------------------"
-echo "Creating customers.json for demo-ehr..."
-echo "----------------------------------------"
-printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_LEFT\",\"domain\":\"\",\"id\":1,\"name\":\"Left\"}\n}\n" > ./docker-compose/left/config/demo/customers.json
-printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_RIGHT\",\"domain\":\"\",\"id\":1,\"name\":\"Right\"}\n}\n" > ./docker-compose/right/config/demo/customers.json
-
-echo "----------------------------------------"
 echo "Issuing NutsOrganizationCredentials..."
 echo "----------------------------------------"
 # issue Left
@@ -82,3 +76,11 @@ docker exec nuts-demo-ehr-node-left-1 curl -sS -X POST "http://localhost:8081/in
 docker exec nuts-demo-ehr-node-left-1 curl -sS -X POST "http://localhost:8081/internal/vdr/v2/did/$DID_LEFT/service" -H  "Content-Type: application/json" -d "{\"type\": \"eOverdracht-receiver\",\"serviceEndpoint\": {\"auth\": \"https://node.left.local/oauth2/$DID_LEFT/authorize\",\"notification\": \"https://left.local/web/external/transfer/notify\"}}"
 docker exec nuts-demo-ehr-node-right-1 curl -sS -X POST "http://localhost:8081/internal/vdr/v2/did/$DID_RIGHT/service" -H  "Content-Type: application/json" -d "{\"type\": \"eOverdracht-sender\",\"serviceEndpoint\": {\"auth\": \"https://node.right.local/oauth2/$DID_RIGHT/authorize\",\"fhir\": \"https://right.local/fhir/1\"}}"
 docker exec nuts-demo-ehr-node-right-1 curl -sS -X POST "http://localhost:8081/internal/vdr/v2/did/$DID_RIGHT/service" -H  "Content-Type: application/json" -d "{\"type\": \"eOverdracht-receiver\",\"serviceEndpoint\": {\"auth\": \"https://node.right.local/oauth2/$DID_RIGHT/authorize\",\"notification\": \"https://right.local/web/external/transfer/notify\"}}"
+
+echo "----------------------------------------"
+echo "Creating customers.json for demo-ehr..."
+echo "----------------------------------------"
+printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_LEFT\",\"domain\":\"\",\"id\":1,\"name\":\"Left\"}\n}\n" > ./docker-compose/left/config/demo/customers.json
+printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_RIGHT\",\"domain\":\"\",\"id\":1,\"name\":\"Right\"}\n}\n" > ./docker-compose/right/config/demo/customers.json
+
+docker compose restart # needed to load the new customers.json file

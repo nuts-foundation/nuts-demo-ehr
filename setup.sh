@@ -9,9 +9,10 @@ sleep 0.5 # If containers fail to restart below, make this longer
 
 # delete all data
 rm -r ./docker-compose/{left,right}/data/*/*
+rm -r ./docker-compose/{left,right}/config/demo/customers.json
+touch ./docker-compose/{left,right}/config/demo/customers.json # or docker will create directories for these mounts during startup
 
-# start nuts-node containers since that is all we need for the setup
-docker compose up lb node-left node-right --wait
+docker compose up --wait
 
 echo "----------------------------------------"
 echo "Creating DIDs..."
@@ -83,4 +84,4 @@ echo "----------------------------------------"
 printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_LEFT\",\"domain\":\"\",\"id\":1,\"name\":\"Left\"}\n}\n" > ./docker-compose/left/config/demo/customers.json
 printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_RIGHT\",\"domain\":\"\",\"id\":1,\"name\":\"Right\"}\n}\n" > ./docker-compose/right/config/demo/customers.json
 
-docker compose restart # needed to load the new customers.json file
+docker compose down # at the minimum a restart is needed to load the new customers.json file

@@ -11,6 +11,10 @@ on:
     branches:
       - main
 
+# cancel build action if superseded by new commit on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   docker:
@@ -19,28 +23,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set version
+      - name: Set version params
         id: version
         shell: bash
         run: |
-          echo "::set-output name=git_commit::$(echo ${GITHUB_SHA})"
-          echo "::set-output name=git_branch::$(echo ${GITHUB_REF#refs/heads/})"
-          echo "::set-output name=git_version::$(git name-rev --tags --name-only $(git rev-parse HEAD))"
+          echo "git_commit=$(echo ${GITHUB_SHA})" >> $GITHUB_OUTPUT
+          echo "git_branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+          echo "git_version=$(git name-rev --tags --name-only $(git rev-parse HEAD))" >> $GITHUB_OUTPUT
 
-      - name: Print version information
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        with:
+          semver_only: true
+
+      - name: Print version params
         run: |
           echo "Commit: ${{ steps.version.outputs.git_commit }}"
           echo "Branch: ${{ steps.version.outputs.git_branch }}"
           echo "Version: ${{ steps.version.outputs.git_version }}"
+          echo "Latest tag: ${{ steps.get-latest-tag.outputs.tag }}"
+          echo "This tag: ${{ github.ref }}"
 
       - name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
+        uses: docker/metadata-action@v5
         with:
-          images: nutsfoundation/nuts-demo-ehr
-          tag-semver: |
-            {{version}}
-            {{major}}.{{minor}}
+          images: nutsfoundation/nuts-node
+          tags: |
+            # generate 'master' tag for the master branch
+            type=ref,event=branch,enable={{is_default_branch}},prefix=
+            # generate 5.2.1 tag
+            type=semver,pattern={{version}}
+          flavor: |
+            latest=${{ steps.version.outputs.git_version == steps.get-latest-tag.outputs.tag }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

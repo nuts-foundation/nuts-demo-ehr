@@ -1,0 +1,166 @@
+services:
+  lb:
+    image: nginx:1.25.1
+    depends_on:
+      - pep-left
+      - pep-right
+      - admin-left
+      - admin-right
+    networks:
+      demo:
+        ipv4_address: 172.90.10.2
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "./docker-compose/lb/config/nginx-apisix.conf:/etc/nginx/nginx.conf"
+      - "./docker-compose/lb/tls:/etc/nginx/ssl:ro"
+  pep-left:
+    image: &apisix-img apache/apisix:3.9.1-debian
+    environment:
+      APISIX_STAND_ALONE: true
+    depends_on:
+      - demo-left
+      - node-left
+      - pip-left
+    networks:
+      demo:
+        ipv4_address: 172.90.10.11
+    volumes:
+      - './docker-compose/left/config/pep/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro'
+  pep-right:
+    image: *apisix-img
+    environment:
+      APISIX_STAND_ALONE: true
+    depends_on:
+      - demo-right
+      - node-right
+      - pip-right
+    networks:
+      demo:
+        ipv4_address: 172.90.10.12
+    volumes:
+      - './docker-compose/right/config/pep/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro'
+  pip-left: &pip
+    image: nutsfoundation/nuts-pxp:main
+    environment:
+      NUTS_CONFIGFILE: /nuts/config.yaml
+    ports:
+      - 8080:8080
+    networks:
+      demo:
+        ipv4_address: 172.90.10.13
+    volumes:
+        - "./docker-compose/left/data/nutspxp:/nuts/data"
+        - "./docker-compose/left/config/nutspxp/policies:/nuts/policies"
+        - "./docker-compose/left/config/nutspxp/config.yaml:/nuts/config.yaml"
+  pip-right:
+    <<: *pip
+    ports:
+      - 8081:8080
+    networks:
+      demo:
+        ipv4_address: 172.90.10.14
+    volumes:
+      - "./docker-compose/right/data/nutspxp:/nuts/data"
+      - "./docker-compose/right/config/nutspxp/policies:/nuts/policies"
+      - "./docker-compose/left/config/nutspxp/config.yaml:/nuts/config.yaml"
+  node-left: &node
+    image: nutsfoundation/nuts-node:master
+    environment:
+      NUTS_CONFIGFILE: /nuts/nuts.yaml
+    extra_hosts:
+      - "left.local:172.90.10.2"
+      - "node.left.local:172.90.10.2"
+      - "right.local:172.90.10.2"
+      - "node.right.local:172.90.10.2"
+    networks:
+      demo:
+        ipv4_address: 172.90.10.3
+    volumes:
+      - "./docker-compose/left/config/node/nuts.yaml:/nuts/nuts.yaml"
+      - "./docker-compose/left/data/node:/nuts/data"
+      - "./docker-compose/left/config/node/policies:/nuts/policies"
+      - "./docker-compose/left/config/node/discovery:/nuts/discovery"
+      - "./docker-compose/lb/tls/ca.pem:/etc/ssl/certs/demo_ca.pem"
+  node-right:
+    <<: *node
+    networks:
+      demo:
+        ipv4_address: 172.90.10.4
+    volumes:
+      - "./docker-compose/right/config/node/nuts.yaml:/nuts/nuts.yaml"
+      - "./docker-compose/right/data/node:/nuts/data"
+      - "./docker-compose/right/config/node/policies:/nuts/policies"
+      - "./docker-compose/right/config/node/discovery:/nuts/discovery"
+      - "./docker-compose/lb/tls/ca.pem:/etc/ssl/certs/demo_ca.pem"
+  admin-left: &admin
+    image: nutsfoundation/nuts-admin:main
+    environment:
+      NUTS_NODE_ADDRESS: http://node-left:8081
+    networks:
+      demo:
+        ipv4_address: 172.90.10.5
+  admin-right:
+    <<: *admin
+    environment:
+      NUTS_NODE_ADDRESS: http://node-right:8081
+    networks:
+      demo:
+        ipv4_address: 172.90.10.6
+  demo-left: &demo
+    image: nutsfoundation/nuts-demo-ehr:main
+    volumes:
+      - "./docker-compose/left/config/demo/server.config.yaml:/app/server.config.yaml"
+      - "./docker-compose/left/config/demo/customers.json:/app/customers.json"
+      - "./docker-compose/left/data/demo:/app/data"
+      - "./docker-compose/lb/tls/ca.pem:/etc/ssl/certs/demo_ca.pem"
+    depends_on:
+      - hapi-left
+      - node-left
+    extra_hosts:
+      - "left.local:172.90.10.2"
+      - "node.left.local:172.90.10.2"
+      - "right.local:172.90.10.2"
+      - "node.right.local:172.90.10.2"
+    networks:
+      demo:
+        ipv4_address: 172.90.10.7
+  demo-right:
+    <<: *demo
+    volumes:
+      - "./docker-compose/right/config/demo/server.config.yaml:/app/server.config.yaml"
+      - "./docker-compose/right/config/demo/customers.json:/app/customers.json"
+      - "./docker-compose/right/data/demo:/app/data"
+      - "./docker-compose/lb/tls/ca.pem:/etc/ssl/certs/demo_ca.pem"
+    depends_on:
+      - hapi-right
+      - node-right
+    networks:
+      demo:
+        ipv4_address: 172.90.10.8
+  hapi-left: &hapi
+    image: hapiproject/hapi:v5.5.2
+    environment:
+      hapi.fhir.fhir_version: DSTU3
+      hapi.fhir.partitioning.allow_references_across_partitions: "false"
+    expose:
+      - 8080
+    networks:
+      demo:
+        ipv4_address: 172.90.10.9
+    volumes:
+      - "./docker-compose/left/data/hapi:/usr/local/tomcat/target"
+  hapi-right:
+    <<: *hapi
+    networks:
+      demo:
+        ipv4_address: 172.90.10.10
+    volumes:
+      - "./docker-compose/right/data/hapi:/usr/local/tomcat/target"
+networks:
+  demo:
+    ipam:
+      config:
+        - subnet: 172.90.0.0/16
+          ip_range: 172.90.10.0/24

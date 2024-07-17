@@ -113,7 +113,7 @@ networks:
 - load `docker-compose/lb/tls/ca.pem` into keychain/local certs
 - add `left.local`, `node.left.local`, `admin.left.local`, `right.local`, `admin.right.local`  and `node.right.local` to `/etc/hosts` (127.0.0.1)
 - execute `make docker`
-- execute `./setup.sh` (this will also start all containers in the docker-compose setup)
+- execute `./setup.sh <docker-compose-PEP.yml>` (setup is independent of PEP, so usually fine to run without argument (defaults to nginx)) 
 
 ### setup.sh
 the setup script executes the following steps:
@@ -140,5 +140,5 @@ The repo contains different docker compose setups that each have a different PEP
 - APISIX `docker-compose-apisix.yml`
 
 Select the PEP you want (use NGINX if unsure) and run
-- docker compose -f docker-compose-<PEP-name>.yml up
+- `docker compose -f docker-compose-<PEP>.yml up`
 - goto: https://left.local and https://right.local

@@ -46,7 +46,7 @@
                 ],
                 "filter": {
                   "type": "string",
-                  "enum": ["did:web:node.left.local:iam:left", "did:web:node.right.local:iam:right"]
+                  "pattern": "^did:web:node\\.(left|right)\\.local:iam:"
                 }
               },
               {
@@ -197,7 +197,7 @@
                 ],
                 "filter": {
                   "type": "string",
-                  "enum": ["did:web:node.left.local:iam:left", "did:web:node.right.local:iam:right"]
+                  "pattern": "^did:web:node\\.(left|right)\\.local:iam:"
                 }
               },
               {

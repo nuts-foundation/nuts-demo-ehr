@@ -135,5 +135,10 @@ docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/inter
 ```
 
 ### Run
-- docker compose up
+The repo contains different docker compose setups that each have a different PEP configured
+- NGINX `docker-compose-nginx.yml`
+- APISIX `docker-compose-apisix.yml`
+
+Select the PEP you want (use NGINX if unsure) and run
+- docker compose -f docker-compose-<PEP-name>.yml up
 - goto: https://left.local and https://right.local

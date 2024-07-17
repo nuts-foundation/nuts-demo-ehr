@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
+# first argument is the docker compose file to use.
+# Defaults to docker-compose-nginx.yml if no argument is provided. The setup is independent of the PEP, so usually fine to not set.
+DOCKER_FILE=${1-docker-compose-nginx.yml}
+
 echo "----------------------------------------"
 echo "Removing data and restarting nodes..."
 echo "----------------------------------------"
 # stop all containers so we can delete all data
-docker compose down
+docker compose -f ${DOCKER_FILE} down
 sleep 0.5 # If containers fail to restart below, make this longer
 
 # delete all data
@@ -12,7 +16,7 @@ rm -r ./docker-compose/{left,right}/data/*/*
 rm -r ./docker-compose/{left,right}/config/demo/customers.json
 touch ./docker-compose/{left,right}/config/demo/customers.json # or docker will create directories for these mounts during startup
 
-docker compose up --wait
+docker compose -f ${DOCKER_FILE} up --wait
 
 echo "----------------------------------------"
 echo "Creating DIDs..."
@@ -84,4 +88,4 @@ echo "----------------------------------------"
 printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_LEFT\",\"domain\":\"\",\"id\":1,\"name\":\"Left\"}\n}\n" > ./docker-compose/left/config/demo/customers.json
 printf "{\n\t\"1\":{\"active\":false,\"city\":\"Enske\",\"did\":\"$DID_RIGHT\",\"domain\":\"\",\"id\":1,\"name\":\"Right\"}\n}\n" > ./docker-compose/right/config/demo/customers.json
 
-docker compose down # at the minimum a restart is needed to load the new customers.json file
+docker compose -f ${DOCKER_FILE} down # at the minimum a restart is needed to load the new customers.json file

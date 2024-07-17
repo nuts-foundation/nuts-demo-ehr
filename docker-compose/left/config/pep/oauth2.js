@@ -15,7 +15,7 @@ function introspectAccessToken(r) {
                 const introspection = JSON.parse(reply.responseBody);
                 if (introspection.active === true) {
                     //dpop(r, introspection.cnf)
-                    r.headersOut['X-Userinfo'] = reply.responseBody;
+                    r.headersOut['X-Userinfo'] = btoa(reply.responseBody);
                     r.return(200);
                 } else {
                     r.return(403);
@@ -31,13 +31,25 @@ function introspectAccessToken(r) {
 function authorize(r) {
     // const xUserinfo = r.headersIn['X-Userinfo'];
     // const requestLine = r.request
+    const input =
+        JSON.stringify({
+            "input": {
+                "request": {
+                    "method": r.variables.request_method,
+                    "path": r.variables.request_uri, // original non-normalized request_uri, may need some processing in more complex situations
+                    "headers": {
+                        "X-Userinfo": r.headersIn["X-Userinfo"]
+                    }
+                }
+            }
+        });
     r.subrequest("/_oauth2_authorize",
-        { method: "POST"},
+        { method: "POST", body: input},
         function(reply) {
             if (reply.status === 200) {
                 r.error(reply.responseBody);
                 const authResult = JSON.parse(reply.responseBody);
-                if (authResult.allow === true) {
+                if (authResult.result.allow === true) {
                     r.return(200);
                 } else {
                     r.return(403);

@@ -38,7 +38,7 @@ RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" GOOS=$TARGETOS GOARCH=$TARG
 #
 # Runtime
 #
-FROM alpine:3.20.1
+FROM alpine:3.20.2
 RUN mkdir /app && cd /app
 WORKDIR /app
 COPY --from=backend-builder /app/nuts-demo-ehr .

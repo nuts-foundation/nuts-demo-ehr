@@ -48,9 +48,9 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: nutsfoundation/nuts-node
+          images: nutsfoundation/nuts-demo-ehr
           tags: |
-            # generate 'master' tag for the master branch
+            # generate 'main' tag for the main branch
             type=ref,event=branch,enable={{is_default_branch}},prefix=
             # generate 5.2.1 tag
             type=semver,pattern={{version}}

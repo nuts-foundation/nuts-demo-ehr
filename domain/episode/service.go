@@ -15,11 +15,11 @@ import (
 )
 
 type Service interface {
-	Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error)
-	Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error)
-	GetReports(ctx context.Context, customerDID, patientSSN string) ([]types.Report, error)
-	CreateCollaboration(ctx context.Context, customerDID, dossierID, patientSSN, senderDID string, client fhir.Client) error
-	GetCollaborations(ctx context.Context, customerDID, dossierID, patientSSN string, client fhir.Client) ([]types.Collaboration, error)
+	Create(ctx context.Context, customerID, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error)
+	Get(ctx context.Context, customerID, dossierID string) (*types.Episode, error)
+	GetReports(ctx context.Context, customerID, patientSSN string) ([]types.Report, error)
+	CreateCollaboration(ctx context.Context, customerID, dossierID, patientSSN, senderDID string, client fhir.Client) error
+	GetCollaborations(ctx context.Context, customerID, dossierID, patientSSN string, client fhir.Client) ([]types.Collaboration, error)
 }
 
 func ssnURN(ssn string) string {
@@ -37,7 +37,7 @@ func NewService(factory fhir.Factory, nutsClient *client.HTTPClient, registry re
 	return &service{factory: factory, nutsClient: nutsClient, registry: registry, aclRepository: aclRepository}
 }
 
-func (service *service) Create(ctx context.Context, customerID int, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error) {
+func (service *service) Create(ctx context.Context, customerID, patientID string, request types.CreateEpisodeRequest) (*types.Episode, error) {
 	svc := zorginzage.NewService(service.factory(fhir.WithTenant(customerID)))
 
 	episode, err := svc.CreateEpisode(ctx, patientID, request)
@@ -48,7 +48,7 @@ func (service *service) Create(ctx context.Context, customerID int, patientID st
 	return zorginzage.ToEpisode(episode), nil
 }
 
-func (service *service) Get(ctx context.Context, customerID int, dossierID string) (*types.Episode, error) {
+func (service *service) Get(ctx context.Context, customerID, dossierID string) (*types.Episode, error) {
 	svc := zorginzage.NewService(service.factory(fhir.WithTenant(customerID)))
 
 	episode, err := svc.GetEpisode(ctx, dossierID)

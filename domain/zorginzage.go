@@ -17,8 +17,8 @@ type ZorginzageService struct {
 	NutsClient *nutsClient.HTTPClient
 }
 
-func (z ZorginzageService) RemotePatient(ctx context.Context, localDID, remotePartyDID string, patientSSN string) (*types.RemotePatientFile, error) {
-	fhirClient, err := z.fhirClient(ctx, localDID, remotePartyDID, "homemonitoring", "homemonitoring")
+func (z ZorginzageService) RemotePatient(ctx context.Context, subjectDID, remotePartyDID string, patientSSN string) (*types.RemotePatientFile, error) {
+	fhirClient, err := z.fhirClient(ctx, subjectDID, remotePartyDID, "homemonitoring", "homemonitoring")
 	if err != nil {
 		return nil, err
 	}

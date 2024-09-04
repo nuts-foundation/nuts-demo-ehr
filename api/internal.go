@@ -9,7 +9,7 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 )
 
-func (w Wrapper) TaskUpdate(ctx echo.Context, customerID int, taskID string) error {
+func (w Wrapper) TaskUpdate(ctx echo.Context, customerID string, taskID string) error {
 	// get customer
 	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {

@@ -24,24 +24,24 @@ import (
 
 type TransferService interface {
 	// AssignTransfer assigns a transfer directly to a single organization
-	AssignTransfer(ctx context.Context, customerID int, transferID, organizationDID string) (*types.TransferNegotiation, error)
+	AssignTransfer(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error)
 
 	// CreateTransfer creates a new transfer
-	CreateTransfer(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error)
+	CreateTransfer(ctx context.Context, customerID string, request types.CreateTransferRequest) (*types.Transfer, error)
 
-	CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*types.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error)
 
-	GetTransferByID(ctx context.Context, customerID int, transferID string) (types.Transfer, error)
+	GetTransferByID(ctx context.Context, customerID, transferID string) (types.Transfer, error)
 
 	// ConfirmNegotiation confirms the negotiation indicated by the negotiationID.
 	// The updates the status to in progress
 	// It automatically cancels other negotiations of the domain.Transfer indicated by the transferID
 	// by setting their status to CANCELLED_STATE.
-	ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error)
+	ConfirmNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*types.TransferNegotiation, error)
 
 	// CancelNegotiation withdraws the negotiation/organization from the transfer. This is done by the sending party
 	// It updates the status to CANCELLED_STATE, updates the FHIR Task and sends out a notification
-	CancelNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error)
+	CancelNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*types.TransferNegotiation, error)
 
 	// UpdateTaskState updates the Task resource. It updates the local DB, checks the statemachine, updates the FHIR record and sends a notification.
 	UpdateTaskState(ctx context.Context, customer types.Customer, taskID string, newState string) error
@@ -73,7 +73,7 @@ func NewTransferService(nutsClient *nutsClient.HTTPClient, pipClient nutspxp.Cli
 	}
 }
 
-func (s service) CreateTransfer(ctx context.Context, customerID int, request types.CreateTransferRequest) (*types.Transfer, error) {
+func (s service) CreateTransfer(ctx context.Context, customerID string, request types.CreateTransferRequest) (*types.Transfer, error) {
 	const createTransferErr = "could not create new transfer: %w"
 	// Fetch the patient
 	patient, err := s.findPatientByDossierID(ctx, customerID, string(request.DossierID))
@@ -96,14 +96,14 @@ func (s service) CreateTransfer(ctx context.Context, customerID int, request typ
 	return s.transferRepo.Create(ctx, customerID, string(request.DossierID), request.TransferDate.Time, fhir.FromIDPtr(advanceNotice.Composition.ID))
 }
 
-func (s service) GetTransferByID(ctx context.Context, customerID int, transferID string) (types.Transfer, error) {
+func (s service) GetTransferByID(ctx context.Context, customerID, transferID string) (types.Transfer, error) {
 	dbTransfer, err := s.transferRepo.FindByID(ctx, customerID, transferID)
 	if err != nil {
 		return types.Transfer{}, err
 	}
 
-	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil {
+	_, err = s.customerRepo.FindByID(customerID)
+	if err != nil {
 		return types.Transfer{}, err
 	}
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
@@ -115,7 +115,7 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 	}
 
 	domainTransfer, err := eoverdracht.AdvanceNoticeToDomainTransfer(advanceNotice)
-	if err != nil || customer.Did == nil {
+	if err != nil {
 		return types.Transfer{}, err
 	}
 
@@ -132,13 +132,10 @@ func (s service) GetTransferByID(ctx context.Context, customerID int, transferID
 }
 
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
-func (s service) CreateNegotiation(ctx context.Context, customerID int, transferID, organizationDID string) (*types.TransferNegotiation, error) {
+func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil {
 		return nil, err
-	}
-	if customer.Did == nil {
-		return nil, fmt.Errorf("unable to create negotiation: customer does not have did")
 	}
 
 	var negotiation *types.TransferNegotiation
@@ -172,7 +169,6 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		transferTask := eoverdracht.TransferTask{
 			Status:          transfer.RequestedState,
 			ReceiverDID:     organizationDID,
-			SenderDID:       *customer.Did,
 			AdvanceNoticeID: &dbTransfer.FhirAdvanceNoticeComposition,
 		}
 
@@ -195,7 +191,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID int, transfer
 		for _, path := range resourcePaths {
 			authorizedResources[path] = []string{"GET"}
 		}
-		if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, *customer.Did, authorizedResources); err != nil {
+		if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customer.Id, authorizedResources); err != nil {
 			return nil, fmt.Errorf("could not create PIP data: %w", err)
 		}
 
@@ -239,7 +235,7 @@ func resourcePathsFromSection(sections []fhir.CompositionSection, paths []string
 }
 
 // ConfirmNegotiation is executed by the sending organization. It confirms a transfer negotiation and cancels the others.
-func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {
+func (s service) ConfirmNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*types.TransferNegotiation, error) {
 	var (
 		negotiation   *types.TransferNegotiation
 		patient       *types.Patient
@@ -343,7 +339,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 			processedPaths[path] = struct{}{}
 		}
 
-		if err := s.pipClient.AddPIPData(negotiation.TaskID, negotiation.OrganizationDID, transfer.SenderServiceName, *customer.Did, authorizedResources); err != nil {
+		if err := s.pipClient.AddPIPData(negotiation.TaskID, negotiation.OrganizationDID, transfer.SenderServiceName, customer.Id, authorizedResources); err != nil {
 			return nil, fmt.Errorf("could not create PIP data: %w", err)
 		}
 
@@ -376,7 +372,7 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID int, transfe
 	return negotiation, err
 }
 
-func (s service) CancelNegotiation(ctx context.Context, customerID int, transferID, negotiationID string) (*types.TransferNegotiation, error) {
+func (s service) CancelNegotiation(ctx context.Context, customerID, transferID, negotiationID string) (*types.TransferNegotiation, error) {
 	// find transfer
 	negotiation, err := s.transferRepo.FindNegotiationByID(ctx, customerID, negotiationID)
 	if err != nil {
@@ -505,7 +501,7 @@ type notification struct {
 
 // cancelNegotiation is like CancelNegotiation but it doesn't send any notification.
 // the notification is returned so they can be send as batch.
-func (s service) cancelNegotiation(ctx context.Context, customerID int, negotiationID, advanceNoticePath string) (*types.TransferNegotiation, *notification, error) {
+func (s service) cancelNegotiation(ctx context.Context, customerID, negotiationID, advanceNoticePath string) (*types.TransferNegotiation, *notification, error) {
 	// update DB state
 	negotiation, err := s.transferRepo.CancelNegotiation(ctx, customerID, negotiationID)
 	if err != nil {
@@ -536,8 +532,12 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 	if err != nil {
 		return err
 	}
+	authServerEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "auth")
+	if err != nil {
+		return err
+	}
 
-	tokenResponse, err := s.nutsClient.RequestServiceAccessToken(ctx, *customer.Did, organizationDID, transfer.ReceiverServiceName)
+	tokenResponse, err := s.nutsClient.RequestServiceAccessToken(ctx, customer.Id, authServerEndpoint, transfer.ReceiverServiceName)
 	if err != nil {
 		return err
 	}
@@ -561,7 +561,7 @@ func (s service) sendNotification(ctx context.Context, customer *types.Customer,
 	)
 }
 
-func (s service) findPatientByDossierID(ctx context.Context, customerID int, dossierID string) (*types.Patient, error) {
+func (s service) findPatientByDossierID(ctx context.Context, customerID, dossierID string) (*types.Patient, error) {
 	transferDossier, err := s.dossierRepo.FindByID(ctx, customerID, dossierID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch dossier: %w", err)
@@ -579,13 +579,10 @@ func (s service) findPatientByDossierID(ctx context.Context, customerID int, dos
 	return patient, nil
 }
 
-func (s service) AssignTransfer(ctx context.Context, customerID int, transferID, organizationDID string) (*types.TransferNegotiation, error) {
+func (s service) AssignTransfer(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil {
 		return nil, err
-	}
-	if customer.Did == nil {
-		return nil, fmt.Errorf("unable to create negotiation: customer does not have did")
 	}
 
 	var negotiation *types.TransferNegotiation
@@ -632,7 +629,6 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 		transferTask := eoverdracht.TransferTask{
 			Status:           transfer.InProgressState,
 			ReceiverDID:      organizationDID,
-			SenderDID:        *customer.Did,
 			NursingHandoffID: dbTransfer.FhirNursingHandoffComposition,
 		}
 
@@ -642,7 +638,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 		}
 
 		// store auth in pip
-		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, *customer.Did, organizationDID, customerID); err != nil {
+		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, organizationDID, customerID); err != nil {
 			return nil, err
 		}
 
@@ -674,7 +670,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID int, transferID,
 }
 
 // createAuthorizations creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
-func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, customerDID, organizationDID string, customerID int) error {
+func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, organizationDID, customerID string) error {
 	prefix := fmt.Sprintf("/fhir/%d", customerID)
 	// Build the list of resources for the authorization credential:
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
@@ -687,13 +683,13 @@ func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdr
 			delete(authorizedResources, path)
 		}
 	}
-	if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customerDID, authorizedResources); err != nil {
+	if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customerID, authorizedResources); err != nil {
 		return fmt.Errorf("could not create PIP data: %w", err)
 	}
 	return nil
 }
 
-func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID int, dbTransfer *types.Transfer) (*fhir.Composition, error) {
+func (s service) advanceNoticeToNursingHandoff(ctx context.Context, customerID string, dbTransfer *types.Transfer) (*fhir.Composition, error) {
 	patient, err := s.findPatientByDossierID(ctx, customerID, string(dbTransfer.DossierID))
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch patient by dossierID: %w", err)

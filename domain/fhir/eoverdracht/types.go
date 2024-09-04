@@ -10,7 +10,6 @@ type TransferTask struct {
 	ID               string
 	Status           string
 	ReceiverDID      string
-	SenderDID        string
 	AdvanceNoticeID  *string
 	NursingHandoffID *string
 }

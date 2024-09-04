@@ -18,8 +18,8 @@ import (
 )
 
 type Repository interface {
-	AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error)
-	Create(ctx context.Context, customerID int, patientID string, report types.Report) error
+	AllByPatient(ctx context.Context, customerID, patientID string, episodeID *string) ([]types.Report, error)
+	Create(ctx context.Context, customerID, patientID string, report types.Report) error
 }
 
 type fhirRepository struct {
@@ -32,7 +32,7 @@ func NewFHIRRepository(factory fhir.Factory) Repository {
 	}
 }
 
-func (repo *fhirRepository) Create(ctx context.Context, customerID int, patientID string, report types.Report) error {
+func (repo *fhirRepository) Create(ctx context.Context, customerID, patientID string, report types.Report) error {
 	if report.Id == "" {
 		report.Id = types.ObjectID(uuid.NewString())
 	}
@@ -132,7 +132,7 @@ func ConvertToDomain(observation *resources.Observation, patientID string) types
 	return report
 }
 
-func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID int, patientID string, episodeID *string) ([]types.Report, error) {
+func (repo *fhirRepository) AllByPatient(ctx context.Context, customerID, patientID string, episodeID *string) ([]types.Report, error) {
 	observations := []resources.Observation{}
 
 	queryMap := map[string]string{

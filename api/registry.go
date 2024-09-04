@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/labstack/echo/v4"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
@@ -22,10 +23,16 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
+	// get all customer.Id DIDs
+	dids, err := w.NutsClient.ListSubjectDIDs(ctx.Request().Context(), customer.Id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
 	var results = make(map[string]types.Organization, 0)
 	for _, organization := range organizations {
 		// Hide our own organization
-		if request.ExcludeOwn != nil && *request.ExcludeOwn && organization.ID == *customer.Did {
+		if request.ExcludeOwn != nil && *request.ExcludeOwn && slices.Contains(dids, organization.ID) {
 			continue
 		}
 		current, exists := results[organization.ID]

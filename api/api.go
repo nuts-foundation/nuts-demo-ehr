@@ -59,7 +59,7 @@ type Wrapper struct {
 	FHIRService             fhir.Service
 	EpisodeService          episode.Service
 	NotificationHandler     notification.Handler
-	TenantInitializer       func(tenant int) error
+	TenantInitializer       func(tenant string) error
 }
 
 func (w Wrapper) CheckSession(ctx echo.Context) error {
@@ -114,11 +114,11 @@ func (w Wrapper) CreateAuthorizationRequest(ctx echo.Context, params CreateAutho
 	if err != nil {
 		return err
 	}
-	customer, err := w.CustomerRepository.FindByID(customerID)
+	_, err = w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}
-	response, err := w.NutsClient.CreateAuthenticationRequest(*customer.Did, params.Verifier, params.Scope, params.RedirectUri)
+	response, err := w.NutsClient.CreateAuthenticationRequest(customerID, params.Verifier, params.Scope, params.RedirectUri)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (w Wrapper) GetOpenID4VPAuthenticationResult(ctx echo.Context, token string
 func (w Wrapper) GetCustomer(ctx echo.Context) error {
 	customerID := ctx.Get(CustomerID)
 
-	customer, err := w.CustomerRepository.FindByID(customerID.(int))
+	customer, err := w.CustomerRepository.FindByID(customerID.(string))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, errorResponse{err})
 	}

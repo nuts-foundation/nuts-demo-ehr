@@ -21,3 +21,6 @@ discovery:
   server:
     ids:
       - urn:nuts.nl:usecase:eOverdrachtDemo2024
+vdr:
+  didmethods:
+    - web

@@ -14,9 +14,9 @@ import (
 
 type TransferService interface {
 	// CreateOrUpdate creates or updates an incoming transfer record in the local storage
-	CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error
-	UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error
-	GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string, token string) (*types.TransferRequest, error)
+	CreateOrUpdate(ctx context.Context, status, customerID, senderDID, fhirTaskID string) error
+	UpdateTransferRequestState(ctx context.Context, customerID, requesterDID, fhirTaskID, newState string) error
+	GetTransferRequest(ctx context.Context, customerID, requesterDID, fhirTaskID, token string) (*types.TransferRequest, error)
 }
 
 type service struct {
@@ -39,18 +39,18 @@ func NewTransferService(nutsClient *client.HTTPClient, localFHIRClientFactory fh
 	}
 }
 
-func (s service) CreateOrUpdate(ctx context.Context, status string, customerID int, senderDID, fhirTaskID string) error {
+func (s service) CreateOrUpdate(ctx context.Context, status, customerID, senderDID, fhirTaskID string) error {
 	_, err := s.transferRepo.CreateOrUpdate(ctx, status, fhirTaskID, customerID, senderDID)
 	return err
 }
 
-func (s service) UpdateTransferRequestState(ctx context.Context, customerID int, requesterDID, fhirTaskID string, newState string) error {
+func (s service) UpdateTransferRequestState(ctx context.Context, customerID, requesterDID, fhirTaskID string, newState string) error {
 	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil {
+	if err != nil {
 		return err
 	}
 
-	fhirClient, err := s.getServiceFHIRClient(ctx, requesterDID, *customer.Did)
+	fhirClient, err := s.getServiceFHIRClient(ctx, requesterDID, customer.Id)
 	if err != nil {
 		return err
 	}
@@ -83,16 +83,16 @@ func (s service) UpdateTransferRequestState(ctx context.Context, customerID int,
 	return fmt.Errorf("invalid state change from %s to %s", task.Status, newState)
 }
 
-func (s service) GetTransferRequest(ctx context.Context, customerID int, requesterDID string, fhirTaskID string, accessToken string) (*types.TransferRequest, error) {
+func (s service) GetTransferRequest(ctx context.Context, customerID, requesterDID, fhirTaskID, accessToken string) (*types.TransferRequest, error) {
 	const getTransferRequestErr = "unable to get transferRequest: %w"
 
 	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil || customer.Did == nil {
+	if err != nil {
 		return nil, fmt.Errorf("unable to find customer: %w", err)
 	}
 
 	// First get the task, this uses a separate task auth credential
-	fhirTaskClient, err := s.getUserFHIRClient(ctx, requesterDID, *customer.Did, accessToken)
+	fhirTaskClient, err := s.getUserFHIRClient(ctx, requesterDID, customer.Id, accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	}
 
 	if task.AdvanceNoticeID != nil {
-		fhirCompositionClient, err := s.getServiceFHIRClient(ctx, requesterDID, *customer.Did)
+		fhirCompositionClient, err := s.getServiceFHIRClient(ctx, requesterDID, customer.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 
 	// If the task input contains the nursing handoff
 	if task.NursingHandoffID != nil {
-		fhirCompositionClient, err := s.getServiceFHIRClient(ctx, requesterDID, *customer.Did)
+		fhirCompositionClient, err := s.getServiceFHIRClient(ctx, requesterDID, customer.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -155,15 +155,19 @@ func (s service) GetTransferRequest(ctx context.Context, customerID int, request
 	return &transferRequest, nil
 }
 
-func (s service) getServiceFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string) (fhir.Client, error) {
+func (s service) getServiceFHIRClient(ctx context.Context, authorizerDID string, localRequesterSubjectID string) (fhir.Client, error) {
 	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
 	}
+	authServerURL, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "auth")
+	if err != nil {
+		return nil, fmt.Errorf("error while looking up authorizer's auth server (did=%s): %w", authorizerDID, err)
+	}
 
 	// TODO: This should be the user access token instead when medical data is involved,
 	// but this depends on the scope mapping which then has to change for v6
-	accessToken, err := s.nutsClient.RequestServiceAccessToken(ctx, localRequesterDID, authorizerDID, transfer.SenderServiceName)
+	accessToken, err := s.nutsClient.RequestServiceAccessToken(ctx, localRequesterSubjectID, authServerURL, transfer.SenderServiceName)
 	if err != nil {
 		return nil, err
 	}

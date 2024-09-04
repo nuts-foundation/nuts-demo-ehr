@@ -10,8 +10,7 @@ import (
 )
 
 type Repository interface {
-	FindByID(id int) (*types.Customer, error)
-	FindByDID(did string) (*types.Customer, error)
+	FindByID(id string) (*types.Customer, error)
 	All() ([]types.Customer, error)
 }
 
@@ -34,7 +33,7 @@ func NewJsonFileRepository(filepath string) Repository {
 	}
 }
 
-func (db *jsonFileRepo) FindByID(id int) (*types.Customer, error) {
+func (db *jsonFileRepo) FindByID(id string) (*types.Customer, error) {
 	records, err := db.read()
 	if err != nil {
 		return nil, err
@@ -42,23 +41,6 @@ func (db *jsonFileRepo) FindByID(id int) (*types.Customer, error) {
 
 	for _, r := range records {
 		if r.Id == id {
-			// Hazardous to return a pointer, but this is a demo.
-			return &r, nil
-		}
-	}
-
-	// Not found
-	return nil, nil
-}
-
-func (db *jsonFileRepo) FindByDID(did string) (*types.Customer, error) {
-	records, err := db.read()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range records {
-		if r.Did != nil && *r.Did == did {
 			// Hazardous to return a pointer, but this is a demo.
 			return &r, nil
 		}

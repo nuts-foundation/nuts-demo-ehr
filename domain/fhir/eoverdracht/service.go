@@ -35,9 +35,7 @@ type transferService struct {
 
 func (s transferService) CreateTask(ctx context.Context, domainTask TransferTask) (TransferTask, error) {
 	transferTask := s.resourceBuilder.BuildTask(fhir.TaskProperties{
-		RequesterID: domainTask.SenderDID,
-		OwnerID:     domainTask.ReceiverDID,
-		Status:      domainTask.Status,
+		Status: domainTask.Status,
 	})
 
 	if domainTask.AdvanceNoticeID != nil {
@@ -70,10 +68,8 @@ func (s transferService) UpdateTask(ctx context.Context, fhirTaskID string, call
 	domainTask := callbackFn(*task)
 
 	transferTask := s.resourceBuilder.BuildTask(fhir.TaskProperties{
-		ID:          &domainTask.ID,
-		RequesterID: domainTask.SenderDID,
-		OwnerID:     domainTask.ReceiverDID,
-		Status:      domainTask.Status,
+		ID:     &domainTask.ID,
+		Status: domainTask.Status,
 	})
 
 	if domainTask.AdvanceNoticeID != nil {
@@ -138,7 +134,6 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 	task := &TransferTask{
 		ID:          fhir.FromIDPtr(fhirTask.ID),
 		Status:      fhir.FromCodePtr(fhirTask.Status),
-		SenderDID:   fhir.FromStringPtr(fhirTask.Requester.Agent.Identifier.Value),
 		ReceiverDID: fhir.FromStringPtr(fhirTask.Owner.Identifier.Value),
 	}
 

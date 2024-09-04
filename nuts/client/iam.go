@@ -17,7 +17,7 @@ type Iam interface {
 
 var _ Iam = HTTPClient{}
 
-func (c HTTPClient) CreateAuthenticationRequest(customerDID string, verifierDID string, scope string, redirectUri string) (*nutsIamClient.RedirectResponseWithID, error) {
+func (c HTTPClient) CreateAuthenticationRequest(customerDID string, authServerURL string, scope string, redirectUri string) (*nutsIamClient.RedirectResponseWithID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	tokenType := nutsIamClient.UserAccessTokenRequestTokenTypeBearer
@@ -29,8 +29,8 @@ func (c HTTPClient) CreateAuthenticationRequest(customerDID string, verifierDID 
 			Name: "John Doe",
 			Role: "Verpleegkundige niveau 4",
 		},
-		TokenType: &tokenType,
-		Verifier:  verifierDID,
+		TokenType:           &tokenType,
+		AuthorizationServer: authServerURL,
 	})
 
 	if err != nil {
@@ -72,14 +72,14 @@ func (c HTTPClient) GetAuthenticationResult(token string) (*nutsIamClient.TokenR
 	return response, nil
 }
 
-func (c HTTPClient) RequestServiceAccessToken(ctx context.Context, relyingPartyDID, authorizationServerDID string, scope string) (string, error) {
+func (c HTTPClient) RequestServiceAccessToken(ctx context.Context, subjectID, authServerURL string, scope string) (string, error) {
 	// bearer for now
 	bearer := "Bearer"
 
-	response, err := c.iam().RequestServiceAccessToken(ctx, relyingPartyDID, nutsIamClient.RequestServiceAccessTokenJSONRequestBody{
-		Scope:     scope,
-		Verifier:  authorizationServerDID,
-		TokenType: (*nutsIamClient.ServiceAccessTokenRequestTokenType)(&bearer),
+	response, err := c.iam().RequestServiceAccessToken(ctx, subjectID, nutsIamClient.RequestServiceAccessTokenJSONRequestBody{
+		Scope:               scope,
+		AuthorizationServer: authServerURL,
+		TokenType:           (*nutsIamClient.ServiceAccessTokenRequestTokenType)(&bearer),
 	})
 	if err != nil {
 		return "", err

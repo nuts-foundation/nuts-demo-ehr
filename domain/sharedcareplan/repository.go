@@ -9,7 +9,7 @@ import (
 const schema = `
 	CREATE TABLE IF NOT EXISTS shared_careplan (
 	    dossier_id char(36) NOT NULL,
-		customer_id integer(11) NOT NULL,
+		customer_id varchar(255) NOT NULL,
 		reference varchar(200) NOT NULL,
 		PRIMARY KEY (dossier_id)
 	);
@@ -29,13 +29,13 @@ type Repository struct {
 
 type sqlSharedCarePlan struct {
 	DossierID  string `db:"dossier_id"`
-	CustomerID int    `db:"customer_id"`
+	CustomerID string `db:"customer_id"`
 	// Reference is the FHIR Reference, as absolute URL, to the CarePlan on the shared Care Plan Service.
 	// It can be used by FHIR clients to resolve the CarePlan.
 	Reference string `db:"reference"`
 }
 
-func (r Repository) Create(ctx context.Context, customerID int, dossierID string, reference string) error {
+func (r Repository) Create(ctx context.Context, customerID, dossierID string, reference string) error {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (r Repository) Create(ctx context.Context, customerID int, dossierID string
 	return nil
 }
 
-func (r Repository) FindByDossierID(ctx context.Context, customerID int, dossierID string) (*SharedCarePlan, error) {
+func (r Repository) FindByDossierID(ctx context.Context, customerID, dossierID string) (*SharedCarePlan, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err

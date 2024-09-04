@@ -20,7 +20,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -169,12 +168,12 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	transferReceiverRepo := receiver.NewTransferRepository(sqlDB)
 	transferSenderService := sender.NewTransferService(nodeClient, pipClient, fhirClientFactory, transferSenderRepo, customerRepository, dossierRepository, patientRepository, orgRegistry, fhirNotifier)
 	transferReceiverService := receiver.NewTransferService(nodeClient, fhirClientFactory, transferReceiverRepo, customerRepository, orgRegistry, fhirNotifier)
-	tenantInitializer := func(tenant int) error {
+	tenantInitializer := func(tenant string) error {
 		if !config.FHIR.Server.SupportsMultiTenancy() {
 			return nil
 		}
 
-		return fhir.InitializeTenant(config.FHIR.Server.Address, strconv.Itoa(tenant))
+		return fhir.InitializeTenant(config.FHIR.Server.Address, tenant)
 	}
 
 	// Shared Care Plan
@@ -243,7 +242,7 @@ func registerEHR(server *echo.Echo, config Config, customerRepository customers.
 	server.GET("/*", echo.WrapHandler(assetHandler))
 }
 
-func registerPatients(repository patients.Repository, db *sqlx.DB, customerID int) {
+func registerPatients(repository patients.Repository, db *sqlx.DB, customerID string) {
 	pdate := func(value time.Time) *openapiTypes.Date {
 		val := openapiTypes.Date{Time: value}
 		return &val

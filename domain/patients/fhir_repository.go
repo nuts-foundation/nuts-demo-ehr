@@ -61,7 +61,7 @@ func NewFHIRPatientRepository(factory Factory, fhirClientFactory fhir.Factory) *
 	}
 }
 
-func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id string) (*types.Patient, error) {
+func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID, id string) (*types.Patient, error) {
 	patient := resources.Patient{}
 	err := r.fhirClientFactory(fhir.WithTenant(customerID)).ReadOne(ctx, "Patient/"+id, &patient)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r FHIRPatientRepository) FindByID(ctx context.Context, customerID int, id 
 	return &result, nil
 }
 
-func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error) {
+func (r FHIRPatientRepository) Update(ctx context.Context, customerID, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error) {
 	domainPatient, err := r.FindByID(ctx, customerID, id)
 	if err != nil {
 		return nil, fmt.Errorf("could not update patient: could not read current patient from FHIR store: %w", err)
@@ -85,7 +85,7 @@ func (r FHIRPatientRepository) Update(ctx context.Context, customerID int, id st
 	return updatedDomainPatient, fhirClient.CreateOrUpdate(ctx, updatedFHIRPatient, nil)
 }
 
-func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, patientProperties types.PatientProperties) (*types.Patient, error) {
+func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID string, patientProperties types.PatientProperties) (*types.Patient, error) {
 	patient, err := r.factory.NewPatient(patientProperties)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (r FHIRPatientRepository) NewPatient(ctx context.Context, customerID int, p
 	return patient, nil
 }
 
-func (r FHIRPatientRepository) All(ctx context.Context, customerID int, name *string) ([]types.Patient, error) {
+func (r FHIRPatientRepository) All(ctx context.Context, customerID string, name *string) ([]types.Patient, error) {
 	var params map[string]string
 	if name != nil {
 		params = map[string]string{"name": *name}

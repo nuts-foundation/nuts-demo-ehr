@@ -14,11 +14,11 @@ import (
 type sqlDossier struct {
 	ID         string `db:"id"`
 	Name       string `db:"name"`
-	CustomerID int    `db:"customer_id"`
+	CustomerID string `db:"customer_id"`
 	PatientID  string `db:"patient_id"`
 }
 
-func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID int, dossier *types.Dossier) error {
+func (dbDossier *sqlDossier) UnmarshalFromDomainDossier(customerID string, dossier *types.Dossier) error {
 	*dbDossier = sqlDossier{
 		ID:         string(dossier.Id),
 		Name:       dossier.Name,
@@ -39,7 +39,7 @@ func (dbDossier sqlDossier) MarshalToDomainDossier() (*types.Dossier, error) {
 const schema = `
 	CREATE TABLE IF NOT EXISTS dossier (
 		id char(36) NOT NULL,
-		customer_id integer(11) NOT NULL,
+		customer_id varchar(255) NOT NULL,
 	    patient_id char(36) NOT NULL,
 		name varchar(20) NOT NULL,
 		PRIMARY KEY (id),
@@ -66,7 +66,7 @@ func NewSQLiteDossierRepository(factory Factory, db *sqlx.DB) *SQLiteDossierRepo
 	}
 }
 
-func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, id string) (*types.Dossier, error) {
+func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID string, id string) (*types.Dossier, error) {
 	const query = `SELECT * FROM dossier WHERE customer_id = ? AND id = ? ORDER BY id ASC`
 
 	dbDossier := sqlDossier{}
@@ -83,7 +83,7 @@ func (r SQLiteDossierRepository) FindByID(ctx context.Context, customerID int, i
 	return dbDossier.MarshalToDomainDossier()
 }
 
-func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, name, patientID string) (*types.Dossier, error) {
+func (r SQLiteDossierRepository) Create(ctx context.Context, customerID string, name, patientID string) (*types.Dossier, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (r SQLiteDossierRepository) Create(ctx context.Context, customerID int, nam
 	return dossier, nil
 }
 
-func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID int, patientID string) ([]types.Dossier, error) {
+func (r SQLiteDossierRepository) AllByPatient(ctx context.Context, customerID string, patientID string) ([]types.Dossier, error) {
 	const query = `SELECT * FROM dossier WHERE patient_id = ? and customer_id = ? ORDER BY id ASC`
 	dbDossiers := []sqlDossier{}
 	tx, err := sqlUtil.GetTransaction(ctx)

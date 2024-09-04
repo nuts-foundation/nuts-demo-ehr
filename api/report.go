@@ -32,7 +32,7 @@ func (w Wrapper) GetReports(ctx echo.Context, patientID string, params GetReport
 	}
 
 	if patient.Ssn != nil {
-		remoteReports, err := w.EpisodeService.GetReports(ctx.Request().Context(), *customer.Did, *patient.Ssn)
+		remoteReports, err := w.EpisodeService.GetReports(ctx.Request().Context(), customer.Id, *patient.Ssn)
 		if err != nil {
 			return err
 		}

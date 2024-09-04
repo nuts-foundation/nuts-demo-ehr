@@ -38,9 +38,9 @@ const transferSchema = `
 `
 
 type TransferRepository interface {
-	GetNotCompletedCount(ctx context.Context, customerID int) (int, error)
-	GetAll(ctx context.Context, customerID int) ([]types.IncomingTransfer, error)
-	CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*types.IncomingTransfer, error)
+	GetNotCompletedCount(ctx context.Context, customerID string) (int, error)
+	GetAll(ctx context.Context, customerID string) ([]types.IncomingTransfer, error)
+	CreateOrUpdate(ctx context.Context, status, taskID string, customerID string, senderDID string) (*types.IncomingTransfer, error)
 }
 
 func NewTransferRepository(db *sqlx.DB) TransferRepository {
@@ -58,7 +58,7 @@ type sqlTransfer struct {
 	ID         string    `db:"id"`
 	TaskID     string    `db:"task_id"`
 	Status     string    `db:"status"`
-	CustomerID int       `db:"customer_id"`
+	CustomerID string    `db:"customer_id"`
 	SenderDID  string    `db:"sender_did"`
 	CreatedAt  time.Time `db:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at"`
@@ -81,7 +81,7 @@ type repository struct {
 	db *sqlx.DB
 }
 
-func (f repository) GetAll(ctx context.Context, customerID int) ([]types.IncomingTransfer, error) {
+func (f repository) GetAll(ctx context.Context, customerID string) ([]types.IncomingTransfer, error) {
 	const query = `SELECT * FROM incoming_transfers WHERE customer_id = ? ORDER BY updated_at DESC`
 
 	tx, err := sqlUtil.GetTransaction(ctx)
@@ -108,7 +108,7 @@ func (f repository) GetAll(ctx context.Context, customerID int) ([]types.Incomin
 	return results, nil
 }
 
-func (f repository) GetNotCompletedCount(ctx context.Context, customerID int) (int, error) {
+func (f repository) GetNotCompletedCount(ctx context.Context, customerID string) (int, error) {
 	const query = `SELECT COUNT(*) FROM incoming_transfers WHERE customer_id = ? and status != 'completed'`
 
 	tx, err := sqlUtil.GetTransaction(ctx)
@@ -125,7 +125,7 @@ func (f repository) GetNotCompletedCount(ctx context.Context, customerID int) (i
 	return count, nil
 }
 
-func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, customerID int, senderDID string) (*types.IncomingTransfer, error) {
+func (f repository) CreateOrUpdate(ctx context.Context, status, taskID string, customerID string, senderDID string) (*types.IncomingTransfer, error) {
 	tx, err := sqlUtil.GetTransaction(ctx)
 	if err != nil {
 		return nil, err

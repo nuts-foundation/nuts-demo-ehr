@@ -222,13 +222,14 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	}
 
 	// client_id for senderDID and sub for customerDID
-	senderDID := target["client_id"].(string)
-	customerDID := target["sub"].(string)
+	_ = json.Unmarshal([]byte(introspectionResult), &target)
+	customerID := target["iss"].(string)
+	senderDID := target["sub"].(string)
 
 	codeError := datatypes.Code("error")
 	codeInvalid := datatypes.Code("invalid")
 	severityError := datatypes.Code("error")
-	customer, err := w.CustomerRepository.FindByDID(customerDID)
+	customer, err := w.CustomerRepository.FindByID(customerID)
 	if err != nil {
 
 		return ctx.JSON(http.StatusInternalServerError, &resources.OperationOutcome{
@@ -250,7 +251,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	}
 
 	if customer == nil {
-		logrus.Warnf("Received transfer notification for unknown customer DID: %s", senderDID)
+		logrus.Warnf("Received transfer notification for unknown customer: %s", customerID)
 
 		return ctx.JSON(http.StatusNotFound, &resources.OperationOutcome{
 			Domain: resources.Domain{
@@ -271,10 +272,9 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	}
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
-		TaskID:      taskID,
-		SenderDID:   senderDID,
-		CustomerDID: customerDID,
-		CustomerID:  customer.Id,
+		TaskID:     taskID,
+		SenderDID:  senderDID,
+		CustomerID: customerID,
 	}); err != nil {
 		return err
 	}

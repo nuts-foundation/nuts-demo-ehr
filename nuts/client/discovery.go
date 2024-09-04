@@ -84,9 +84,9 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 	for _, searchResult := range response {
 		if didServiceType != nil {
 			// parse did and convert did:web to url
-			doc, err := c.resolveDID(ctx, searchResult.SubjectId)
+			doc, err := c.resolveDID(ctx, searchResult.CredentialSubjectId)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve DID %s: %w", searchResult.SubjectId, err)
+				return nil, fmt.Errorf("failed to resolve DID %s: %w", searchResult.CredentialSubjectId, err)
 			}
 			// check if the didServiceType is in the service array
 			serviceFound := false
@@ -165,7 +165,7 @@ func (c HTTPClient) resolveDID(ctx context.Context, didStr string) (*did.Documen
 
 func organizationSearchResultToDomain(searchResult nutsDiscoveryClient.SearchResult) nuts.NutsOrganization {
 	return nuts.NutsOrganization{
-		ID: searchResult.SubjectId,
+		ID: searchResult.CredentialSubjectId,
 		Details: nuts.OrganizationDetails{
 			Name: searchResult.Fields["organization_name"].(string),
 			City: searchResult.Fields["organization_city"].(string),

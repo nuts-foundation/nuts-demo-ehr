@@ -36,7 +36,7 @@ type Auth struct {
 
 type Session struct {
 	Presentation *iam.VerifiablePresentation
-	CustomerID   int
+	CustomerID   string
 	StartTime    time.Time
 	UserInfo     UserInfo
 }
@@ -49,7 +49,7 @@ type UserInfo struct {
 }
 
 type JWTCustomClaims struct {
-	CustomerID int    `json:"cis"`
+	CustomerID string `json:"cis"`
 	SessionID  string `json:"sid"`
 	JWTStandardClaims
 }
@@ -93,7 +93,7 @@ func NewAuth(key *ecdsa.PrivateKey, customers customers.Repository, passwd strin
 }
 
 // CreateCustomerJWT creates a JWT that only stores the customer ID.
-func (auth *Auth) CreateCustomerJWT(customerId int) ([]byte, error) {
+func (auth *Auth) CreateCustomerJWT(customerId string) ([]byte, error) {
 	t := openid.New()
 	_ = t.Set(jwt.IssuedAtKey, time.Now())
 	_ = t.Set(jwt.ExpirationKey, time.Now().Add(MaxSessionAge))
@@ -126,21 +126,21 @@ func (auth *Auth) GetSessions() map[string]Session {
 	return sessions
 }
 
-func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (int, error) {
+func (auth *Auth) GetCustomerIDFromHeader(ctx echo.Context) (string, error) {
 	token, err := auth.extractJWTFromHeader(ctx)
 	if err != nil {
 		ctx.Echo().Logger.Error(err)
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, err)
+		return "", echo.NewHTTPError(http.StatusUnauthorized, err)
 	}
 	rawID, ok := token.Get(CustomerID)
 	if !ok {
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, "missing customerID in token")
+		return "", echo.NewHTTPError(http.StatusUnauthorized, "missing customerID in token")
 	}
-	return int(rawID.(float64)), nil
+	return rawID.(string), nil
 }
 
 // CreateSessionJWT creates a JWT with customer ID and session ID
-func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId int, session string) ([]byte, error) {
+func (auth *Auth) CreateSessionJWT(organizationName, userName string, customerId string, session string) ([]byte, error) {
 	t := openid.New()
 	t.Set(jwt.SubjectKey, organizationName)
 	t.Set("usi", userName)
@@ -182,7 +182,7 @@ func (auth *Auth) JWTHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func (auth *Auth) AuthenticatePassword(customerID int, password string) (string, UserInfo, error) {
+func (auth *Auth) AuthenticatePassword(customerID string, password string) (string, UserInfo, error) {
 	_, err := auth.customers.FindByID(customerID)
 	if err != nil {
 		return "", UserInfo{}, errors.New("invalid customer ID")
@@ -200,7 +200,7 @@ func (auth *Auth) AuthenticatePassword(customerID int, password string) (string,
 	return token, userInfo, nil
 }
 
-func (auth *Auth) createSession(customerID int, userInfo UserInfo) string {
+func (auth *Auth) createSession(customerID string, userInfo UserInfo) string {
 	auth.mux.Lock()
 	defer auth.mux.Unlock()
 

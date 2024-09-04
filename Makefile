@@ -18,12 +18,6 @@ gen-api:
 	   -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
 	   -exclude-schemas SearchVCRequest,CredentialSubject \
 	   -o nuts/client/discovery/generated.go https://nuts-node.readthedocs.io/en/latest/_static/discovery/v1.yaml
-	oapi-codegen -generate client,types -package didman \
-	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
-	  -o nuts/client/didman/generated.go -exclude-schemas OrganizationSearchResult https://nuts-node.readthedocs.io/en/latest/_static/didman/v1.yaml
-	oapi-codegen -generate client,types -package vdr \
-	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
-	  -o nuts/client/vdr/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v1.yaml
 	oapi-codegen -generate client,types -package vdr_v2 \
 	  -import-mapping='../common/ssi_types.yaml:github.com/nuts-foundation/nuts-demo-ehr/nuts/client/common' \
 	  -o nuts/client/vdr_v2/generated.go https://nuts-node.readthedocs.io/en/latest/_static/vdr/v2.yaml

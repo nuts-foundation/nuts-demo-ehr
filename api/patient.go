@@ -107,7 +107,7 @@ func (w Wrapper) GetRemotePatient(ctx echo.Context, params GetRemotePatientParam
 	if err != nil {
 		return err
 	}
-	patient, err := w.ZorginzageService.RemotePatient(ctx.Request().Context(), *customer.Did, params.RemotePartyDID, params.PatientSSN)
+	patient, err := w.ZorginzageService.RemotePatient(ctx.Request().Context(), customer.Id, params.RemotePartyDID, params.PatientSSN)
 	if err != nil {
 		return fmt.Errorf("unable to load remote patient: %w", err)
 	}
@@ -135,10 +135,10 @@ func (w Wrapper) getSession(ctx echo.Context) (*Session, error) {
 	return &sessionCopy, nil
 }
 
-func (w Wrapper) getCustomerID(ctx echo.Context) (int, error) {
+func (w Wrapper) getCustomerID(ctx echo.Context) (string, error) {
 	session, err := w.getSession(ctx)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	return session.CustomerID, nil
 }

@@ -20,7 +20,7 @@ type Service struct {
 }
 
 // Create creates a new shared CarePlan on the Care Plan Service for the given dossierID.
-func (s Service) Create(ctx context.Context, customerID int, dossierID string, title string) (*types.SharedCarePlan, error) {
+func (s Service) Create(ctx context.Context, customerID, dossierID string, title string) (*types.SharedCarePlan, error) {
 	targetDossier, err := s.DossierRepository.FindByID(ctx, customerID, dossierID)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (s Service) Create(ctx context.Context, customerID int, dossierID string, t
 	}, nil
 }
 
-func (s Service) AllForPatient(ctx context.Context, customerID int, patientID string) ([]types.SharedCarePlan, error) {
+func (s Service) AllForPatient(ctx context.Context, customerID, patientID string) ([]types.SharedCarePlan, error) {
 	dossiers, err := s.DossierRepository.AllByPatient(ctx, customerID, patientID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch dossiers for patient %s: %w", patientID, err)
@@ -75,7 +75,7 @@ func (s Service) AllForPatient(ctx context.Context, customerID int, patientID st
 	return result, nil
 }
 
-func (s Service) FindByID(ctx context.Context, customerID int, dossierID string) (*types.SharedCarePlan, error) {
+func (s Service) FindByID(ctx context.Context, customerID, dossierID string) (*types.SharedCarePlan, error) {
 	sharedCarePlan, err := s.Repository.FindByDossierID(ctx, customerID, dossierID)
 	if err != nil {
 		return nil, err

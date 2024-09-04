@@ -7,10 +7,10 @@ import (
 )
 
 type Repository interface {
-	FindByID(ctx context.Context, customerID int, id string) (*types.Patient, error)
-	Update(ctx context.Context, customerID int, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error)
-	NewPatient(ctx context.Context, customerID int, patient types.PatientProperties) (*types.Patient, error)
-	All(ctx context.Context, customerID int, name *string) ([]types.Patient, error)
+	FindByID(ctx context.Context, customerID, id string) (*types.Patient, error)
+	Update(ctx context.Context, customerID, id string, updateFn func(c types.Patient) (*types.Patient, error)) (*types.Patient, error)
+	NewPatient(ctx context.Context, customerID string, patient types.PatientProperties) (*types.Patient, error)
+	All(ctx context.Context, customerID string, name *string) ([]types.Patient, error)
 }
 
 type Factory struct{}

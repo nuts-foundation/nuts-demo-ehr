@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -36,7 +35,7 @@ func WithTLS(tlsConfig *tls.Config) ClientOpt {
 	}
 }
 
-func WithTenant(tenant int) ClientOpt {
+func WithTenant(tenant string) ClientOpt {
 	return func(client *httpClient) {
 		client.tenant = tenant
 	}
@@ -71,7 +70,7 @@ type Client interface {
 type httpClient struct {
 	restClient          *resty.Client
 	url                 string
-	tenant              int
+	tenant              string
 	multiTenancyEnabled bool
 }
 
@@ -171,7 +170,7 @@ func (h httpClient) BuildRequestURI(fhirResourcePath string) *url.URL {
 	} else {
 		var tenant string
 		if h.multiTenancyEnabled {
-			tenant = strconv.Itoa(h.tenant)
+			tenant = h.tenant
 		}
 		return buildRequestURI(h.url, tenant, fhirResourcePath)
 	}

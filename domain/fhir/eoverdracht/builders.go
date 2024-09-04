@@ -42,21 +42,10 @@ func (b FHIRBuilder) BuildTask(props fhir.TaskProperties) resources.Task {
 				ID:           fhir.ToIDPtr(id),
 			},
 		},
-		Status: fhir.ToCodePtr(props.Status),
-		Code:   &SnomedTransferType,
-		Requester: &resources.TaskRequester{
-			Agent: &datatypes.Reference{
-				Identifier: &datatypes.Identifier{
-					System: &fhir.NutsCodingSystem,
-					Value:  fhir.ToStringPtr(props.RequesterID),
-				},
-			},
-		},
-		Owner: &datatypes.Reference{
-			Identifier: &datatypes.Identifier{
-				System: &fhir.NutsCodingSystem,
-				Value:  fhir.ToStringPtr(props.OwnerID),
-			}},
+		Status:    fhir.ToCodePtr(props.Status),
+		Code:      &SnomedTransferType,
+		Requester: &resources.TaskRequester{},
+		Owner:     &datatypes.Reference{},
 		// TODO: patient seems mandatory in the spec, but can only be sent when placed already
 		// has patient in care to protect the identity of the patient during the negotiation phase.
 		//"for": map[string]string{

@@ -2,28 +2,52 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vdr_v2"
 	"net/http"
 )
 
-func (c HTTPClient) ResolveServiceEndpoint(ctx context.Context, did string, serviceType string, endpointType string) (interface{}, error) {
-	ep := vdr_v2.FilterServicesParamsEndpointType(endpointType)
-	response, err := c.vdr().FilterServices(ctx, did, &vdr_v2.FilterServicesParams{EndpointType: &ep, Type: &serviceType})
+func (c HTTPClient) ResolveServiceEndpoint(ctx context.Context, verifierDID string, serviceType string, endpointType string) (interface{}, error) {
+	// resolve DID
+	response, err := c.vdr().ResolveDID(ctx, verifierDID)
 	if err != nil {
 		return "", err
 	}
 	if err = testResponseCode(http.StatusOK, response); err != nil {
 		return "", err
 	}
-	services, err := vdr_v2.ParseFilterServicesResponse(response)
+	resolveReponse, err := vdr_v2.ParseResolveDIDResponse(response)
 	if err != nil {
 		return "", err
 	}
-	if len(*services.JSON200) != 1 {
-		return "", fmt.Errorf("expected exactly one service (DID=%s, type=%s), got %d", did, serviceType, len(*services.JSON200))
+	didDocument := resolveReponse.JSON200.Document
+	// find service
+	for _, service := range didDocument.Service {
+		if service.Type == serviceType {
+			serviceDef := make(map[string]interface{})
+			if err := service.UnmarshalServiceEndpoint(&serviceDef); err != nil {
+				return "", err
+			}
+			return serviceDef[endpointType], nil
+		}
 	}
-	return (*services.JSON200)[0].ServiceEndpoint, nil
+
+	return "", errors.New("service not found")
+}
+
+func (c HTTPClient) ListSubjectDIDs(ctx context.Context, customerID string) ([]string, error) {
+	response, err := c.vdr().SubjectDIDs(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+	if err = testResponseCode(http.StatusOK, response); err != nil {
+		return nil, err
+	}
+	parsedResponse, err := vdr_v2.ParseSubjectDIDsResponse(response)
+	if err != nil {
+		return nil, err
+	}
+	return *parsedResponse.JSON200, nil
 }
 
 func (c HTTPClient) vdr() vdr_v2.ClientInterface {

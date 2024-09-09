@@ -9,6 +9,8 @@ import (
 	"github.com/monarko/fhirgo/STU3/resources"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/fhir"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/notification"
 	"github.com/nuts-foundation/nuts-demo-ehr/domain/transfer"
@@ -223,8 +225,14 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 
 	// client_id for senderDID and sub for customerDID
 	_ = json.Unmarshal([]byte(introspectionResult), &target)
-	customerID := target["iss"].(string)
-	senderDID := target["sub"].(string)
+	issuerURLStr := target["iss"].(string)
+	// get senderDID via custom policy param
+	senderClientID := target["client_id"].(string)
+	senderDID := target["organization_did"].(string)
+	// we need the subjectID, which is at the end of the path, not panic safe
+	issuerURL, _ := url.Parse(issuerURLStr)
+	idx := strings.LastIndex(issuerURL.Path, "/")
+	customerID := issuerURL.Path[idx+1:]
 
 	codeError := datatypes.Code("error")
 	codeInvalid := datatypes.Code("invalid")
@@ -264,7 +272,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 					Code:     &codeInvalid,
 					Severity: &codeError,
 					Details: &datatypes.CodeableConcept{
-						Text: fhir.ToStringPtr(fmt.Sprintf("received transfer notification for unknown taskOwner with DID: %s", senderDID)),
+						Text: fhir.ToStringPtr(fmt.Sprintf("received transfer notification for unknown taskOwner with ID: %s", senderClientID)),
 					},
 				},
 			},

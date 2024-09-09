@@ -71,7 +71,11 @@ func (r remoteOrganizationRegistry) Get(ctx context.Context, organizationDID str
 }
 
 func (r remoteOrganizationRegistry) GetCompoundServiceEndpoint(ctx context.Context, organizationDID, serviceType string, field string) (string, error) {
-	return r.client.GetCompoundServiceEndpoint(ctx, organizationDID, serviceType, field)
+	endpoint, err := r.client.ResolveServiceEndpoint(ctx, organizationDID, serviceType, field)
+	if err != nil {
+		return "", err
+	}
+	return endpoint.(string), nil
 }
 
 func (r remoteOrganizationRegistry) toCache(organizations ...nuts.NutsOrganization) {

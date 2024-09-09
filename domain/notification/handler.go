@@ -49,10 +49,14 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 	if err != nil {
 		return fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", notification.SenderDID, err)
 	}
+	authServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, transfer.SenderServiceName, "auth")
+	if err != nil {
+		return fmt.Errorf("error while looking up custodian's Auth server (did=%s): %w", notification.SenderDID, err)
+	}
 
 	taskPath := fmt.Sprintf("/Task/%s", notification.TaskID)
 
-	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerID, notification.SenderDID, "eOverdracht-sender")
+	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerID, authServer, "eOverdracht-sender")
 	if err != nil {
 		return err
 	}

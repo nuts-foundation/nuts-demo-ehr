@@ -50,6 +50,13 @@
                 }
               },
               {
+                "id": "organization_did",
+                "path": [
+                  "$.credentialSubject.id",
+                  "$.credentialSubject[0].id"
+                ]
+              },
+              {
                 "id": "organization_name",
                 "path": [
                   "$.credentialSubject.organization.name",
@@ -199,6 +206,13 @@
                   "type": "string",
                   "pattern": "^did:web:node\\.(left|right)\\.local:iam:"
                 }
+              },
+              {
+                "id": "organization_did",
+                "path": [
+                  "$.credentialSubject.id",
+                  "$.credentialSubject[0].id"
+                ]
               },
               {
                 "id": "organization_name",

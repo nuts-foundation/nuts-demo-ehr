@@ -115,12 +115,12 @@ networks:
 - execute `make docker`
 - execute `./setup.sh <docker-compose-PEP.yml>` (setup is independent of PEP, so usually fine to run without argument (defaults to nginx)) 
 
-### setup.sh
-the setup script executes the following steps:
-- use https://admin.left.local and add did:web:left.local:iam:uuid-left
-- issue an NutsOrganizationCredential for this DID from this DID
-- use https://admin.right.local and add did:web:right.local:iam:uuid-right
-- issue an NutsOrganizationCredential for this DID from this DID
+# TODO use v6
+### After complete wipe of data
+- use https://admin.left.local and add "1" as identity
+- issue an NutsOrganizationCredential for the subject's DIDs from the subject's DIDs
+- use https://admin.right.local and add "1" as identity
+- issue an NutsOrganizationCredential for the subject's DIDs from the subject's DIDs
 - enable services for discovery
 - add services to the DID document using curl statement from below
 - create `customers.json` files for demo-ehr config
@@ -128,10 +128,10 @@ the setup script executes the following steps:
 
 curl statement to add services to DID document:
 ```shell
-docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/did/did:web:node.left.local:iam:uuid-left/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.left.local/oauth2/did:web:node.left.local:iam:uuid-left/authorize","fhir": "https://left.local/fhir/1"}}'
-docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/did/did:web:node.left.local:iam:uuid-left/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.left.local/oauth2/did:web:node.left.local:iam:uuid-left/authorize","notification": "https://left.local/web/external/transfer/notify"}}'
-docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/did/did:web:node.right.local:iam:uuid-right/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.right.local/oauth2/did:web:node.right.local:iam:uuid-right/authorize","fhir": "https://right.local/fhir/1"}}'
-docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/did/did:web:node.right.local:iam:uuid-right/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.right.local/oauth2/did:web:node.right.local:iam:uuid-right/authorize","notification": "https://right.local/web/external/transfer/notify"}}'
+docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.left.local/oauth2/1","fhir": "https://left.local/fhir/1"}}'
+docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.left.local/oauth2/1","notification": "https://left.local/web/external/transfer/notify"}}'
+docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.right.local/oauth2/1","fhir": "https://right.local/fhir/1"}}'
+docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.right.local/oauth2/1","notification": "https://right.local/web/external/transfer/notify"}}'
 ```
 
 ### Run

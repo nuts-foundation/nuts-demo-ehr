@@ -132,9 +132,9 @@ func (s transferService) GetTask(ctx context.Context, taskID string) (*TransferT
 	}
 
 	task := &TransferTask{
-		ID:          fhir.FromIDPtr(fhirTask.ID),
-		Status:      fhir.FromCodePtr(fhirTask.Status),
-		ReceiverDID: fhir.FromStringPtr(fhirTask.Owner.Identifier.Value),
+		ID:         fhir.FromIDPtr(fhirTask.ID),
+		Status:     fhir.FromCodePtr(fhirTask.Status),
+		ReceiverID: fhir.FromStringPtr(fhirTask.Owner.Identifier.Value),
 	}
 
 	if input := s.findTaskInputOutputByCode(fhirTask.Input, LoincAdvanceNoticeCode); input != nil {

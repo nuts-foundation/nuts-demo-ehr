@@ -19,14 +19,15 @@ var _ Discovery = (*HTTPClient)(nil)
 // DiscoverySearchResult models a single result for when searching on Discovery Services.
 type DiscoverySearchResult struct {
 	nuts.NutsOrganization
-	ServiceID string `json:"service_id"`
+	ServiceID  string                 `json:"service_id"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 type Discovery interface {
-	SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string, didServiceType *string) ([]DiscoverySearchResult, error)
+	SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string) ([]DiscoverySearchResult, error)
 }
 
-func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string, didServiceType *string) ([]DiscoverySearchResult, error) {
+func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID *string) ([]DiscoverySearchResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -43,16 +44,16 @@ func (c HTTPClient) SearchDiscoveryService(ctx context.Context, query map[string
 	}
 	searchResults := make([]DiscoverySearchResult, 0)
 	for _, serviceID := range serviceIDs {
-		currResults, err := c.searchDiscoveryService(ctx, query, serviceID, didServiceType)
+		currResults, err := c.searchDiscoveryService(ctx, query, serviceID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get service participants for %s, %s: %w", serviceID, *didServiceType, err)
+			return nil, fmt.Errorf("failed to get service participants for %s: %w", serviceID, err)
 		}
 		searchResults = append(searchResults, currResults...)
 	}
 	return searchResults, nil
 }
 
-func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID string, didServiceType *string) ([]DiscoverySearchResult, error) {
+func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string]string, discoveryServiceID string) ([]DiscoverySearchResult, error) {
 	queryAsMap := make(map[string]interface{}, 0)
 	for key, value := range query {
 		queryAsMap[key] = value
@@ -82,27 +83,10 @@ func (c HTTPClient) searchDiscoveryService(ctx context.Context, query map[string
 	// resolve all DIDs from .subjectId and filter on given didServiceType if given
 	results := make([]DiscoverySearchResult, 0)
 	for _, searchResult := range response {
-		if didServiceType != nil {
-			// parse did and convert did:web to url
-			doc, err := c.resolveDID(ctx, searchResult.CredentialSubjectId)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve DID %s: %w", searchResult.CredentialSubjectId, err)
-			}
-			// check if the didServiceType is in the service array
-			serviceFound := false
-			for _, service := range doc.Service {
-				if service.Type == *didServiceType {
-					serviceFound = true
-					break
-				}
-			}
-			if !serviceFound {
-				continue
-			}
-		}
 		results = append(results, DiscoverySearchResult{
 			NutsOrganization: organizationSearchResultToDomain(searchResult),
 			ServiceID:        discoveryServiceID,
+			Parameters:       searchResult.Parameters,
 		})
 	}
 	return results, nil
@@ -165,7 +149,7 @@ func (c HTTPClient) resolveDID(ctx context.Context, didStr string) (*did.Documen
 
 func organizationSearchResultToDomain(searchResult nutsDiscoveryClient.SearchResult) nuts.NutsOrganization {
 	return nuts.NutsOrganization{
-		ID: searchResult.CredentialSubjectId,
+		ID: searchResult.Parameters["authServerURL"].(string),
 		Details: nuts.OrganizationDetails{
 			Name: searchResult.Fields["organization_name"].(string),
 			City: searchResult.Fields["organization_city"].(string),

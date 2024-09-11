@@ -19,7 +19,7 @@
         <tbody>
         <tr v-for="negotiation in negotiations">
           <td v-if="negotiation.organization">{{ negotiation.organization.name }}</td>
-          <td v-else>{{ negotiation.organizationDID }}</td>
+          <td v-else>{{ negotiation.organizationID }}</td>
           <td>{{ negotiation.transferDate }}</td>
           <td>
             <transfer-status :status="{status: negotiation.status}"/>
@@ -186,7 +186,7 @@ export default {
       };
 
       this.$api.assignTransferDirect(negotiation, {
-        organizationDID: this.requestedOrganization.did
+        organizationID: this.requestedOrganization.did
       })
           .then(() => {
             this.requestedOrganization = null
@@ -207,7 +207,7 @@ export default {
       };
 
       this.$api.startTransferNegotiation(negotiation, {
-        organizationDID: this.requestedOrganization.did
+        organizationID: this.requestedOrganization.did
       })
           .then(() => {
             this.requestedOrganization = null

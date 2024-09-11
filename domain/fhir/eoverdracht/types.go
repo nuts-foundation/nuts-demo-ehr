@@ -9,7 +9,7 @@ import (
 type TransferTask struct {
 	ID               string
 	Status           string
-	ReceiverDID      string
+	ReceiverID       string
 	AdvanceNoticeID  *string
 	NursingHandoffID *string
 }

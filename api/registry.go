@@ -18,7 +18,7 @@ func (w Wrapper) SearchOrganizations(ctx echo.Context) error {
 	if err := ctx.Bind(&request); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
-	organizations, err := w.NutsClient.SearchDiscoveryService(ctx.Request().Context(), request.Query, request.DiscoveryServiceID, request.DidServiceType)
+	organizations, err := w.NutsClient.SearchDiscoveryService(ctx.Request().Context(), request.Query, request.DiscoveryServiceID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

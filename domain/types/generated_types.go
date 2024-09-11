@@ -79,8 +79,8 @@ type Collaboration struct {
 	// Id An internal object UUID which can be used as unique identifier for entities.
 	Id *ObjectID `json:"id,omitempty"`
 
-	// OrganizationDID The DID of the collaborator
-	OrganizationDID string `json:"organizationDID"`
+	// OrganizationID The DID of the collaborator
+	OrganizationID string `json:"organizationID"`
 
 	// OrganizationName The name of the collaborator
 	OrganizationName string `json:"organizationName"`
@@ -118,8 +118,8 @@ type CreateEpisodeRequest struct {
 
 // CreateTransferNegotiationRequest An request object to create a new transfer negotiation.
 type CreateTransferNegotiationRequest struct {
-	// OrganizationDID Decentralized Identifier of the organization to which transfer of a patient is requested.
-	OrganizationDID string `json:"organizationDID"`
+	// OrganizationID Decentralized Identifier of the organization to which transfer of a patient is requested.
+	OrganizationID string `json:"organizationID"`
 
 	// TransferDate Transfer date subject of the negotiation. Can be altered by both sending and receiving care organization.
 	TransferDate openapi_types.Date `json:"transferDate"`
@@ -415,8 +415,8 @@ type TransferNegotiation struct {
 	// Organization A care organization available through the Nuts Network to exchange information.
 	Organization Organization `json:"organization"`
 
-	// OrganizationDID Decentralized Identifier of the organization to which transfer of a patient is requested.
-	OrganizationDID string `json:"organizationDID"`
+	// OrganizationID Decentralized Identifier of the organization to which transfer of a patient is requested.
+	OrganizationID string `json:"organizationID"`
 
 	// Status Status of the negotiation, maps to FHIR eOverdracht task states (https://informatiestandaarden.nictiz.nl/wiki/vpk:V4.0_FHIR_eOverdracht#Using_Task_to_manage_the_workflow).
 	Status FHIRTaskStatus `json:"status"`

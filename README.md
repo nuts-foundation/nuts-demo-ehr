@@ -121,17 +121,14 @@ networks:
 - issue an NutsOrganizationCredential for the subject's DIDs from the subject's DIDs
 - use https://admin.right.local and add "1" as identity
 - issue an NutsOrganizationCredential for the subject's DIDs from the subject's DIDs
-- enable services for discovery
-- add services to the DID document using curl statement from below
+- activate services for discovery using curl statement from below
 - create `customers.json` files for demo-ehr config
 - wait
 
 curl statement to add services to DID document:
 ```shell
-docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.left.local/oauth2/1","fhir": "https://left.local/fhir/1"}}'
-docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.left.local/oauth2/1","notification": "https://left.local/web/external/transfer/notify"}}'
-docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-sender","serviceEndpoint": {"auth": "https://node.right.local/oauth2/1","fhir": "https://right.local/fhir/1"}}'
-docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/vdr/v2/subject/1/service" -H  "Content-Type: application/json" -d '{"type": "eOverdracht-receiver","serviceEndpoint": {"auth": "https://node.right.local/oauth2/1","notification": "https://right.local/web/external/transfer/notify"}}'
+docker exec nuts-demo-ehr-node-left-1 curl -X POST "http://localhost:8081/internal/discovery/v1/urn:nuts.nl:usecase:eOverdrachtDemo2024/1" -H  "Content-Type: application/json" -d '{"registrationParameters": {"fhir": "https://left.local/fhir/1", "notification":"https://left.local/web/external/transfer/notify"}}'
+docker exec nuts-demo-ehr-node-right-1 curl -X POST "http://localhost:8081/internal/discovery/v1/urn:nuts.nl:usecase:eOverdrachtDemo2024/1" -H  "Content-Type: application/json" -d '{"registrationParameters": {"fhir": "https://right.local/fhir/1", "notification":"https://right.local/web/external/transfer/notify"}}'
 ```
 
 ### Run

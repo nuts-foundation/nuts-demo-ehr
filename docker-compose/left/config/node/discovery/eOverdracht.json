@@ -73,6 +73,32 @@
             }
           ]
         }
+      },
+      {
+        "id": "id_registration_cred",
+        "constraints": {
+          "fields": [
+            {
+              "path": [
+                "$.type"
+              ],
+              "filter": {
+                "type": "string",
+                "const": "DiscoveryRegistrationCredential"
+              }
+            },
+            {
+              "id": "fhir endpoint",
+              "path": [
+                "$.credentialSubject.fhir",
+                "$.credentialSubject[0].fhir"
+              ],
+              "filter": {
+                "type": "string"
+              }
+            }
+          ]
+        }
       }
     ]
   }

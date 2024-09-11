@@ -131,7 +131,7 @@ func (w Wrapper) StartTransferNegotiation(ctx echo.Context, transferID string) e
 	if err != nil {
 		return err
 	}
-	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
+	negotiation, err := w.TransferSenderService.CreateNegotiation(ctx.Request().Context(), cid, transferID, request.OrganizationID)
 	if err != nil {
 		return err
 	}
@@ -143,11 +143,11 @@ func (w Wrapper) AssignTransferDirect(ctx echo.Context, transferID string) error
 	if err := ctx.Bind(&request); err != nil {
 		return err
 	}
-	cid, err := w.getCustomerID(ctx)
+	customer, err := w.getCustomer(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = w.TransferSenderService.AssignTransfer(ctx.Request().Context(), cid, transferID, request.OrganizationDID)
+	_, err = w.TransferSenderService.AssignTransfer(ctx.Request().Context(), *customer, transferID, request.OrganizationID)
 	if err != nil {
 		return err
 	}
@@ -165,9 +165,9 @@ func (w Wrapper) ListTransferNegotiations(ctx echo.Context, transferID string) e
 	}
 	// Enrich with organization info
 	for i, negotiation := range negotiations {
-		organization, err := w.OrganizationRegistry.Get(ctx.Request().Context(), negotiation.OrganizationDID)
+		organization, err := w.OrganizationRegistry.Get(ctx.Request().Context(), negotiation.OrganizationID)
 		if err != nil {
-			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationDID, err)
+			logrus.Warnf("Error while fetching organization info for negotiation (DID=%s): %v", negotiation.OrganizationID, err)
 			continue
 		}
 		negotiations[i].Organization = types.FromNutsOrganization(*organization)
@@ -228,7 +228,6 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 	issuerURLStr := target["iss"].(string)
 	// get senderDID via custom policy param
 	senderClientID := target["client_id"].(string)
-	senderDID := target["organization_did"].(string)
 	// we need the subjectID, which is at the end of the path, not panic safe
 	issuerURL, _ := url.Parse(issuerURLStr)
 	idx := strings.LastIndex(issuerURL.Path, "/")
@@ -281,7 +280,7 @@ func (w Wrapper) NotifyTransferUpdate(ctx echo.Context, taskID string) error {
 
 	if err := w.NotificationHandler.Handle(ctx.Request().Context(), notification.Notification{
 		TaskID:     taskID,
-		SenderDID:  senderDID,
+		SenderID:   senderClientID,
 		CustomerID: customerID,
 	}); err != nil {
 		return err

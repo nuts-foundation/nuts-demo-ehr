@@ -3,32 +3,29 @@ package client
 import (
 	"context"
 	"errors"
+	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/discovery"
 	"github.com/nuts-foundation/nuts-demo-ehr/nuts/client/vdr_v2"
 	"net/http"
 )
 
-func (c HTTPClient) ResolveServiceEndpoint(ctx context.Context, verifierDID string, serviceType string, endpointType string) (interface{}, error) {
-	// resolve DID
-	response, err := c.vdr().ResolveDID(ctx, verifierDID)
+func (c HTTPClient) ResolveServiceEndpoint(ctx context.Context, verifierID string, serviceType string, endpointType string) (string, error) {
+	// search on discovery service where credentialSubject.authServerURL == verifierID
+	response, err := c.discovery().SearchPresentations(ctx, serviceType, &discovery.SearchPresentationsParams{Query: &map[string]interface{}{"credentialSubject.authServerURL": verifierID}})
 	if err != nil {
 		return "", err
 	}
 	if err = testResponseCode(http.StatusOK, response); err != nil {
 		return "", err
 	}
-	resolveReponse, err := vdr_v2.ParseResolveDIDResponse(response)
+	searchReponse, err := discovery.ParseSearchPresentationsResponse(response)
 	if err != nil {
 		return "", err
 	}
-	didDocument := resolveReponse.JSON200.Document
+	searchResults := searchReponse.JSON200
 	// find service
-	for _, service := range didDocument.Service {
-		if service.Type == serviceType {
-			serviceDef := make(map[string]interface{})
-			if err := service.UnmarshalServiceEndpoint(&serviceDef); err != nil {
-				return "", err
-			}
-			return serviceDef[endpointType], nil
+	for _, service := range *searchResults {
+		if value, ok := service.Parameters[endpointType]; ok {
+			return value.(string), nil
 		}
 	}
 

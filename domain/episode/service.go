@@ -139,13 +139,13 @@ func (service *service) GetCollaborations(ctx context.Context, customerDID, doss
 			logrus.WithError(err).Warn("Error looking up episode collaborator organization")
 			collaborations = append(collaborations, types.Collaboration{
 				EpisodeID:        episodeID,
-				OrganizationDID:  authorizedDID,
+				OrganizationID:  authorizedDID,
 				OrganizationName: "!ERROR! " + err.Error(),
 			})
 		} else {
 			collaborations = append(collaborations, types.Collaboration{
 				EpisodeID:        episodeID,
-				OrganizationDID:  authorizedDID,
+				OrganizationID:  authorizedDID,
 				OrganizationName: org.Details.Name,
 			})
 		}

@@ -27,7 +27,7 @@ type SearchResult struct {
 
 	// Fields Input descriptor IDs and their mapped values that from the Verifiable Credential.
 	Fields map[string]interface{} `json:"fields"`
-
+	Parameters map[string]interface{} `json:"registrationParameters"`
 	// Id The ID of the Verifiable Presentation.
 	Id string                 `json:"id"`
 	Vp VerifiablePresentation `json:"vp"`
@@ -53,7 +53,7 @@ type VerifiablePresentation = externalRef0.VerifiablePresentation
 
 // SearchPresentationsParams defines parameters for SearchPresentations.
 type SearchPresentationsParams struct {
-	Query *map[string]string `form:"query,omitempty" json:"query,omitempty"`
+	Query *map[string]interface{} `form:"query,omitempty" json:"query,omitempty"`
 }
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function

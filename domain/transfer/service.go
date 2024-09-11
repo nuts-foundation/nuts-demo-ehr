@@ -1,7 +1,7 @@
 package transfer
 
-// ReceiverServiceName contains the name of the eOverdracht receiver compound-service
-const ReceiverServiceName = "eOverdracht-receiver"
+// ServiceName contains the name of the eOverdracht discovery service
+const ServiceName = "urn:nuts.nl:usecase:eOverdrachtDemo2024"
 
-// SenderServiceName contains the name of the eOverdracht sender compound-service
-const SenderServiceName = "eOverdracht-sender"
+const SenderServiceScope = "eOverdracht-sender"
+const ReceiverServiceScope = "eOverdracht-receiver"

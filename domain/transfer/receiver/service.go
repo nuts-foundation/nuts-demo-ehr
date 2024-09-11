@@ -155,29 +155,29 @@ func (s service) GetTransferRequest(ctx context.Context, customerID, requesterDI
 	return &transferRequest, nil
 }
 
-func (s service) getServiceFHIRClient(ctx context.Context, authorizerDID string, localRequesterSubjectID string) (fhir.Client, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
+func (s service) getServiceFHIRClient(ctx context.Context, authorizerID string, localRequesterSubjectID string) (fhir.Client, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerID, transfer.ServiceName, "fhir")
 	if err != nil {
-		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
+		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerID, err)
 	}
-	authServerURL, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "auth")
+	authServerURL, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerID, transfer.ServiceName, "authServerURL")
 	if err != nil {
-		return nil, fmt.Errorf("error while looking up authorizer's auth server (did=%s): %w", authorizerDID, err)
+		return nil, fmt.Errorf("error while looking up authorizer's auth server (did=%s): %w", authorizerID, err)
 	}
 
 	// TODO: This should be the user access token instead when medical data is involved,
 	// but this depends on the scope mapping which then has to change for v6
-	accessToken, err := s.nutsClient.RequestServiceAccessToken(ctx, localRequesterSubjectID, authServerURL, transfer.SenderServiceName)
+	accessToken, err := s.nutsClient.RequestServiceAccessToken(ctx, localRequesterSubjectID, authServerURL, transfer.SenderServiceScope)
 	if err != nil {
 		return nil, err
 	}
 	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken))(), nil
 }
 
-func (s service) getUserFHIRClient(ctx context.Context, authorizerDID string, localRequesterDID string, accessToken string) (fhir.Client, error) {
-	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerDID, transfer.SenderServiceName, "fhir")
+func (s service) getUserFHIRClient(ctx context.Context, authorizerID string, localRequesterDID string, accessToken string) (fhir.Client, error) {
+	fhirServer, err := s.registry.GetCompoundServiceEndpoint(ctx, authorizerID, transfer.ServiceName, "fhir")
 	if err != nil {
-		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (did=%s): %w", authorizerDID, err)
+		return nil, fmt.Errorf("error while looking up authorizer's FHIR server (id=%s): %w", authorizerID, err)
 	}
 
 	return fhir.NewFactory(fhir.WithURL(fhirServer), fhir.WithAuthToken(accessToken))(), nil

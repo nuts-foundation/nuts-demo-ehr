@@ -14,7 +14,7 @@ import (
 
 type Notification struct {
 	TaskID     string
-	SenderDID  string
+	SenderID   string
 	CustomerID string
 }
 
@@ -45,18 +45,18 @@ func NewHandler(
 
 // Handle handles an incoming notification about an updated Task for one of its customers.
 func (service *handler) Handle(ctx context.Context, notification Notification) error {
-	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, transfer.SenderServiceName, "fhir")
+	fhirServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderID, transfer.ServiceName, "fhir")
 	if err != nil {
-		return fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", notification.SenderDID, err)
+		return fmt.Errorf("error while looking up custodian's FHIR server (did=%s): %w", notification.SenderID, err)
 	}
-	authServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderDID, transfer.SenderServiceName, "auth")
+	authServer, err := service.registry.GetCompoundServiceEndpoint(ctx, notification.SenderID, transfer.ServiceName, "authServerURL")
 	if err != nil {
-		return fmt.Errorf("error while looking up custodian's Auth server (did=%s): %w", notification.SenderDID, err)
+		return fmt.Errorf("error while looking up custodian's Auth server (did=%s): %w", notification.SenderID, err)
 	}
 
 	taskPath := fmt.Sprintf("/Task/%s", notification.TaskID)
 
-	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerID, authServer, "eOverdracht-sender")
+	accessToken, err := service.nutsClient.RequestServiceAccessToken(ctx, notification.CustomerID, authServer, transfer.SenderServiceScope)
 	if err != nil {
 		return err
 	}
@@ -70,5 +70,5 @@ func (service *handler) Handle(ctx context.Context, notification Notification) e
 		return err
 	}
 
-	return service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, notification.SenderDID, fhir.FromIDPtr(task.ID))
+	return service.transferService.CreateOrUpdate(ctx, fhir.FromCodePtr(task.Status), notification.CustomerID, notification.SenderID, fhir.FromIDPtr(task.ID))
 }

@@ -24,12 +24,12 @@ import (
 
 type TransferService interface {
 	// AssignTransfer assigns a transfer directly to a single organization
-	AssignTransfer(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error)
+	AssignTransfer(ctx context.Context, customer types.Customer, transferID, organizationID string) (*types.TransferNegotiation, error)
 
 	// CreateTransfer creates a new transfer
 	CreateTransfer(ctx context.Context, customerID string, request types.CreateTransferRequest) (*types.Transfer, error)
 
-	CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error)
+	CreateNegotiation(ctx context.Context, customerID, transferID, organizationID string) (*types.TransferNegotiation, error)
 
 	GetTransferByID(ctx context.Context, customerID, transferID string) (types.Transfer, error)
 
@@ -132,20 +132,13 @@ func (s service) GetTransferByID(ctx context.Context, customerID, transferID str
 }
 
 // CreateNegotiation creates a new negotiation(FHIR Task) for a specific transfer and sends the other party a notification.
-func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error) {
+func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, organizationID string) (*types.TransferNegotiation, error) {
 	customer, err := s.customerRepo.FindByID(customerID)
 	if err != nil {
 		return nil, err
 	}
 
 	var negotiation *types.TransferNegotiation
-
-	// Pre-emptively resolve the receiver organization's notification endpoint to check registry configuration.
-	// This reduces cleanup code of FHIR task.
-	_, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
-	if err != nil {
-		return nil, fmt.Errorf("unable to create transfer negotiation: no notification endpoint found: %w", err)
-	}
 
 	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
 	fhirTransferService := eoverdracht.NewFHIRTransferService(fhirClient)
@@ -168,7 +161,7 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 
 		transferTask := eoverdracht.TransferTask{
 			Status:          transfer.RequestedState,
-			ReceiverDID:     organizationDID,
+			ReceiverID:      organizationID,
 			AdvanceNoticeID: &dbTransfer.FhirAdvanceNoticeComposition,
 		}
 
@@ -191,11 +184,11 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 		for _, path := range resourcePaths {
 			authorizedResources[path] = []string{"GET"}
 		}
-		if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customer.Id, authorizedResources); err != nil {
+		if err := s.pipClient.AddPIPData(transferTask.ID, organizationID, transfer.SenderServiceScope, *customer, authorizedResources); err != nil {
 			return nil, fmt.Errorf("could not create PIP data: %w", err)
 		}
 
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -211,9 +204,9 @@ func (s service) CreateNegotiation(ctx context.Context, customerID, transferID, 
 			return negotiation, commitErr
 		}
 
-		if err = s.sendNotification(ctx, customer, organizationDID, negotiation.TaskID); err != nil {
+		if err = s.sendNotification(ctx, customer, organizationID, negotiation.TaskID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
-			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationDID, err)
+			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (id=%s): %s", organizationID, err)
 		}
 	}
 
@@ -339,13 +332,13 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID, transferID,
 			processedPaths[path] = struct{}{}
 		}
 
-		if err := s.pipClient.AddPIPData(negotiation.TaskID, negotiation.OrganizationDID, transfer.SenderServiceName, customer.Id, authorizedResources); err != nil {
+		if err := s.pipClient.AddPIPData(negotiation.TaskID, negotiation.OrganizationID, transfer.SenderServiceScope, *customer, authorizedResources); err != nil {
 			return nil, fmt.Errorf("could not create PIP data: %w", err)
 		}
 
 		notifications = append(notifications, &notification{
-			customer:        customer,
-			organizationDID: negotiation.OrganizationDID,
+			customer:       customer,
+			organizationID: negotiation.OrganizationID,
 		})
 
 		return dbTransfer, nil
@@ -359,9 +352,9 @@ func (s service) ConfirmNegotiation(ctx context.Context, customerID, transferID,
 
 		var errs []string
 		for _, n := range notifications {
-			err = s.sendNotification(ctx, n.customer, n.organizationDID, negotiation.TaskID)
+			err = s.sendNotification(ctx, n.customer, n.organizationID, negotiation.TaskID)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("sending to %s: %w", n.organizationDID, err).Error())
+				errs = append(errs, fmt.Errorf("sending to %s: %w", n.organizationID, err).Error())
 			}
 		}
 		if len(errs) > 0 {
@@ -389,7 +382,7 @@ func (s service) CancelNegotiation(ctx context.Context, customerID, transferID, 
 		return nil, err
 	}
 
-	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationDID, negotiation.TaskID)
+	return negotiation, s.sendNotification(ctx, notification.customer, notification.organizationID, negotiation.TaskID)
 }
 
 func (s service) UpdateTaskState(ctx context.Context, customer types.Customer, taskID string, newState string) error {
@@ -431,8 +424,8 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 
 	// create notification
 	not := notification{
-		customer:        &customer,
-		organizationDID: negotiation.OrganizationDID,
+		customer:       &customer,
+		organizationID: negotiation.OrganizationID,
 	}
 
 	// Commit here, otherwise notifications to this server will deadlock on the uncommitted tx.
@@ -441,7 +434,7 @@ func (s service) acceptTask(ctx context.Context, customer types.Customer, negoti
 		return commitErr
 	}
 
-	_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
+	_ = s.sendNotification(ctx, not.customer, not.organizationID, negotiation.TaskID)
 
 	return nil
 }
@@ -475,8 +468,8 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 
 		// create notification
 		not = notification{
-			customer:        &customer,
-			organizationDID: negotiation.OrganizationDID,
+			customer:       &customer,
+			organizationID: negotiation.OrganizationID,
 		}
 
 		return transferRecord, nil
@@ -488,15 +481,15 @@ func (s service) completeTask(ctx context.Context, customer types.Customer, nego
 			return commitErr
 		}
 
-		_ = s.sendNotification(ctx, not.customer, not.organizationDID, negotiation.TaskID)
+		_ = s.sendNotification(ctx, not.customer, not.organizationID, negotiation.TaskID)
 	}
 
 	return err
 }
 
 type notification struct {
-	customer        *types.Customer
-	organizationDID string
+	customer       *types.Customer
+	organizationID string
 }
 
 // cancelNegotiation is like CancelNegotiation but it doesn't send any notification.
@@ -524,20 +517,20 @@ func (s service) cancelNegotiation(ctx context.Context, customerID, negotiationI
 	if err != nil {
 		return nil, nil, err
 	}
-	return negotiation, &notification{customer: customer, organizationDID: negotiation.OrganizationDID}, nil
+	return negotiation, &notification{customer: customer, organizationID: negotiation.OrganizationID}, nil
 }
 
-func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationDID string, fhirTaskID string) error {
-	notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
+func (s service) sendNotification(ctx context.Context, customer *types.Customer, organizationID string, fhirTaskID string) error {
+	notificationEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationID, transfer.ServiceName, "notification")
 	if err != nil {
 		return err
 	}
-	authServerEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "auth")
+	authServerEndpoint, err := s.registry.GetCompoundServiceEndpoint(ctx, organizationID, transfer.ServiceName, "authServerURL")
 	if err != nil {
 		return err
 	}
 
-	tokenResponse, err := s.nutsClient.RequestServiceAccessToken(ctx, customer.Id, authServerEndpoint, transfer.ReceiverServiceName)
+	tokenResponse, err := s.nutsClient.RequestServiceAccessToken(ctx, customer.Id, authServerEndpoint, transfer.ReceiverServiceScope)
 	if err != nil {
 		return err
 	}
@@ -579,26 +572,14 @@ func (s service) findPatientByDossierID(ctx context.Context, customerID, dossier
 	return patient, nil
 }
 
-func (s service) AssignTransfer(ctx context.Context, customerID, transferID, organizationDID string) (*types.TransferNegotiation, error) {
-	customer, err := s.customerRepo.FindByID(customerID)
-	if err != nil {
-		return nil, err
-	}
-
+func (s service) AssignTransfer(ctx context.Context, customer types.Customer, transferID, organizationID string) (*types.TransferNegotiation, error) {
 	var negotiation *types.TransferNegotiation
 
-	// Pre-emptively resolve the receiver organization's notification endpoint to check registry configuration.
-	// This reduces cleanup code of FHIR task.
-	_, err = s.registry.GetCompoundServiceEndpoint(ctx, organizationDID, transfer.ReceiverServiceName, "notification")
-	if err != nil {
-		return nil, fmt.Errorf("unable to create transfer negotiation: no notification endpoint found: %w", err)
-	}
-
-	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customerID))
+	fhirClient := s.localFHIRClientFactory(fhir.WithTenant(customer.Id))
 	fhirTransferService := eoverdracht.NewFHIRTransferService(fhirClient)
 
 	// Update the transfer
-	_, err = s.transferRepo.Update(ctx, customerID, transferID, func(dbTransfer *types.Transfer) (*types.Transfer, error) {
+	_, err := s.transferRepo.Update(ctx, customer.Id, transferID, func(dbTransfer *types.Transfer) (*types.Transfer, error) {
 		// Validate if transfer is in correct state to allow new negotiations
 		if dbTransfer.Status == types.Cancelled ||
 			dbTransfer.Status == types.Completed ||
@@ -611,16 +592,16 @@ func (s service) AssignTransfer(ctx context.Context, customerID, transferID, org
 		// it has to be updated to a NursingHandoff
 		compositionPath := fmt.Sprintf("/Composition/%s", dbTransfer.FhirAdvanceNoticeComposition)
 		composition := fhir.Composition{}
-		err = fhirClient.ReadOne(ctx, compositionPath, &composition)
+		err := fhirClient.ReadOne(ctx, compositionPath, &composition)
 		if err != nil {
 			return nil, fmt.Errorf("could not assign transfer negotiation: could not read fhir compositition: %w", err)
 		}
-		nursingHandoffComposition, err := s.advanceNoticeToNursingHandoff(ctx, customerID, dbTransfer)
+		nursingHandoffComposition, err := s.advanceNoticeToNursingHandoff(ctx, customer.Id, dbTransfer)
 		if err != nil {
 			return nil, fmt.Errorf("could not assign transfer negotiation: failed to upgrade AdvanceNotice to NursingHandoff: %w", err)
 		}
 		// Save nursing handoff composition in the FHIR store
-		if err = s.localFHIRClientFactory(fhir.WithTenant(customerID)).CreateOrUpdate(ctx, nursingHandoffComposition, nil); err != nil {
+		if err = s.localFHIRClientFactory(fhir.WithTenant(customer.Id)).CreateOrUpdate(ctx, nursingHandoffComposition, nil); err != nil {
 			return nil, err
 		}
 		dbTransfer.FhirNursingHandoffComposition = (*string)(nursingHandoffComposition.ID)
@@ -628,7 +609,7 @@ func (s service) AssignTransfer(ctx context.Context, customerID, transferID, org
 		// create the FHIR task with the Nurse Handoff
 		transferTask := eoverdracht.TransferTask{
 			Status:           transfer.InProgressState,
-			ReceiverDID:      organizationDID,
+			ReceiverID:       organizationID,
 			NursingHandoffID: dbTransfer.FhirNursingHandoffComposition,
 		}
 
@@ -638,15 +619,15 @@ func (s service) AssignTransfer(ctx context.Context, customerID, transferID, org
 		}
 
 		// store auth in pip
-		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, organizationDID, customerID); err != nil {
+		if err := s.createAuthorizations(ctx, &transferTask, nursingHandoffComposition, organizationID, customer); err != nil {
 			return nil, err
 		}
 
-		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customerID, transferID, organizationDID, dbTransfer.TransferDate.Time, transferTask.ID)
+		negotiation, err = s.transferRepo.CreateNegotiation(ctx, customer.Id, transferID, organizationID, dbTransfer.TransferDate.Time, transferTask.ID)
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.transferRepo.UpdateNegotiationState(ctx, customerID, negotiation.Id, transfer.InProgressState)
+		_, err = s.transferRepo.UpdateNegotiationState(ctx, customer.Id, negotiation.Id, transfer.InProgressState)
 		if err != nil {
 			return nil, err
 		}
@@ -660,9 +641,9 @@ func (s service) AssignTransfer(ctx context.Context, customerID, transferID, org
 			return negotiation, commitErr
 		}
 
-		if err = s.sendNotification(ctx, customer, organizationDID, negotiation.TaskID); err != nil {
+		if err = s.sendNotification(ctx, &customer, organizationID, negotiation.TaskID); err != nil {
 			// TODO: What to do here? Should we maybe rollback?
-			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationDID, err)
+			logrus.Errorf("Unable to notify receiving care organization of updated FHIR task (did=%s): %s", organizationID, err)
 		}
 	}
 
@@ -670,8 +651,8 @@ func (s service) AssignTransfer(ctx context.Context, customerID, transferID, org
 }
 
 // createAuthorizations creates 2 authorization credentials, one for the Task, and one for the nursingHandoffComposition.
-func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, organizationDID, customerID string) error {
-	prefix := fmt.Sprintf("/fhir/%d", customerID)
+func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdracht.TransferTask, nursingHandoffComposition *fhir.Composition, organizationID string, customer types.Customer) error {
+	prefix := fmt.Sprintf("/fhir/%d", customer.Id)
 	// Build the list of resources for the authorization credential:
 	authorizedResources := s.resourcesForNursingHandoff(nursingHandoffComposition)
 	authorizedResources[fmt.Sprintf("/Task/%s", transferTask.ID)] = []string{"GET", "PUT"}
@@ -683,7 +664,7 @@ func (s service) createAuthorizations(ctx context.Context, transferTask *eoverdr
 			delete(authorizedResources, path)
 		}
 	}
-	if err := s.pipClient.AddPIPData(transferTask.ID, organizationDID, transfer.SenderServiceName, customerID, authorizedResources); err != nil {
+	if err := s.pipClient.AddPIPData(transferTask.ID, organizationID, transfer.SenderServiceScope, customer, authorizedResources); err != nil {
 		return fmt.Errorf("could not create PIP data: %w", err)
 	}
 	return nil

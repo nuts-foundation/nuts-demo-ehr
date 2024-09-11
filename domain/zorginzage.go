@@ -56,18 +56,9 @@ func (z ZorginzageService) RemotePatient(ctx context.Context, subjectDID, remote
 }
 
 func (z ZorginzageService) fhirClient(ctx context.Context, localDID string, remotePartyDID string, scope string, serviceName string) (fhir.Client, error) {
-	endpointsInterf, err := z.NutsClient.ResolveServiceEndpoint(ctx, remotePartyDID, serviceName, "object")
+	fhirEndpoint, err := z.NutsClient.ResolveServiceEndpoint(ctx, remotePartyDID, serviceName, "fhir")
 	if err != nil {
 		return nil, fmt.Errorf("resolve DID service (DID=%s, service=%s): %w", remotePartyDID, serviceName, err)
-	}
-	endpoints := endpointsInterf.(map[string]interface{})
-	fhirEndpointInterf := endpoints["fhir"]
-	if fhirEndpointInterf == nil {
-		return nil, fmt.Errorf("remote XIS does not have its FHIR endpoint registered (DID=%s)", remotePartyDID)
-	}
-	fhirEndpoint, ok := fhirEndpointInterf.(string)
-	if !ok {
-		return nil, fmt.Errorf("FHIR endpoint is not a string (DID=%s)", remotePartyDID)
 	}
 	accessToken, err := z.NutsClient.RequestServiceAccessToken(ctx, localDID, remotePartyDID, scope)
 	if err != nil {

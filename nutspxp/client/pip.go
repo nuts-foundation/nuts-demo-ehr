@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-demo-ehr/domain/types"
 	"github.com/nuts-foundation/nuts-demo-ehr/nutspxp/client/pip"
 	"io"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 type Client interface {
-	AddPIPData(id string, client string, scope string, verifier string, authInput map[string]interface{}) error
+	AddPIPData(id string, client string, scope string, customer types.Customer, authInput map[string]interface{}) error
 	DeletePIPData(id string) error
 }
 
@@ -21,15 +22,17 @@ type HTTPClient struct {
 
 var _ Client = HTTPClient{}
 
-func (c HTTPClient) AddPIPData(id string, client string, scope string, verifier string, authInput map[string]interface{}) error {
+func (c HTTPClient) AddPIPData(id string, client string, scope string, customer types.Customer, authInput map[string]interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	verifierID := fmt.Sprintf("%s/oauth2/%s", customer.Domain, customer.Id)
 
 	resp, err := c.client().CreateData(ctx, id, pip.CreateDataJSONRequestBody{
 		AuthInput:  authInput,
 		ClientId:   client,
 		Scope:      scope,
-		VerifierId: verifier,
+		VerifierId: verifierID,
 	})
 	if err != nil {
 		return err

@@ -9,7 +9,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/knadh/koanf v1.5.0
 	github.com/labstack/echo/v4 v4.12.0
-	github.com/lestrrat-go/jwx v1.2.29
+	github.com/lestrrat-go/jwx v1.2.30
 	github.com/lestrrat-go/jwx/v2 v2.1.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/monarko/fhirgo v0.0.0-20200616214506-ca0a03fb1f7a
